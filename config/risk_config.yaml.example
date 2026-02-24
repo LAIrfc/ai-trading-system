@@ -1,0 +1,199 @@
+# 风控配置文件示例
+# 使用时请复制为 risk_config.yaml 并修改相关参数
+
+# 账户级风控
+account_risk:
+  # 最大回撤限制
+  max_drawdown: 0.20  # 最大回撤20%，触发后停止交易
+  
+  # 单日亏损限制
+  daily_loss_limit: 0.05  # 单日最大亏损5%
+  
+  # 总仓位限制
+  max_position_ratio: 0.95  # 最大仓位95%，保留5%现金
+  min_cash_reserve: 50000  # 最低现金储备5万元
+  
+  # 杠杆限制
+  max_leverage: 1.0  # 最大杠杆倍数（A股一般不允许杠杆）
+
+# 策略级风控
+strategy_risk:
+  # 单策略仓位限制
+  max_strategy_position: 0.60  # 单个策略最大占总资金60%
+  
+  # 策略表现监控
+  monitoring:
+    # 夏普比率要求
+    min_sharpe_ratio: 0.5  # 低于0.5暂停策略
+    
+    # 最大回撤
+    max_strategy_drawdown: 0.15  # 单策略最大回撤15%
+    
+    # 胜率要求
+    min_win_rate: 0.40  # 最低胜率40%
+    
+    # 评估周期
+    evaluation_period: 30  # 30个交易日
+
+# 个股级风控
+stock_risk:
+  # 单股仓位限制
+  max_single_position: 0.15  # 单只股票最大占总资金15%
+  min_single_position: 0.02  # 单只股票最小2%（低于此清仓）
+  
+  # 止损止盈
+  stop_loss: -0.08  # 止损-8%
+  stop_profit: 0.20  # 止盈+20%
+  trailing_stop: 0.05  # 移动止损5%
+  
+  # 涨跌停限制
+  avoid_limit_up: true  # 避免买入涨停股
+  avoid_limit_down: true  # 避免持有跌停股
+  
+  # 流动性要求
+  min_daily_volume: 10000000  # 最小日成交额1000万
+  max_bid_ask_spread: 0.02  # 最大买卖价差2%
+
+# 交易限制
+trading_limits:
+  # 单笔交易限制
+  max_order_value: 500000  # 单笔最大交易金额50万
+  min_order_value: 5000  # 单笔最小交易金额5000元
+  
+  # 交易频率限制
+  max_daily_trades: 50  # 单日最大交易次数
+  max_stock_trades_per_day: 5  # 单只股票单日最大交易次数
+  
+  # 持仓时间限制
+  min_holding_period: 1  # 最小持仓天数（避免日内交易）
+  max_holding_period: 60  # 最大持仓天数（长期持仓预警）
+
+# 市场风险监控
+market_risk:
+  # 市场波动监控
+  max_market_volatility: 0.03  # 市场波动率超过3%时降低仓位
+  volatility_reduce_ratio: 0.5  # 高波动时仓位降低50%
+  
+  # 大盘指数监控
+  index_tracking:
+    enabled: true
+    index_code: "000001"  # 上证指数
+    correlation_threshold: -0.5  # 与大盘相关性过低时预警
+  
+  # 黑天鹅事件
+  circuit_breaker:
+    enabled: true
+    trigger_threshold: -0.05  # 大盘跌5%触发熔断
+    action: "close_all"  # 熔断动作：close_all(全部平仓) / halt(暂停交易)
+
+# 风险指标阈值
+risk_metrics:
+  # 最大Beta值
+  max_beta: 1.5  # 投资组合Beta不超过1.5
+  
+  # VaR（风险价值）
+  max_var: 0.05  # 95%置信度下最大VaR 5%
+  var_confidence: 0.95  # VaR置信度
+  
+  # 集中度
+  max_sector_concentration: 0.40  # 单个行业最大40%
+  max_top5_concentration: 0.60  # 前5大持仓最大60%
+
+# 异常检测
+anomaly_detection:
+  enabled: true
+  
+  # 价格异常
+  price_spike_threshold: 0.20  # 价格单日波动超过20%预警
+  
+  # 成交量异常
+  volume_spike_threshold: 3.0  # 成交量超过平均值3倍预警
+  
+  # 滑点异常
+  slippage_threshold: 0.02  # 滑点超过2%预警
+  
+  # API异常
+  api_timeout: 5  # API超时5秒预警
+  api_error_threshold: 3  # API连续失败3次停止交易
+
+# 紧急措施
+emergency:
+  # 紧急平仓
+  emergency_exit:
+    enabled: true
+    triggers:
+      - "max_drawdown_reached"
+      - "daily_loss_limit_reached"
+      - "market_circuit_breaker"
+      - "system_error"
+  
+  # 紧急联系
+  emergency_contacts:
+    - name: "主要联系人"
+      phone: "138****8888"
+      email: "alert@example.com"
+
+# 风控日志
+risk_logging:
+  # 风控事件记录
+  log_all_risk_events: true
+  
+  # 风控报告
+  daily_risk_report: true
+  weekly_risk_report: true
+  
+  # 报告发送
+  send_to:
+    - "risk_manager@example.com"
+
+# 合规检查
+compliance:
+  # 禁止交易列表
+  blacklist:
+    stocks: []  # 禁止交易的股票代码
+    sectors: []  # 禁止交易的行业
+  
+  # 监管要求
+  regulatory:
+    # T+1交易制度
+    t_plus_1: true  # A股T+1，当日买入次日才能卖出
+    
+    # 信息披露
+    avoid_trading_before_disclosure: true  # 财报发布前避免交易
+    
+    # 内幕交易防范
+    insider_trading_check: true
+
+# 压力测试
+stress_test:
+  enabled: true
+  scenarios:
+    - name: "市场暴跌"
+      market_drop: -0.10
+      frequency: "monthly"
+    
+    - name: "流动性危机"
+      liquidity_shock: 0.50
+      frequency: "quarterly"
+    
+    - name: "黑天鹅事件"
+      extreme_scenario: true
+      frequency: "annually"
+
+# 风控更新
+risk_config_update:
+  # 动态调整
+  dynamic_adjustment: true
+  adjustment_frequency: "weekly"
+  
+  # 回测验证
+  backtest_before_update: true
+  min_backtest_period: 252  # 回测至少1年
+
+# 备注
+notes: |
+  1. 风控参数应根据个人风险承受能力调整
+  2. 建议从严格的风控开始，逐步放宽
+  3. 定期review风控效果，及时调整
+  4. 实盘前务必在模拟环境充分测试
+  5. 风控是保护本金的最后防线，不可掉以轻心

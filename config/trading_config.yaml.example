@@ -1,0 +1,141 @@
+# 交易配置文件示例
+# 使用时请复制为 trading_config.yaml 并修改相关参数
+
+# 账户配置
+account:
+  broker: "华泰证券"  # 券商名称
+  account_id: "YOUR_ACCOUNT_ID"  # 账户ID
+  api_key: "YOUR_API_KEY"  # API密钥
+  api_secret: "YOUR_API_SECRET"  # API密钥
+  
+  # 交易模式
+  mode: "simulation"  # simulation(模拟) / live(实盘)
+  
+  # 初始资金（仅回测使用）
+  initial_capital: 1000000  # 100万
+
+# 交易参数
+trading:
+  # 交易时间段（A股）
+  trading_hours:
+    morning_start: "09:30"
+    morning_end: "11:30"
+    afternoon_start: "13:00"
+    afternoon_end: "15:00"
+  
+  # 交易频率限制
+  max_orders_per_day: 100  # 单日最大下单数
+  min_order_interval: 3  # 最小下单间隔（秒）
+  
+  # 滑点和手续费
+  slippage: 0.001  # 滑点 0.1%
+  commission: 0.0003  # 手续费 0.03%
+  stamp_duty: 0.001  # 印花税 0.1%（仅卖出）
+  min_commission: 5  # 最低手续费 5元
+
+# 市场配置
+market:
+  # 交易市场
+  exchanges:
+    - "SSE"  # 上海证券交易所
+    - "SZSE"  # 深圳证券交易所
+  
+  # 股票池配置
+  stock_pool:
+    type: "index"  # index(指数成分股) / custom(自定义)
+    index_code: "000300"  # 沪深300
+    exclude_st: true  # 排除ST股票
+    exclude_suspended: true  # 排除停牌股票
+    min_market_cap: 5000000000  # 最小市值50亿
+    min_liquidity: 10000000  # 最小日成交额1000万
+
+# 数据配置
+data:
+  # 数据源
+  source: "akshare"  # akshare / tushare / baostock
+  
+  # 数据频率
+  frequency: "daily"  # daily(日线) / minute(分钟)
+  
+  # 数据更新
+  update_time: "17:00"  # 每日数据更新时间
+  
+  # 数据存储
+  storage:
+    type: "local"  # local(本地) / mysql / mongodb
+    path: "data/market_data"
+
+# 策略配置
+strategy:
+  # 默认策略
+  default_strategy: "ai_multi_factor"
+  
+  # 策略参数
+  strategies:
+    ai_multi_factor:
+      enabled: true
+      max_positions: 10  # 最大持仓数
+      rebalance_frequency: "daily"  # 调仓频率
+      model_path: "data/models/ai_model.pkl"
+      
+    mean_reversion:
+      enabled: false
+      lookback_period: 20
+      entry_threshold: 2.0
+      exit_threshold: 0.5
+
+# AI模型配置
+ai:
+  # 模型类型
+  model_type: "lightgbm"  # lightgbm / xgboost / neural_network
+  
+  # 训练参数
+  training:
+    lookback_days: 252  # 回看交易日数
+    validation_split: 0.2  # 验证集比例
+    update_frequency: "weekly"  # 模型更新频率
+  
+  # 特征工程
+  features:
+    - "price_momentum"
+    - "volume_momentum"
+    - "volatility"
+    - "technical_indicators"
+    - "fundamental_factors"
+
+# 日志配置
+logging:
+  level: "INFO"  # DEBUG / INFO / WARNING / ERROR
+  log_dir: "logs"
+  rotation: "daily"  # 日志轮转
+  retention: 30  # 保留天数
+
+# 通知配置
+notification:
+  enabled: true
+  channels:
+    email:
+      enabled: false
+      smtp_server: "smtp.example.com"
+      smtp_port: 587
+      username: "your_email@example.com"
+      password: "your_password"
+      recipients:
+        - "alert@example.com"
+    
+    wechat:
+      enabled: false
+      # 配置企业微信机器人webhook
+      webhook_url: "YOUR_WEBHOOK_URL"
+
+# 其他配置
+misc:
+  # 时区
+  timezone: "Asia/Shanghai"
+  
+  # 数据缓存
+  cache_enabled: true
+  cache_dir: "cache"
+  
+  # 调试模式
+  debug_mode: false

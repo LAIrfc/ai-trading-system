@@ -1,0 +1,51 @@
+# 自动化测试配置文件
+# 复制此文件为 test_config.yaml 并修改参数
+
+# 同花顺路径配置
+tonghuashun:
+  app_path: /opt/apps/cn.com.10jqka/files/HevoNext.B2CApp
+  auto_start: true  # 是否自动启动同花顺
+  auto_login: true  # 是否自动登录（需要已保存密码）
+  
+# 测试参数
+test:
+  # 测试股票代码
+  stock_code: "600519"  # 贵州茅台
+  
+  # 测试价格
+  price: 1000.0
+  
+  # 测试数量（股）
+  quantity: 100
+  
+  # 操作类型：buy, sell, query_only
+  action: "query_only"  # 默认只查询不交易
+  
+  # 是否真实交易（true=真实下单，false=只测试）
+  real_trade: false  # 默认安全模式，不实际下单
+  
+# 策略规则配置
+rules:
+  # 价格范围
+  price_min: 10
+  price_max: 5000
+  
+  # 单笔最大金额（元）
+  max_order_value: 100000
+  
+  # 单日最大交易次数
+  max_daily_trades: 10
+
+# 风控参数
+risk:
+  # 单只股票最大仓位（0-1）
+  max_position_per_stock: 0.3
+  
+  # 最大总仓位（0-1）
+  max_total_position: 0.8
+  
+  # 止损比例
+  stop_loss: 0.05
+  
+  # 止盈比例
+  take_profit: 0.15

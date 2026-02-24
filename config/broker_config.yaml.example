@@ -1,0 +1,155 @@
+# 券商配置文件示例
+# 使用时请复制为 broker_config.yaml 并修改相关参数
+
+# 券商类型
+broker_type: "tonghuashun_simulator"  # tonghuashun_simulator / huatai / other
+
+# 同花顺模拟炒股配置
+tonghuashun_simulator:
+  # 登录信息
+  username: "your_username"  # 同花顺用户名
+  password: "your_password"  # 密码
+  
+  # 浏览器设置
+  headless: false  # 是否无头模式（调试时建议false，生产时用true）
+  implicit_wait: 10  # 隐式等待时间（秒）
+  window_size: "1920,1080"  # 浏览器窗口大小
+  
+  # 超时设置
+  login_timeout: 30  # 登录超时（秒）
+  page_load_timeout: 30  # 页面加载超时（秒）
+  
+  # 重试设置
+  max_retries: 3  # 最大重试次数
+  retry_delay: 5  # 重试延迟（秒）
+  
+  # 反检测设置
+  anti_detection: true  # 是否启用反检测
+  random_delay: true  # 是否添加随机延迟
+  min_delay: 1  # 最小延迟（秒）
+  max_delay: 3  # 最大延迟（秒）
+
+# 华泰证券配置（API方式）
+huatai:
+  # API信息
+  account_id: "YOUR_ACCOUNT_ID"
+  api_key: "YOUR_API_KEY"
+  api_secret: "YOUR_API_SECRET"
+  
+  # 服务器
+  server_url: "https://api.huatai.com"
+  
+  # 证书（如需要）
+  cert_path: ""
+  key_path: ""
+
+# 交易配置
+trading:
+  # 交易模式
+  mode: "simulation"  # simulation / live
+  
+  # 订单设置
+  default_order_type: "limit"  # limit(限价) / market(市价)
+  price_tick: 0.01  # 价格最小变动单位
+  min_order_value: 5000  # 最小订单金额（元）
+  
+  # 滑点设置
+  slippage_tolerance: 0.002  # 滑点容忍度 0.2%
+  max_slippage: 0.01  # 最大滑点 1%
+  
+  # 超时设置
+  order_timeout: 60  # 订单超时（秒）
+  cancel_timeout: 10  # 撤单超时（秒）
+  
+  # 批量操作
+  batch_size: 10  # 批量下单数量
+  batch_interval: 0.5  # 批量间隔（秒）
+
+# 重连设置
+reconnect:
+  enable: true  # 是否启用自动重连
+  max_attempts: 5  # 最大重连次数
+  initial_delay: 5  # 初始延迟（秒）
+  backoff_factor: 2  # 退避因子（每次重连延迟翻倍）
+  max_delay: 300  # 最大延迟（秒）
+
+# 日志设置
+logging:
+  # 交易日志
+  trade_log_enabled: true
+  trade_log_file: "logs/trade.log"
+  
+  # 订单日志
+  order_log_enabled: true
+  order_log_file: "logs/orders.log"
+  
+  # 调试日志
+  debug_log_enabled: false
+  debug_log_file: "logs/broker_debug.log"
+  
+  # 日志级别
+  log_level: "INFO"  # DEBUG / INFO / WARNING / ERROR
+
+# 监控设置
+monitoring:
+  # 账户监控
+  check_account_interval: 300  # 账户检查间隔（秒）
+  check_positions_interval: 60  # 持仓检查间隔（秒）
+  check_orders_interval: 10  # 订单检查间隔（秒）
+  
+  # 异常检测
+  detect_abnormal_trades: true  # 检测异常交易
+  abnormal_trade_threshold: 10  # 异常交易阈值（单位时间内）
+  
+  # 报警
+  alert_on_error: true  # 错误时报警
+  alert_on_disconnection: true  # 断线时报警
+
+# 安全设置
+security:
+  # 加密
+  encrypt_credentials: true  # 加密凭证
+  
+  # IP白名单
+  ip_whitelist_enabled: false
+  allowed_ips:
+    - "127.0.0.1"
+    - "192.168.1.0/24"
+  
+  # 二次验证
+  require_2fa: false  # 是否需要二次验证
+  
+  # 操作审计
+  audit_all_operations: true  # 审计所有操作
+  audit_log_file: "logs/audit.log"
+
+# 高级设置
+advanced:
+  # 并发控制
+  max_concurrent_orders: 5  # 最大并发订单数
+  
+  # 队列设置
+  order_queue_size: 100  # 订单队列大小
+  
+  # 缓存
+  cache_account_info: true  # 缓存账户信息
+  cache_ttl: 10  # 缓存有效期（秒）
+  
+  # 性能优化
+  connection_pool_size: 5  # 连接池大小
+  keep_alive: true  # 保持连接
+
+# 备注
+notes: |
+  配置说明:
+  1. 首次使用建议用headless=false观察操作流程
+  2. 确保Chrome浏览器和ChromeDriver版本匹配
+  3. 网页元素选择器可能需要根据实际页面调整
+  4. 生产环境建议启用加密和审计功能
+  5. 定期备份配置文件
+  
+  安全提示:
+  - 不要将包含密码的配置文件提交到版本控制
+  - 使用环境变量管理敏感信息
+  - 定期更换密码
+  - 启用操作审计

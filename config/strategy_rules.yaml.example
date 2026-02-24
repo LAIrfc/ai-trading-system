@@ -1,0 +1,333 @@
+# 策略规则配置示例
+# 定义交易必须遵守的规则
+
+strategy_name: "my_trading_strategy"
+description: "我的交易策略规则集"
+
+# 全局设置
+settings:
+  require_manual_approval: false  # 是否需要人工审批
+  auto_approve: true  # 是否自动批准（仅当所有检查通过）
+  strict_mode: true  # 严格模式：任何规则违反都拒绝
+
+# 入场规则
+entry_rules:
+  - rule_id: "entry_time_window"
+    name: "交易时间窗口"
+    description: "只在开盘后30分钟到收盘前30分钟进行买入操作"
+    condition:
+      type: "time_window"
+      start_time: "10:00:00"
+      end_time: "14:30:00"
+    action: "reject"
+    priority: 10
+    enabled: true
+    mandatory: true
+  
+  - rule_id: "entry_price_range"
+    name: "价格范围限制"
+    description: "只买入价格在5-100元之间的股票"
+    condition:
+      type: "price_range"
+      min_price: 5.0
+      max_price: 100.0
+    action: "reject"
+    priority: 20
+    enabled: true
+    mandatory: true
+  
+  - rule_id: "entry_liquidity"
+    name: "流动性要求"
+    description: "日成交量必须大于1000万"
+    condition:
+      type: "liquidity"
+      min_volume: 10000000
+    action: "reject"
+    priority: 30
+    enabled: true
+    mandatory: true
+  
+  - rule_id: "entry_volatility"
+    name: "波动率限制"
+    description: "波动率不超过5%"
+    condition:
+      type: "volatility"
+      max_volatility: 0.05
+    action: "reject"
+    priority: 40
+    enabled: true
+    mandatory: false  # 非强制，仅警告
+
+# 出场规则
+exit_rules:
+  - rule_id: "exit_holding_period"
+    name: "最小持仓期"
+    description: "持仓至少1个交易日（避免T+0）"
+    condition:
+      type: "holding_period"
+      min_holding_days: 1
+    action: "reject"
+    priority: 10
+    enabled: true
+    mandatory: true
+  
+  - rule_id: "exit_stop_loss"
+    name: "止损规则"
+    description: "亏损达到8%时必须止损"
+    condition:
+      type: "stop_loss"
+      max_loss_pct: -0.08
+    action: "force_sell"
+    priority: 5  # 高优先级
+    enabled: true
+    mandatory: true
+  
+  - rule_id: "exit_stop_profit"
+    name: "止盈规则"
+    description: "盈利达到20%时建议止盈"
+    condition:
+      type: "stop_profit"
+      profit_target: 0.20
+    action: "suggest_sell"
+    priority: 15
+    enabled: true
+    mandatory: false
+  
+  - rule_id: "exit_time_window"
+    name: "收盘前禁止卖出"
+    description: "收盘前5分钟禁止卖出（避免流动性风险）"
+    condition:
+      type: "time_window"
+      start_time: "09:30:00"
+      end_time: "14:55:00"
+    action: "reject"
+    priority: 10
+    enabled: true
+    mandatory: true
+
+# 仓位规则
+position_rules:
+  - rule_id: "pos_single_stock"
+    name: "单股仓位限制"
+    description: "单只股票仓位不超过15%，不低于2%"
+    condition:
+      type: "position_limit"
+      max_position: 0.15
+      min_position: 0.02
+    action: "adjust"
+    priority: 10
+    enabled: true
+    mandatory: true
+  
+  - rule_id: "pos_total_position"
+    name: "总仓位限制"
+    description: "总仓位不超过95%"
+    condition:
+      type: "total_position_limit"
+      max_total_position: 0.95
+    action: "reject"
+    priority: 5
+    enabled: true
+    mandatory: true
+  
+  - rule_id: "pos_sector_concentration"
+    name: "行业集中度限制"
+    description: "单个行业仓位不超过40%"
+    condition:
+      type: "sector_limit"
+      max_sector_ratio: 0.40
+    action: "reject"
+    priority: 20
+    enabled: true
+    mandatory: true
+
+# 风险规则
+risk_rules:
+  - rule_id: "risk_drawdown"
+    name: "最大回撤限制"
+    description: "账户回撤超过20%时停止交易"
+    condition:
+      type: "max_drawdown"
+      threshold: 0.20
+    action: "halt_trading"
+    priority: 1  # 最高优先级
+    enabled: true
+    mandatory: true
+  
+  - rule_id: "risk_daily_loss"
+    name: "单日亏损限制"
+    description: "单日亏损超过5%时停止交易"
+    condition:
+      type: "daily_loss_limit"
+      threshold: 0.05
+    action: "halt_trading"
+    priority: 2
+    enabled: true
+    mandatory: true
+  
+  - rule_id: "risk_correlation"
+    name: "相关性控制"
+    description: "持仓股票间相关性不超过0.7"
+    condition:
+      type: "correlation"
+      max_correlation: 0.7
+    action: "reject"
+    priority: 30
+    enabled: true
+    mandatory: false
+
+# 时机规则
+timing_rules:
+  - rule_id: "timing_avoid_news"
+    name: "避开重要公告"
+    description: "财报发布日前后3天避免交易该股"
+    condition:
+      type: "avoid_event"
+      event_type: "earnings"
+      buffer_days: 3
+    action: "reject"
+    priority: 20
+    enabled: true
+    mandatory: false
+  
+  - rule_id: "timing_market_condition"
+    name: "市场条件过滤"
+    description: "大盘跌幅超过3%时暂停买入"
+    condition:
+      type: "market_condition"
+      index_code: "000001"  # 上证指数
+      max_drop: -0.03
+    action: "reject"
+    priority: 10
+    enabled: true
+    mandatory: true
+
+# 过滤规则
+filter_rules:
+  - rule_id: "filter_st_stocks"
+    name: "排除ST股票"
+    description: "不交易ST、*ST股票"
+    condition:
+      type: "stock_filter"
+      exclude_st: true
+    action: "reject"
+    priority: 5
+    enabled: true
+    mandatory: true
+  
+  - rule_id: "filter_new_stocks"
+    name: "排除次新股"
+    description: "上市不满3个月的股票不交易"
+    condition:
+      type: "stock_filter"
+      min_listing_days: 90
+    action: "reject"
+    priority: 10
+    enabled: true
+    mandatory: true
+  
+  - rule_id: "filter_market_cap"
+    name: "市值过滤"
+    description: "只交易市值大于50亿的股票"
+    condition:
+      type: "market_cap_filter"
+      min_market_cap: 5000000000
+    action: "reject"
+    priority: 15
+    enabled: true
+    mandatory: true
+
+# 合规规则
+compliance_rules:
+  - rule_id: "compliance_max_trades"
+    name: "日交易次数限制"
+    description: "单日最多交易50次"
+    condition:
+      type: "trading_frequency"
+      max_daily_trades: 50
+    action: "reject"
+    priority: 10
+    enabled: true
+    mandatory: true
+  
+  - rule_id: "compliance_stock_trades"
+    name: "个股交易次数限制"
+    description: "单只股票单日最多交易5次"
+    condition:
+      type: "stock_trading_frequency"
+      max_stock_trades_per_day: 5
+    action: "reject"
+    priority: 10
+    enabled: true
+    mandatory: true
+
+# 审批规则
+approval_rules:
+  - rule_id: "approval_large_order"
+    name: "大额订单审批"
+    description: "单笔交易金额超过50万需要人工审批"
+    condition:
+      type: "order_value"
+      threshold: 500000
+    action: "require_approval"
+    priority: 5
+    enabled: true
+    mandatory: true
+  
+  - rule_id: "approval_new_stock"
+    name: "新股票审批"
+    description: "交易股票池外的股票需要审批"
+    condition:
+      type: "stock_pool"
+      require_in_pool: true
+    action: "require_approval"
+    priority: 10
+    enabled: true
+    mandatory: true
+
+# 监控规则
+monitoring_rules:
+  - rule_id: "monitor_performance"
+    name: "策略表现监控"
+    description: "夏普比率低于0.5时发出警告"
+    condition:
+      type: "performance_metric"
+      metric: "sharpe_ratio"
+      min_value: 0.5
+    action: "alert"
+    priority: 50
+    enabled: true
+    mandatory: false
+  
+  - rule_id: "monitor_win_rate"
+    name: "胜率监控"
+    description: "胜率低于40%时发出警告"
+    condition:
+      type: "performance_metric"
+      metric: "win_rate"
+      min_value: 0.40
+    action: "alert"
+    priority: 50
+    enabled: true
+    mandatory: false
+
+# 备注说明
+notes: |
+  规则优先级说明：
+  - 1-10: 最高优先级（风控相关）
+  - 11-30: 高优先级（合规和重要业务规则）
+  - 31-50: 中等优先级（一般业务规则）
+  - 51+: 低优先级（监控和提示）
+  
+  规则强制性说明：
+  - mandatory=true: 强制规则，违反时拒绝交易
+  - mandatory=false: 建议规则，违反时仅警告
+  
+  动作类型说明：
+  - reject: 拒绝交易
+  - adjust: 调整参数（如仓位）
+  - require_approval: 需要人工审批
+  - alert: 发出警告
+  - halt_trading: 停止交易
+  - force_sell: 强制卖出
+  - suggest_sell: 建议卖出
