@@ -33,6 +33,7 @@
 - ✅ **规则引擎和合规检查** ⭐
 - ✅ **完整审计追踪** ⭐
 - ✅ 策略文档自动维护
+- ✅ **双核动量轮动策略（完整实现）** 🆕
 
 ### 技术特点
 - 模块化设计，易于扩展
@@ -224,14 +225,59 @@ python scripts/download_data.py --start 20200101 --end 20241231
 python scripts/calculate_factors.py
 ```
 
-### 4. 策略回测
+### 4. 🆕 双核动量轮动策略（完整实现）
+
+**新增功能**：完整的双核动量轮动策略，包含数据获取、回测、可视化！
+
+#### 快速开始
+
+```bash
+# 运行完整回测（自动下载数据 + 生成报告 + 绘制图表）
+python backtest_dual_momentum.py
+```
+
+#### 什么是双核动量策略？
+
+- **绝对动量**：只买处于上升趋势的资产（价格 > 200日均线）
+- **相对动量**：在合格资产中，选择涨幅最大的持有
+- **定期轮动**：每月调整一次，永远持有最强的资产
+
+**适合标的**：沪深300、创业板50、纳指ETF、黄金ETF、债券ETF
+
+**核心优势**：
+- ✅ 熊市保护（自动空仓）
+- ✅ 追踪最强趋势
+- ✅ 完整风控（止损、熔断）
+- ✅ 一键回测验证
+
+#### 使用指南
+
+```bash
+# 快速测试（1分钟）
+python test_dual_momentum_quick.py
+
+# 完整回测（5分钟）
+python backtest_dual_momentum.py
+
+# 查看策略文档
+cat strategies/dual_momentum_strategy.md
+
+# 查看使用教程
+cat DUAL_MOMENTUM_GUIDE.md
+```
+
+**📚 完整教程**：[双核动量策略使用指南](DUAL_MOMENTUM_GUIDE.md) ⭐
+
+---
+
+### 5. 其他策略回测
 
 ```bash
 # 运行回测
 python src/core/backtest/backtest_runner.py --strategy your_strategy --start 20230101 --end 20231231
 ```
 
-### 5. 实盘交易（谨慎！）
+### 6. 实盘交易（谨慎！）
 
 ```bash
 # 启动实盘交易（确保已充分测试）

@@ -1,5 +1,28 @@
 # 快速参考卡片 🎯
 
+## 🆕 双核动量轮动策略（NEW!）
+
+**一键回测ETF轮动策略**
+
+```bash
+# 快速测试（1分钟）
+python test_dual_momentum_quick.py
+
+# 完整回测（5分钟，生成报告+图表）
+python backtest_dual_momentum.py
+```
+
+**策略原理**：
+- 绝对动量：价格 > 200日均线 → 只买牛市资产
+- 相对动量：选涨幅最大的 → 永远骑最快的马
+- 每月调仓：自动轮换 → 熊市自动空仓
+
+**适合标的**：沪深300/创业板50/纳指ETF/黄金/国债
+
+**完整指南**：[DUAL_MOMENTUM_GUIDE.md](DUAL_MOMENTUM_GUIDE.md) ⭐
+
+---
+
 ## 🪟 Windows vs 🐧 Linux
 
 ### Windows 用户
