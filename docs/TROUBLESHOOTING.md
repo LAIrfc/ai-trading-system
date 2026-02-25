@@ -22,7 +22,7 @@ Run the following: sudo apt-get install python3-tk python3-dev
 
 ```bash
 cd /home/wangxinghan/codetree/ai-trading-system
-./install_tkinter.sh
+./scripts/install_tkinter.sh
 ```
 
 #### 方法2: 手动安装
@@ -36,7 +36,7 @@ sudo apt-get install python3-tk python3-dev -y
 安装完成后，运行测试：
 
 ```bash
-python3 simple_test.py
+python3 tests/simple_test.py
 ```
 
 应该看到：
@@ -66,7 +66,7 @@ sudo apt-get install python3-tk python3-dev python3-pip -y
 pip3 install --user pyautogui psutil pillow loguru pyyaml
 
 # 3. 测试
-python3 simple_test.py
+python3 tests/simple_test.py
 
 # 4. 运行程序
 python3 examples/desktop_trading_demo.py
@@ -124,7 +124,7 @@ sudo apt-get install python3-pip -y
 - [ ] tkinter已安装: `python3 -c "import tkinter; print('OK')"`
 - [ ] pyautogui已安装: `python3 -c "import pyautogui; print('OK')"`
 - [ ] 同花顺已安装: `ls /opt/apps/cn.com.10jqka/files/HevoNext.B2CApp`
-- [ ] 简单测试通过: `python3 simple_test.py`
+- [ ] 简单测试通过: `python3 tests/simple_test.py`
 - [ ] 演示程序运行: `python3 examples/desktop_trading_demo.py`
 
 ## 获取帮助
@@ -132,7 +132,7 @@ sudo apt-get install python3-pip -y
 如果问题仍未解决：
 
 1. 查看日志文件: `logs/`
-2. 运行诊断: `python3 simple_test.py`
+2. 运行诊断: `python3 tests/simple_test.py`
 3. 查看详细错误: 添加 `2>&1` 到命令
 4. 检查Python版本: `python3 --version`
 
@@ -144,7 +144,7 @@ cd /home/wangxinghan/codetree/ai-trading-system
 
 sudo apt-get install python3-tk python3-dev python3-pip -y
 pip3 install --user pyautogui psutil pillow loguru pyyaml
-python3 simple_test.py
+python3 tests/simple_test.py
 ```
 
 如果看到 "✅ 所有测试通过"，就可以使用了！

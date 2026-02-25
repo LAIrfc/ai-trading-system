@@ -490,7 +490,7 @@
 |------|------|
 | `src/api/broker/tonghuashun_desktop.py` | 同花顺桌面自动化（实盘） |
 | `src/core/simulator/paper_trading.py` | 模拟交易账户 |
-| `backtest_dual_momentum.py` | 回测引擎 |
+| `tools/backtest_dual_momentum.py` | 回测引擎 |
 
 ---
 
@@ -565,8 +565,8 @@ for 每个交易日 in 回测区间:
 
 | 文件 | 作用 |
 |------|------|
-| `backtest_dual_momentum.py` | 回测主程序 |
-| `test_dual_momentum_quick.py` | 快速信号测试 |
+| `tools/backtest_dual_momentum.py` | 回测主程序 |
+| `tests/test_dual_momentum_quick.py` | 快速信号测试 |
 
 ---
 
@@ -613,7 +613,7 @@ for 每个交易日 in 回测区间:
 
 ### 7.3 修改参数方法
 
-在 `backtest_dual_momentum.py` 中修改配置字典：
+在 `tools/backtest_dual_momentum.py` 中修改配置字典：
 
 ```python
 config = {
@@ -653,7 +653,7 @@ config = {
 
 Step 1: 运行策略计算
 ┌──────────────────────────────────────────┐
-│ $ python3 test_dual_momentum_quick.py    │
+│ $ python3 tests/test_dual_momentum_quick.py    │
 │                                          │
 │ 输出:                                    │
 │   当前持仓: 518880 (黄金ETF)              │
@@ -731,7 +731,7 @@ ai-trading-system/
 │           └── dual_momentum_strategy.py   ← 第二阶段：策略核心计算
 │
 ├── 🧪 回测 & 测试
-│   ├── backtest_dual_momentum.py           ← 第四阶段：完整回测
+│   ├── tools/backtest_dual_momentum.py      ← 第四阶段：完整回测
 │   └── test_dual_momentum_quick.py         ← 快速信号验证
 │
 ├── 🔌 交易接口
@@ -766,10 +766,10 @@ ai-trading-system/
 cd /home/wangxinghan/codetree/ai-trading-system
 
 # 快速查看当前信号（约1分钟）
-python3 test_dual_momentum_quick.py
+python3 tests/test_dual_momentum_quick.py
 
 # 运行完整回测（约5分钟）
-python3 backtest_dual_momentum.py
+python3 tools/backtest_dual_momentum.py
 
 # 查看策略文档
 cat strategies/dual_momentum_strategy.md
@@ -785,7 +785,7 @@ start dual_momentum_backtest_result.png       # Windows
 # 编辑回测脚本中的参数
 # 修改 backtest_dual_momentum.py 中的 config 字典
 # 然后重新运行：
-python3 backtest_dual_momentum.py
+python3 tools/backtest_dual_momentum.py
 ```
 
 ### 10.3 版本管理

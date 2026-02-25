@@ -7,7 +7,7 @@
 
 import sys
 import os
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import pandas as pd
 import numpy as np
@@ -699,8 +699,8 @@ def main():
     print("📝 步骤 3/3: 生成 Markdown 报告...")
     md = generate_markdown(report)
 
-    output_path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                               'docs', 'TRADE_ANALYSIS_REPORT.md')
+    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    output_path = os.path.join(project_root, 'docs', 'TRADE_ANALYSIS_REPORT.md')
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     with open(output_path, 'w', encoding='utf-8') as f:
         f.write(md)

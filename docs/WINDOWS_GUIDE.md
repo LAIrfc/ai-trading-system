@@ -280,7 +280,7 @@ def _is_app_running(self):
 
 ### 创建Windows启动脚本
 
-创建 `start_windows.bat`：
+创建 `scripts/scripts/start_windows.bat`：
 
 ```batch
 @echo off
@@ -322,7 +322,7 @@ if "%choice%"=="1" (
 pause
 ```
 
-双击运行 `start_windows.bat`！
+双击运行 `scripts/scripts/start_windows.bat`！
 
 ---
 
@@ -453,7 +453,7 @@ C:\Users\你的用户名\
     ├── src\               # 源代码
     ├── tools\             # 工具脚本
     ├── venv\              # 虚拟环境（可选）
-    └── start_windows.bat  # Windows启动脚本
+    └── scripts/start_windows.bat  # Windows启动脚本
 ```
 
 ---

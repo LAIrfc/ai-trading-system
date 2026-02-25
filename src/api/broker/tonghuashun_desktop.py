@@ -84,6 +84,83 @@ class TonghuashunDesktop(WebBrokerBase):
         logger.info(f"应用路径: {self.app_path}")
         logger.info(f"进程名称: {self.process_name}")
     
+    def launch_app(self) -> bool:
+        """启动同花顺应用（公开方法）"""
+        return self._start_app()
+    
+    def _focus_app(self) -> bool:
+        """将同花顺窗口切到前台（跨平台）"""
+        try:
+            if self.system == 'Windows':
+                try:
+                    import win32gui
+                    def callback(hwnd, results):
+                        title = win32gui.GetWindowText(hwnd)
+                        if '同花顺' in title or 'hexin' in title.lower():
+                            results.append(hwnd)
+                    results = []
+                    win32gui.EnumWindows(callback, results)
+                    if results:
+                        win32gui.SetForegroundWindow(results[0])
+                        time.sleep(0.5)
+                        return True
+                except ImportError:
+                    pass
+                return False
+            else:
+                # Linux: 用 xdotool 遍历所有窗口，Python 端做中文匹配
+                wid = self._find_ths_window()
+                if wid:
+                    subprocess.run(['xdotool', 'windowactivate', '--sync', str(wid)],
+                                   capture_output=True, timeout=5)
+                    time.sleep(0.5)
+                    logger.debug(f"已聚焦同花顺窗口: {wid}")
+                    return True
+                else:
+                    logger.warning("未找到同花顺窗口")
+                    return False
+        except FileNotFoundError:
+            logger.warning("未安装 xdotool，无法自动聚焦窗口。请运行: sudo apt install xdotool")
+            return False
+        except Exception as e:
+            logger.warning(f"聚焦窗口失败: {e}")
+            return False
+
+    def _find_ths_window(self) -> Optional[int]:
+        """查找同花顺窗口 ID"""
+        try:
+            # 获取所有可见窗口
+            result = subprocess.run(
+                ['xdotool', 'search', '--onlyvisible', '--name', ''],
+                capture_output=True, text=True, timeout=5
+            )
+            if result.returncode != 0:
+                return None
+
+            keywords = ['同花顺', '10jqka', 'hexin', 'hevo']
+            for wid_str in result.stdout.strip().split('\n'):
+                wid_str = wid_str.strip()
+                if not wid_str:
+                    continue
+                try:
+                    wid = int(wid_str)
+                    name_result = subprocess.run(
+                        ['xdotool', 'getwindowname', str(wid)],
+                        capture_output=True, text=True, timeout=2
+                    )
+                    if name_result.returncode == 0:
+                        title = name_result.stdout.strip()
+                        for kw in keywords:
+                            if kw in title.lower() or kw in title:
+                                logger.debug(f"找到同花顺窗口: {wid} ({title})")
+                                return wid
+                except (ValueError, subprocess.TimeoutExpired):
+                    continue
+            return None
+        except Exception as e:
+            logger.warning(f"查找窗口失败: {e}")
+            return None
+    
     def _is_app_running(self) -> bool:
         """检查应用是否运行（跨平台）"""
         for proc in psutil.process_iter(['name']):
@@ -255,6 +332,44 @@ class TonghuashunDesktop(WebBrokerBase):
         except Exception as e:
             logger.error(f"登出失败: {e}")
     
+    def _read_clipboard(self) -> str:
+        """读取剪贴板内容（跨平台）"""
+        try:
+            if self.system == 'Windows':
+                result = subprocess.run(['powershell', '-command', 'Get-Clipboard'],
+                                       capture_output=True, text=True, timeout=5)
+                return result.stdout.strip()
+            else:
+                # Linux: 尝试 xclip 或 xsel
+                for cmd in [
+                    ['xclip', '-selection', 'clipboard', '-o'],
+                    ['xsel', '--clipboard', '--output'],
+                ]:
+                    try:
+                        result = subprocess.run(cmd, capture_output=True, text=True, timeout=5)
+                        if result.returncode == 0:
+                            return result.stdout.strip()
+                    except FileNotFoundError:
+                        continue
+                logger.warning("未找到 xclip 或 xsel，无法读取剪贴板")
+                return ""
+        except Exception as e:
+            logger.warning(f"读取剪贴板失败: {e}")
+            return ""
+    
+    def _copy_table_data(self) -> str:
+        """复制当前页面的表格数据到剪贴板"""
+        try:
+            # 全选 + 复制
+            pyautogui.hotkey('ctrl', 'a')
+            time.sleep(0.3)
+            pyautogui.hotkey('ctrl', 'c')
+            time.sleep(0.5)
+            return self._read_clipboard()
+        except Exception as e:
+            logger.warning(f"复制表格数据失败: {e}")
+            return ""
+    
     def get_account_info(self) -> Optional[AccountInfo]:
         """获取账户信息"""
         if not self.ensure_logged_in():
@@ -263,29 +378,89 @@ class TonghuashunDesktop(WebBrokerBase):
         try:
             logger.info("获取账户信息...")
             
-            # 1. 切换到账户页面
-            # 使用快捷键或点击按钮
-            # TODO: 根据实际情况调整
+            # 聚焦同花顺窗口
+            self._focus_app()
             
-            # 2. 使用OCR识别账户信息
-            # 或者使用图像识别特定区域
+            # 切换到资金查询页面 (F4 → 资金股份)
+            pyautogui.press('f4')
+            time.sleep(1.5)
             
-            # 示例（需要实际调整）
-            account_info = AccountInfo(
-                total_assets=0.0,
-                available_cash=0.0,
-                frozen_cash=0.0,
-                market_value=0.0,
-                total_profit_loss=0.0,
-                positions=[]
-            )
+            # 尝试复制页面数据
+            clipboard_data = self._copy_table_data()
             
-            logger.info("账户信息获取成功")
+            # 解析账户信息
+            account_info = self._parse_account_info(clipboard_data)
+            
+            if account_info:
+                logger.info(f"账户信息: 总资产={account_info.total_assets:.2f}, "
+                           f"可用={account_info.available_cash:.2f}")
+            else:
+                logger.warning("无法读取账户信息，返回默认值")
+                account_info = AccountInfo(
+                    total_assets=0.0,
+                    available_cash=0.0,
+                    frozen_cash=0.0,
+                    market_value=0.0,
+                    total_profit_loss=0.0,
+                    positions=[]
+                )
+            
             return account_info
             
         except Exception as e:
             logger.error(f"获取账户信息失败: {e}")
             return None
+    
+    def _parse_account_info(self, data: str) -> Optional[AccountInfo]:
+        """解析从剪贴板复制的账户信息"""
+        if not data:
+            return None
+        
+        try:
+            total_assets = 0.0
+            available_cash = 0.0
+            frozen_cash = 0.0
+            market_value = 0.0
+            profit_loss = 0.0
+            
+            for line in data.split('\n'):
+                line = line.strip()
+                # 尝试匹配常见字段名
+                if '总资产' in line or '资产总值' in line:
+                    total_assets = self._extract_number(line)
+                elif '可用' in line and ('资金' in line or '余额' in line):
+                    available_cash = self._extract_number(line)
+                elif '冻结' in line:
+                    frozen_cash = self._extract_number(line)
+                elif '市值' in line:
+                    market_value = self._extract_number(line)
+                elif '盈亏' in line or '浮动' in line:
+                    profit_loss = self._extract_number(line)
+            
+            if total_assets > 0 or available_cash > 0:
+                return AccountInfo(
+                    total_assets=total_assets,
+                    available_cash=available_cash,
+                    frozen_cash=frozen_cash,
+                    market_value=market_value,
+                    total_profit_loss=profit_loss,
+                    positions=[]
+                )
+            return None
+        except Exception as e:
+            logger.warning(f"解析账户信息失败: {e}")
+            return None
+    
+    @staticmethod
+    def _extract_number(text: str) -> float:
+        """从文本中提取数字"""
+        import re
+        # 匹配数字（包括负数、小数、千分位逗号）
+        matches = re.findall(r'[-+]?[\d,]+\.?\d*', text)
+        if matches:
+            # 取最后一个数字（通常是值）
+            return float(matches[-1].replace(',', ''))
+        return 0.0
     
     def get_positions(self) -> List[Position]:
         """获取持仓列表"""
@@ -295,17 +470,77 @@ class TonghuashunDesktop(WebBrokerBase):
         try:
             logger.info("获取持仓...")
             
-            # TODO: 实现持仓获取逻辑
-            # 1. 切换到持仓页面
-            # 2. 识别持仓表格
-            # 3. 解析数据
+            # 聚焦同花顺窗口
+            self._focus_app()
             
-            positions = []
+            # 切换到持仓页面 (F4 查询)
+            pyautogui.press('f4')
+            time.sleep(1.5)
+            
+            # 复制表格数据
+            clipboard_data = self._copy_table_data()
+            
+            # 解析持仓
+            positions = self._parse_positions(clipboard_data)
+            
+            if positions:
+                logger.info(f"获取到 {len(positions)} 个持仓")
+            else:
+                logger.info("当前无持仓")
+            
             return positions
             
         except Exception as e:
             logger.error(f"获取持仓失败: {e}")
             return []
+    
+    def _parse_positions(self, data: str) -> List[Position]:
+        """解析持仓数据"""
+        if not data:
+            return []
+        
+        positions = []
+        try:
+            lines = data.strip().split('\n')
+            
+            # 跳过表头行，解析数据行
+            for line in lines:
+                parts = line.strip().split('\t')
+                if len(parts) >= 4:
+                    try:
+                        # 尝试解析：代码、名称、数量、可用、成本价、现价、盈亏...
+                        code = parts[0].strip()
+                        # 检查第一列是否是有效股票代码（6位数字）
+                        if not code.isdigit() or len(code) != 6:
+                            continue
+                        
+                        name = parts[1].strip() if len(parts) > 1 else ""
+                        quantity = int(float(parts[2].strip())) if len(parts) > 2 else 0
+                        available = int(float(parts[3].strip())) if len(parts) > 3 else 0
+                        cost_price = float(parts[4].strip()) if len(parts) > 4 else 0.0
+                        current_price = float(parts[5].strip()) if len(parts) > 5 else 0.0
+                        profit_loss = float(parts[6].strip()) if len(parts) > 6 else 0.0
+                        
+                        market_val = current_price * quantity if current_price > 0 else 0.0
+                        pnl_ratio = (profit_loss / (cost_price * quantity) * 100) if cost_price > 0 and quantity > 0 else 0.0
+                        pos = Position(
+                            stock_code=code,
+                            stock_name=name,
+                            quantity=quantity,
+                            available=available,
+                            cost_price=cost_price,
+                            current_price=current_price,
+                            market_value=market_val,
+                            profit_loss=profit_loss,
+                            profit_loss_ratio=pnl_ratio
+                        )
+                        positions.append(pos)
+                    except (ValueError, IndexError):
+                        continue
+        except Exception as e:
+            logger.warning(f"解析持仓数据失败: {e}")
+        
+        return positions
     
     def buy(self, stock_code: str, price: float, quantity: int) -> Tuple[bool, str]:
         """买入"""
@@ -314,6 +549,9 @@ class TonghuashunDesktop(WebBrokerBase):
         
         try:
             logger.info(f"买入: {stock_code} @ {price} x {quantity}")
+            
+            # 聚焦同花顺窗口
+            self._focus_app()
             
             # 1. 切换到交易页面
             # 按F1或点击买入按钮
@@ -367,6 +605,9 @@ class TonghuashunDesktop(WebBrokerBase):
         try:
             logger.info(f"卖出: {stock_code} @ {price} x {quantity}")
             
+            # 聚焦同花顺窗口
+            self._focus_app()
+            
             # 1. 切换到卖出页面
             pyautogui.press('f2')  # 同花顺卖出快捷键
             time.sleep(1)
@@ -413,6 +654,9 @@ class TonghuashunDesktop(WebBrokerBase):
         try:
             logger.info(f"撤单: {order_id}")
             
+            # 聚焦同花顺窗口
+            self._focus_app()
+            
             # 切换到撤单页面
             pyautogui.press('f3')  # 撤单快捷键
             time.sleep(1)
@@ -431,11 +675,15 @@ class TonghuashunDesktop(WebBrokerBase):
             return []
         
         try:
+            # 聚焦同花顺窗口
+            self._focus_app()
+            
             # 切换到委托页面
             pyautogui.press('f4')  # 查询快捷键
             time.sleep(1)
             
-            # TODO: 实现订单查询逻辑
+            # 复制订单数据
+            clipboard_data = self._copy_table_data()
             
             return []
             

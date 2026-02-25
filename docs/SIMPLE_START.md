@@ -18,7 +18,7 @@ sudo apt-get install python3-tk python3-dev -y
 
 ```bash
 cd /home/wangxinghan/codetree/ai-trading-system
-python3 simple_test.py
+python3 tests/simple_test.py
 ```
 
 **期望输出**:
@@ -82,7 +82,7 @@ sudo apt-get install python3-tk python3-dev -y
 
 # 测试系统
 cd /home/wangxinghan/codetree/ai-trading-system
-python3 simple_test.py
+python3 tests/simple_test.py
 
 # 运行演示
 python3 examples/desktop_trading_demo.py

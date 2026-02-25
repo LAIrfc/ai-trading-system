@@ -11,7 +11,7 @@
 ### 第1步：双击启动
 
 1. 下载项目到本地（如 `C:\ai-trading-system`）
-2. **双击** `start_windows.bat`
+2. **双击** `scripts/scripts/start_windows.bat`
 3. 选择 `6` 安装依赖
 4. 选择 `1` 测试系统
 
@@ -71,7 +71,7 @@ pip install pandas numpy akshare loguru
 ### 新手流程（Windows）
 
 ```
-1. 双击 start_windows.bat
+1. 双击 scripts/start_windows.bat
    ↓
 2. 选择 6 - 安装依赖
    ↓
@@ -156,7 +156,7 @@ A: 重新安装Python，确保勾选"Add to PATH"
 ## 🎓 学习路径
 
 ### 第1天
-- 双击 `start_windows.bat`
+- 双击 `scripts/scripts/start_windows.bat`
 - 安装依赖
 - 测试数据获取
 - 阅读 WINDOWS_GUIDE.md
@@ -191,7 +191,7 @@ A: 重新安装Python，确保勾选"Add to PATH"
 
 ### 方式1：图形界面（推荐）
 
-1. **双击** `start_windows.bat`
+1. **双击** `scripts/scripts/start_windows.bat`
 2. 跟随菜单提示
 3. 搞定！
 
@@ -213,7 +213,7 @@ python tools\kline_fetcher.py 600519
 ## 💡 Windows 专属提示
 
 1. **使用 Windows Terminal** - 比CMD更好用
-2. **创建桌面快捷方式** - 右键拖动 start_windows.bat
+2. **创建桌面快捷方式** - 右键拖动 scripts/start_windows.bat
 3. **设置计划任务** - 定时运行策略（类似Linux cron）
 4. **使用VSCode** - 最好的Python编辑器
 5. **启用虚拟环境** - `python -m venv venv`
@@ -242,7 +242,7 @@ python tools\kline_fetcher.py 600519
 
 ### 第一步
 
-**双击** `start_windows.bat` 开始！
+**双击** `scripts/scripts/start_windows.bat` 开始！
 
 ---
 

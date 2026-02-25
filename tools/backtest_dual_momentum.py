@@ -3,7 +3,7 @@
 双核动量轮动策略 - 完整回测脚本
 
 用法:
-    python backtest_dual_momentum.py
+    python tools/backtest_dual_momentum.py
 
 功能:
     1. 自动下载ETF数据
@@ -14,7 +14,7 @@
 
 import sys
 import os
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import pandas as pd
 import numpy as np
@@ -421,12 +421,18 @@ def main():
     # 4. 绘制结果
     logger.info("\n步骤 4/4: 生成可视化...")
     
-    backtest.plot_results(report, save_path='dual_momentum_backtest_result.png')
+    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    output_dir = os.path.join(project_root, 'output')
+    os.makedirs(output_dir, exist_ok=True)
+    
+    save_path = os.path.join(output_dir, 'dual_momentum_backtest_result.png')
+    backtest.plot_results(report, save_path=save_path)
     
     # 保存交易记录
     if 'trades_df' in report and not report['trades_df'].empty:
-        report['trades_df'].to_csv('dual_momentum_trades.csv', index=False, encoding='utf-8-sig')
-        logger.info("交易记录已保存: dual_momentum_trades.csv")
+        csv_path = os.path.join(output_dir, 'dual_momentum_trades.csv')
+        report['trades_df'].to_csv(csv_path, index=False, encoding='utf-8-sig')
+        logger.info(f"交易记录已保存: {csv_path}")
     
     logger.info("\n✅ 回测完成！")
 

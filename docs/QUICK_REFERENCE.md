@@ -6,10 +6,10 @@
 
 ```bash
 # 快速测试（1分钟）
-python test_dual_momentum_quick.py
+python3 tests/test_dual_momentum_quick.py
 
 # 完整回测（5分钟，生成报告+图表）
-python backtest_dual_momentum.py
+python3 tools/backtest_dual_momentum.py
 ```
 
 **策略原理**：
@@ -33,7 +33,7 @@ python tools\kline_fetcher.py 600519
 python examples\paper_trading_demo.py
 
 # 或双击运行
-start_windows.bat
+scripts/start_windows.bat
 ```
 
 ### Linux 用户
@@ -258,7 +258,7 @@ pip3 install --user -r requirements.txt
 ### 测试系统
 ```bash
 # 简单测试
-python3 simple_test.py
+python3 tests/simple_test.py
 
 # 桌面自动化测试
 python3 test_desktop_auto.py

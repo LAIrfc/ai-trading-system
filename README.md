@@ -9,7 +9,7 @@
 - ✅ 自动检测系统并适配配置
 - ✅ 无需手动修改，开箱即用
 
-详见：[跨平台兼容说明](CROSS_PLATFORM.md) | [Windows指南](WINDOWS_GUIDE.md)
+详见：[跨平台兼容说明](docs/CROSS_PLATFORM.md) | [Windows指南](docs/WINDOWS_GUIDE.md)
 
 ## ⚠️ 风险警告
 
@@ -56,14 +56,14 @@ Windows完全支持！使用更简单：
 pip install pandas numpy akshare loguru
 
 # 双击运行（推荐）
-start_windows.bat
+scripts\start_windows.bat
 
 # 或命令行
 python tools\kline_fetcher.py 600519
 python tools\strategy_tester.py --interactive
 ```
 
-**详见**：[Windows 使用指南](WINDOWS_GUIDE.md) ⭐
+**详见**：[Windows 使用指南](docs/WINDOWS_GUIDE.md) ⭐
 
 ---
 
@@ -99,7 +99,7 @@ python3 tools/kline_fetcher.py 600519
 python3 tools/strategy_tester.py --interactive
 
 # 4. 查看策略指南
-cat STRATEGY_QUICKSTART.md
+cat docs/STRATEGY_QUICKSTART.md
 ```
 
 **特点**：
@@ -110,9 +110,9 @@ cat STRATEGY_QUICKSTART.md
 - ✅ 安全无风险
 
 详见：
-- **[K线数据获取指南](KLINE_DATA_GUIDE.md)** 📊
-- **[策略开发快速开始](STRATEGY_QUICKSTART.md)** ⭐
-- **[模拟交易指南](PAPER_TRADING_GUIDE.md)** 🎮 NEW!
+- **[K线数据获取指南](docs/KLINE_DATA_GUIDE.md)** 📊
+- **[策略开发快速开始](docs/STRATEGY_QUICKSTART.md)** ⭐
+- **[模拟交易指南](docs/PAPER_TRADING_GUIDE.md)** 🎮 NEW!
 
 ---
 
@@ -138,7 +138,7 @@ python3 examples/paper_trading_demo.py
 - ✅ **策略测试** - 验证策略有效性
 - ✅ **数据保存** - 可回放分析
 
-详见：**[模拟交易指南](PAPER_TRADING_GUIDE.md)** 🎮
+详见：**[模拟交易指南](docs/PAPER_TRADING_GUIDE.md)** 🎮
 
 ---
 
@@ -155,7 +155,7 @@ python3 examples/paper_trading_demo.py
 sudo apt-get install python3-tk python3-dev -y
 ```
 
-详见：[SIMPLE_START.md](SIMPLE_START.md) | [TROUBLESHOOTING.md](TROUBLESHOOTING.md)
+详见：[SIMPLE_START.md](docs/SIMPLE_START.md) | [TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md)
 
 ---
 
@@ -171,7 +171,7 @@ sudo apt-get install python3-tk python3-dev -y
 pip3 install --user pyautogui psutil pillow loguru pyyaml
 
 # 2. 测试系统
-python3 simple_test.py
+python3 tests/simple_test.py
 
 # 3. 一键运行
 ./scripts/run_desktop_trading.sh
@@ -179,7 +179,7 @@ python3 simple_test.py
 
 **就这么简单！** 如果同花顺已安装且保存了密码，程序会自动登录。
 
-📖 **桌面版详细教程**: [DESKTOP_QUICKSTART.md](DESKTOP_QUICKSTART.md)
+📖 **桌面版详细教程**: [DESKTOP_QUICKSTART.md](docs/DESKTOP_QUICKSTART.md)
 
 ### 或使用网页版
 
@@ -233,7 +233,7 @@ python scripts/calculate_factors.py
 
 ```bash
 # 运行完整回测（自动下载数据 + 生成报告 + 绘制图表）
-python backtest_dual_momentum.py
+python tools/backtest_dual_momentum.py
 ```
 
 #### 什么是双核动量策略？
@@ -254,19 +254,19 @@ python backtest_dual_momentum.py
 
 ```bash
 # 快速测试（1分钟）
-python test_dual_momentum_quick.py
+python tests/test_dual_momentum_quick.py
 
 # 完整回测（5分钟）
-python backtest_dual_momentum.py
+python tools/backtest_dual_momentum.py
 
 # 查看策略文档
-cat strategies/dual_momentum_strategy.md
+cat docs/strategies/dual_momentum_strategy.md
 
 # 查看使用教程
-cat DUAL_MOMENTUM_GUIDE.md
+cat docs/DUAL_MOMENTUM_GUIDE.md
 ```
 
-**📚 完整教程**：[双核动量策略使用指南](DUAL_MOMENTUM_GUIDE.md) ⭐
+**📚 完整教程**：[双核动量策略使用指南](docs/DUAL_MOMENTUM_GUIDE.md) ⭐
 
 ---
 
@@ -288,34 +288,46 @@ python src/main.py --mode live --strategy your_strategy
 
 ```
 ai-trading-system/
+├── README.md               # 项目说明
+├── LICENSE                  # 许可证
+├── requirements.txt         # Python 依赖
+│
 ├── config/                 # 配置文件
-│   ├── trading_config.yaml    # 交易参数配置
-│   ├── risk_config.yaml       # 风控参数配置
-│   └── strategy_config.yaml   # 策略参数配置
-├── data/                   # 数据目录
-│   ├── market_data/           # 市场行情数据
-│   ├── factor_data/           # 因子数据
-│   └── models/                # 训练好的模型
-├── src/                    # 源代码
+│   ├── trading_config.yaml
+│   ├── risk_config.yaml
+│   └── *.yaml.example         # 配置模板
+│
+├── src/                    # 核心源代码
+│   ├── main.py                # 主入口
 │   ├── core/                  # 核心模块
-│   │   ├── strategy/          # 策略引擎
-│   │   ├── risk/              # 风险管理
-│   │   ├── execution/         # 交易执行
-│   │   └── backtest/          # 回测系统
-│   ├── ai/                    # AI模块
-│   │   ├── features/          # 特征工程
-│   │   ├── models/            # AI模型
-│   │   └── prediction/        # 预测服务
+│   │   ├── strategy/             # 策略引擎（含双核动量策略）
+│   │   ├── risk/                 # 风险管理
+│   │   ├── execution/            # 交易执行
+│   │   ├── backtest/             # 回测系统
+│   │   └── simulator/            # 模拟交易
+│   ├── ai/                    # AI 模块
 │   ├── data/                  # 数据服务
-│   │   ├── collectors/        # 数据采集
-│   │   └── processors/        # 数据处理
-│   └── api/                   # API接口
-│       ├── broker/            # 券商接口
-│       └── market/            # 行情接口
+│   │   ├── etf_data_fetcher.py   # ETF 数据获取
+│   │   ├── realtime_data.py      # 实时数据
+│   │   └── collectors/           # 数据采集器
+│   ├── api/                   # 接口层
+│   │   └── broker/               # 券商自动化（同花顺桌面/网页）
+│   └── config/                # 平台配置
+│
+├── tools/                  # 工具脚本
+│   ├── backtest_dual_momentum.py # 回测工具
+│   ├── generate_trade_report.py  # 交易报告生成
+│   ├── kline_fetcher.py          # K线数据获取
+│   └── strategy_tester.py        # 策略测试器
+│
 ├── tests/                  # 测试代码
-├── docs/                   # 策略文档
-├── logs/                   # 日志文件
-└── scripts/                # 工具脚本
+├── examples/               # 使用示例
+├── scripts/                # Shell/Bat 脚本
+├── docs/                   # 所有文档（指南、设计、报告）
+├── output/                 # 生成的输出（图表、CSV）
+├── data/                   # 数据存储
+├── cache/                  # 缓存
+└── logs/                   # 日志
 ```
 
 ## 风控系统

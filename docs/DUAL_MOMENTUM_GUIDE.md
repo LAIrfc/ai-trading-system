@@ -17,7 +17,7 @@
 
 ```bash
 cd /home/wangxinghan/codetree/ai-trading-system
-python backtest_dual_momentum.py
+python3 tools/backtest_dual_momentum.py
 ```
 
 **预期结果：**
@@ -94,7 +94,7 @@ cat strategies/dual_momentum_strategy.md
 
 #### 方法1：修改配置文件
 
-编辑 `backtest_dual_momentum.py` 中的 `strategy_config`:
+编辑 `tools/backtest_dual_momentum.py` 中的 `strategy_config`:
 
 ```python
 strategy_config = {
@@ -110,7 +110,7 @@ strategy_config = {
 创建参数扫描脚本 `test_params.py`：
 
 ```python
-from backtest_dual_momentum import *
+from tools.backtest_dual_momentum import *
 
 # 测试不同的N值
 for N in [150, 200, 250]:

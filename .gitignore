@@ -69,9 +69,14 @@ logs/*.txt
 paper_trading_*.json
 account_*.json
 
+# 输出文件
+output/
+!output/.gitkeep
+
 # 缓存
 cache/
 .cache/
+GPUCache/
 
 # Jupyter Notebook
 .ipynb_checkpoints

@@ -8,8 +8,8 @@ import sys
 import platform
 from pathlib import Path
 
-# 添加项目路径
-sys.path.insert(0, str(Path(__file__).parent))
+# 添加项目根路径
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from src.config.platform_config import platform_config
 from src.api.broker.tonghuashun_desktop import TonghuashunDesktop

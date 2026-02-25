@@ -7,7 +7,7 @@
 
 import sys
 import os
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from src.data.etf_data_fetcher import ETFDataFetcher
 from src.core.strategy.dual_momentum_strategy import DualMomentumStrategy
@@ -76,4 +76,4 @@ print(f"熔断模式: {'是' if info['emergency_mode'] else '否'}")
 
 print("\n✅ 测试完成！")
 print("\n💡 运行完整回测:")
-print("   python backtest_dual_momentum.py")
+print("   python tools/backtest_dual_momentum.py")

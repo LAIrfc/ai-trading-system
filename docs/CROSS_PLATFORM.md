@@ -220,8 +220,8 @@ process_name = platform_config.get_tonghuashun_process_name()
 
 | 操作 | Windows | Linux |
 |------|---------|-------|
-| 启动脚本 | 双击 `start_windows.bat` | `./start_linux.sh` |
-| 命令行启动 | `start_windows.bat` | `bash start_linux.sh` |
+| 启动脚本 | 双击 `scripts/scripts/start_windows.bat` | `./start_linux.sh` |
+| 命令行启动 | `scripts/scripts/start_windows.bat` | `bash start_linux.sh` |
 
 ---
 
