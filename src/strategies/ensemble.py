@@ -142,13 +142,11 @@ class EnsembleStrategy(Strategy):
         else:  # majority
             action, conf, reason = self._majority(buy_votes, sell_votes, total)
 
-        # 根据 action 调整 position
-        if action == 'BUY':
-            position = max(0.4, avg_position)
-        elif action == 'SELL':
-            position = min(0.2, avg_position)
-        else:
-            position = avg_position
+        # 仓位直接使用子策略的加权平均，不施加硬性边界。
+        # 子策略的 position 已包含风险考量（死叉平滑、仓位层级等），
+        # 组合策略应信任加权平均的结果。如果 SELL 时 avg_position 偏高，
+        # 说明部分策略不认为应该卖出——这种分歧信息应被保留，而非被覆盖。
+        position = avg_position
 
         return StrategySignal(
             action=action,
