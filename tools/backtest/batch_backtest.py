@@ -22,7 +22,7 @@ import requests
 import pandas as pd
 import numpy as np
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../..'))
 warnings.filterwarnings('ignore')
 
 from src.strategies.ma_cross import MACrossStrategy
@@ -30,7 +30,9 @@ from src.strategies.macd_cross import MACDStrategy
 from src.strategies.rsi_signal import RSIStrategy
 from src.strategies.bollinger_band import BollingerBandStrategy
 from src.strategies.kdj_signal import KDJStrategy
+from src.strategies.fundamental_pe import PEStrategy
 from src.strategies.ensemble import EnsembleStrategy
+from src.data.fetchers.fundamental_fetcher import FundamentalFetcher, create_mock_fundamental_data
 
 
 # ── 数据获取（新浪日线，带重试）──
@@ -92,8 +94,23 @@ def load_stock_pool(pool_file: str, max_count: int = 500) -> list:
 
 def backtest_one_stock(stock_info: dict, strategies: dict,
                        ensemble: EnsembleStrategy,
-                       datalen: int = 800) -> dict:
-    """对一只股票运行所有策略回测"""
+                       datalen: int = 800,
+                       enable_fundamental: bool = False,
+                       min_market_cap: float = 50.0) -> dict:
+    """
+    对一只股票运行所有策略回测
+    
+    Args:
+        stock_info: 股票信息
+        strategies: 策略字典
+        ensemble: 组合策略
+        datalen: 数据长度
+        enable_fundamental: 是否启用基本面数据（默认False）
+                          ⚠️ 如果为True且未配置真实数据源，将使用模拟数据
+                          模拟数据隐含未来信息，仅用于测试流程，不可用于真实回测
+        min_market_cap: 最小市值过滤（单位：亿元，默认50亿）
+                       实盘标准：熊市/震荡市过滤市值<50亿，牛市可下调至30亿
+    """
     code = stock_info['code']
     name = stock_info['name']
     sector = stock_info['sector']
@@ -102,6 +119,44 @@ def backtest_one_stock(stock_info: dict, strategies: dict,
     if df.empty or len(df) < 100:
         return {'code': code, 'name': name, 'sector': sector,
                 'status': 'skip', 'reason': f'数据不足({len(df)}条)'}
+    
+    # 合并基本面数据（如果启用）
+    if enable_fundamental:
+        try:
+            # 优先尝试从真实数据源获取（tushare）
+            fetcher = FundamentalFetcher(source='tushare')
+            start_date = df['date'].iloc[0].strftime('%Y%m%d')
+            end_date = df['date'].iloc[-1].strftime('%Y%m%d')
+            fund_df = fetcher.get_daily_basic(code, start_date=start_date, end_date=end_date)
+            
+            if not fund_df.empty:
+                # 使用真实数据
+                df = fetcher.merge_to_daily(df, fund_df, fill_method='ffill')
+            else:
+                # 真实数据获取失败，回退到模拟数据（仅用于测试）
+                # ⚠️ 警告：模拟数据隐含未来信息，不可用于真实回测验证
+                import warnings
+                warnings.warn(
+                    f"[{code}] 真实基本面数据获取失败，使用模拟数据（仅用于测试流程）",
+                    UserWarning
+                )
+                import hashlib
+                seed = int(hashlib.md5(code.encode()).hexdigest()[:8], 16) % 10000
+                fund_df = create_mock_fundamental_data(df, random_seed=seed)
+                if not fund_df.empty:
+                    df = fetcher.merge_to_daily(df, fund_df, fill_method='ffill')
+        except Exception as e:
+            # 基本面数据获取失败不影响回测，继续使用纯技术数据
+            pass
+    
+    # 实盘标准：市值过滤（前置风控）
+    # 过滤市值过小的股票，降低流动性风险和退市风险
+    if enable_fundamental and 'market_cap' in df.columns:
+        latest_market_cap = df['market_cap'].iloc[-1]
+        if pd.isna(latest_market_cap) or latest_market_cap < min_market_cap:
+            return {'code': code, 'name': name, 'sector': sector,
+                    'status': 'skip', 
+                    'reason': f'市值过滤(市值={latest_market_cap:.1f}亿，要求>={min_market_cap}亿)'}
 
     results = {
         'code': code, 'name': name, 'sector': sector,
@@ -301,6 +356,7 @@ def main():
         'RSI':  RSIStrategy(),
         'BOLL': BollingerBandStrategy(),
         'KDJ':  KDJStrategy(),
+        'PE':   PEStrategy(),  # 基本面策略
     }
     ensemble = EnsembleStrategy()
     strategy_names = list(strategies.keys()) + ['Ensemble']
@@ -322,7 +378,7 @@ def main():
         futures = {}
         for stock in stocks:
             future = executor.submit(
-                backtest_one_stock, stock, strategies, ensemble, args.datalen)
+                backtest_one_stock, stock, strategies, ensemble, args.datalen, False)
             futures[future] = stock
 
         for i, future in enumerate(as_completed(futures), 1):

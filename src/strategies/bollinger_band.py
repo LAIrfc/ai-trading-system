@@ -49,6 +49,11 @@ HOLD 信号（已在前轮讨论中确定，不改动）:
 import numpy as np
 import pandas as pd
 from .base import Strategy, StrategySignal
+from .turnover_helper import (
+    calc_relative_turnover_rate,
+    check_turnover_liquidity,
+    enhance_signal_with_turnover
+)
 
 
 class BollingerBandStrategy(Strategy):
@@ -156,6 +161,9 @@ class BollingerBandStrategy(Strategy):
         dyn = self._calc_dynamics(df, close)
         price_std = dyn['price_std']
         vol_ratio = dyn['vol_ratio']
+        
+        # 实盘标准：计算相对换手率（当前换手率/20日均换手率）
+        relative_turnover = calc_relative_turnover_rate(df, ma_period=20)
 
         indicators = {
             '上轨': round(cur_upper, 3),
@@ -165,22 +173,39 @@ class BollingerBandStrategy(Strategy):
             '带宽%': round(bandwidth_pct, 2),
             'price_std_pct': round(price_std * 100, 3),
             'vol_ratio': round(vol_ratio, 2),
+            'relative_turnover': round(relative_turnover, 2) if relative_turnover else None,
         }
 
         # ---- 1. 价格从下方突破下轨后回升（确认买入）----
         #  价格昨日在下轨下方，今日回到下轨上方 → 均值回归确认
         #  反弹幅度+量比 → 动态置信度和仓位
         if prev_close <= prev_lower and cur_close > cur_lower:
+            # 实盘标准：流动性过滤
+            is_valid, liquidity_reason = check_turnover_liquidity(relative_turnover)
+            if not is_valid:
+                # 流动性异常，回避交易
+                return StrategySignal(
+                    action='HOLD', confidence=0.3, position=0.5,
+                    reason=f'价格从下轨回升但{liquidity_reason}，回避交易',
+                    indicators=indicators,
+                )
+            
             price_change = (cur_close - prev_close) / prev_close
             factor = self._combined_factor(price_change, price_std, vol_ratio)
-            confidence = self._BASE_CONF_BREAK + factor * (self._MAX_CONF - self._BASE_CONF_BREAK)
-            position = self._BUY_BREAK_POS_MIN + factor * (self._BUY_BREAK_POS_MAX - self._BUY_BREAK_POS_MIN)
+            base_confidence = self._BASE_CONF_BREAK + factor * (self._MAX_CONF - self._BASE_CONF_BREAK)
+            base_position = self._BUY_BREAK_POS_MIN + factor * (self._BUY_BREAK_POS_MAX - self._BUY_BREAK_POS_MIN)
+            
+            # 实盘标准：突破时要求相对换手率>1.2倍（确认有效突破）
+            confidence, position, turnover_reason = enhance_signal_with_turnover(
+                'breakout', relative_turnover, base_confidence, base_position
+            )
 
             vol_desc = f', 量比{vol_ratio:.1f}' if vol_ratio > 1.2 else ''
+            turnover_desc = f', {turnover_reason}' if turnover_reason else ''
             return StrategySignal(
                 action='BUY', confidence=round(confidence, 2),
                 position=round(position, 2),
-                reason=f'价格从下轨下方回升, %B={pct_b:.2f}{vol_desc}',
+                reason=f'价格从下轨下方回升, %B={pct_b:.2f}{vol_desc}{turnover_desc}',
                 indicators=indicators,
             )
 
@@ -188,16 +213,33 @@ class BollingerBandStrategy(Strategy):
         if cur_close < cur_lower:
             if cur_close > prev_close and prev_close > prev2_close:
                 # 连续两日回升，底部拐头确认
+                # 实盘标准：流动性过滤（拐头信号也检查）
+                is_valid, liquidity_reason = check_turnover_liquidity(relative_turnover)
+                if not is_valid:
+                    # 流动性异常，回避交易
+                    return StrategySignal(
+                        action='HOLD', confidence=0.3, position=0.5,
+                        reason=f'下轨下方拐头但{liquidity_reason}，回避交易',
+                        indicators=indicators,
+                    )
+                
                 # 用两日累计涨幅衡量拐头强度
                 reversal = (cur_close - prev2_close) / prev2_close
                 factor = self._combined_factor(reversal, price_std, vol_ratio)
-                confidence = self._BASE_CONF_REV + factor * (self._MAX_CONF - self._BASE_CONF_REV)
-                position = self._BUY_REV_POS_MIN + factor * (self._BUY_REV_POS_MAX - self._BUY_REV_POS_MIN)
+                base_confidence = self._BASE_CONF_REV + factor * (self._MAX_CONF - self._BASE_CONF_REV)
+                base_position = self._BUY_REV_POS_MIN + factor * (self._BUY_REV_POS_MAX - self._BUY_REV_POS_MIN)
+                
+                # 实盘标准：回调时要求<0.8倍（确认缩量回调，而非资金出逃）
+                # 但这里是下轨下方拐头，更像是突破，使用'breakout'类型
+                confidence, position, turnover_reason = enhance_signal_with_turnover(
+                    'breakout', relative_turnover, base_confidence, base_position
+                )
 
+                turnover_desc = f', {turnover_reason}' if turnover_reason else ''
                 return StrategySignal(
                     action='BUY', confidence=round(confidence, 2),
                     position=round(position, 2),
-                    reason=f'下轨下方拐头回升({prev2_close:.2f}→{prev_close:.2f}→{cur_close:.2f})',
+                    reason=f'下轨下方拐头回升({prev2_close:.2f}→{prev_close:.2f}→{cur_close:.2f}){turnover_desc}',
                     indicators=indicators,
                 )
             else:
@@ -213,20 +255,32 @@ class BollingerBandStrategy(Strategy):
         #  价格昨日在上轨上方，今日回到上轨下方 → 均值回归确认
         #  回落幅度+量比 → 动态因子 → 平滑仓位衰减
         if prev_close >= prev_upper and cur_close < cur_upper:
+            # 实盘标准：流动性过滤（死叉时也检查，但更宽松）
+            is_valid, liquidity_reason = check_turnover_liquidity(relative_turnover)
+            liquidity_penalty = 0.0 if is_valid else 0.1
+            
             price_change = (prev_close - cur_close) / prev_close  # 正值=下跌
             factor = self._combined_factor(price_change, price_std, vol_ratio)
-            confidence = self._BASE_CONF_BREAK + factor * (self._MAX_CONF - self._BASE_CONF_BREAK)
+            base_confidence = self._BASE_CONF_BREAK + factor * (self._MAX_CONF - self._BASE_CONF_BREAK)
+            base_confidence = max(0.0, base_confidence - liquidity_penalty)
 
             # 仓位随 factor 平滑衰减:
             #   factor→0 (缩量弱回落): pos ≈ _SELL_POS_MAX (0.10)
             #   factor→1 (放量强回落): pos → 0
-            position = round(max(0, self._SELL_POS_MAX * (1 - factor)), 2)
+            base_position = max(0, self._SELL_POS_MAX * (1 - factor))
+            
+            # 实盘标准：回调时要求<0.8倍（确认缩量回调，而非资金出逃）
+            confidence, position, turnover_reason = enhance_signal_with_turnover(
+                'pullback', relative_turnover, base_confidence, base_position
+            )
 
             vol_desc = f', 量比{vol_ratio:.1f}' if vol_ratio > 1.2 else ''
+            turnover_desc = f', {turnover_reason}' if turnover_reason else ''
+            liquidity_desc = f', {liquidity_reason}' if not is_valid else ''
             return StrategySignal(
                 action='SELL', confidence=round(confidence, 2),
-                position=position,
-                reason=f'价格从上轨回落, %B={pct_b:.2f}{vol_desc}',
+                position=round(position, 2),
+                reason=f'价格从上轨回落, %B={pct_b:.2f}{vol_desc}{turnover_desc}{liquidity_desc}',
                 indicators=indicators,
             )
 
@@ -234,17 +288,29 @@ class BollingerBandStrategy(Strategy):
         if cur_close > cur_upper:
             if cur_close < prev_close and prev_close < prev2_close:
                 # 连续两日回落，顶部拐头确认
+                # 实盘标准：流动性过滤（死叉时也检查，但更宽松）
+                is_valid, liquidity_reason = check_turnover_liquidity(relative_turnover)
+                liquidity_penalty = 0.0 if is_valid else 0.1
+                
                 reversal = (prev2_close - cur_close) / prev2_close  # 正值=下跌
                 factor = self._combined_factor(reversal, price_std, vol_ratio)
-                confidence = self._BASE_CONF_REV + factor * (self._MAX_CONF - self._BASE_CONF_REV)
+                base_confidence = self._BASE_CONF_REV + factor * (self._MAX_CONF - self._BASE_CONF_REV)
+                base_confidence = max(0.0, base_confidence - liquidity_penalty)
 
                 # 仓位: 拐头越强 → 卖出越多（仓位越低）
-                position = self._SELL_REV_POS_MAX - factor * (self._SELL_REV_POS_MAX - self._SELL_REV_POS_MIN)
+                base_position = self._SELL_REV_POS_MAX - factor * (self._SELL_REV_POS_MAX - self._SELL_REV_POS_MIN)
+                
+                # 实盘标准：回调时要求<0.8倍（确认缩量回调，而非资金出逃）
+                confidence, position, turnover_reason = enhance_signal_with_turnover(
+                    'pullback', relative_turnover, base_confidence, base_position
+                )
 
+                turnover_desc = f', {turnover_reason}' if turnover_reason else ''
+                liquidity_desc = f', {liquidity_reason}' if not is_valid else ''
                 return StrategySignal(
                     action='SELL', confidence=round(confidence, 2),
                     position=round(position, 2),
-                    reason=f'上轨上方拐头回落({prev2_close:.2f}→{prev_close:.2f}→{cur_close:.2f})',
+                    reason=f'上轨上方拐头回落({prev2_close:.2f}→{prev_close:.2f}→{cur_close:.2f}){turnover_desc}{liquidity_desc}',
                     indicators=indicators,
                 )
             else:

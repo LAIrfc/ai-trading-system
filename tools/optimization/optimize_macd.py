@@ -21,7 +21,7 @@ from itertools import product
 import pandas as pd
 import numpy as np
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../..'))
 
 from src.strategies.macd_cross import MACDStrategy
 

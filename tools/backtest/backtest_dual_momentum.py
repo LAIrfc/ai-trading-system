@@ -23,7 +23,7 @@ from datetime import datetime, timedelta
 from loguru import logger
 from typing import Dict, List
 
-from src.data.etf_data_fetcher import ETFDataFetcher
+from src.data.fetchers.etf_data_fetcher import ETFDataFetcher
 from src.core.strategy.dual_momentum_strategy import DualMomentumStrategy
 
 

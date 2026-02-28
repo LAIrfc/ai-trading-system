@@ -26,7 +26,7 @@ import pandas as pd
 import numpy as np
 
 # 确保 src 在 path 中
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../..'))
 
 from src.strategies import STRATEGY_REGISTRY, get_all_strategies
 

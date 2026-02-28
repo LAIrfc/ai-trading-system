@@ -13,7 +13,7 @@ from loguru import logger
 from datetime import datetime, timedelta
 
 from src.core.strategy.strategy_library import strategy_library
-from src.data.realtime_data import MarketDataManager
+from src.data.fetchers.realtime_data import MarketDataManager
 
 
 def print_header():

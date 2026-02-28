@@ -14,7 +14,7 @@ import numpy as np
 from datetime import datetime, timedelta
 from typing import Dict, List, Tuple
 
-from src.data.etf_data_fetcher import ETFDataFetcher
+from src.data.fetchers.etf_data_fetcher import ETFDataFetcher
 
 # =============================================
 # 配置

@@ -39,6 +39,7 @@ from .rsi_signal import RSIStrategy
 from .bollinger_band import BollingerBandStrategy
 from .kdj_signal import KDJStrategy
 from .dual_momentum import DualMomentumSingleStrategy
+from .fundamental_pe import PEStrategy
 
 logger = logging.getLogger(__name__)
 
@@ -56,7 +57,7 @@ class EnsembleStrategy(Strategy):
     """
 
     name = '多策略组合'
-    description = '6大策略投票决策，多数看多/看空才行动'
+    description = '7大策略投票决策（6技术+1基本面），多数看多/看空才行动'
 
     param_ranges = {
         'buy_threshold':  (0.3, 0.5, 0.8, 0.05),
@@ -72,7 +73,7 @@ class EnsembleStrategy(Strategy):
         self.buy_threshold = buy_threshold
         self.sell_threshold = sell_threshold
 
-        # 子策略实例
+        # 子策略实例（技术面 + 基本面）
         self.sub_strategies: Dict[str, Strategy] = {
             'MA':   MACrossStrategy(),
             'MACD': MACDStrategy(),
@@ -80,16 +81,19 @@ class EnsembleStrategy(Strategy):
             'BOLL': BollingerBandStrategy(),
             'KDJ':  KDJStrategy(),
             'DUAL': DualMomentumSingleStrategy(),
+            'PE':   PEStrategy(),  # 基本面策略：PE估值
         }
 
         # 权重：支持外部传入，否则使用默认值
         # 默认权重依据：夏普高+回撤低 → 权重大
+        # 基本面策略初始权重设为1.0（中等），后续可根据回测调整
         self.weights: Dict[str, float] = weights or {
             'DUAL': 1.5,   # 收益最高
             'BOLL': 1.3,   # 夏普最高、回撤最低
             'MA':   1.2,   # 收益第二
             'MACD': 1.1,   # 均衡
             'RSI':  1.0,   # 胜率高
+            'PE':   1.0,   # 基本面策略（初始权重，待回测验证）
             'KDJ':  0.9,   # 交易频繁
         }
 
@@ -263,8 +267,13 @@ class EnsembleStrategy(Strategy):
 class ConservativeEnsemble(EnsembleStrategy):
     """
     保守组合: majority 模式
-    - 买入需 ≥3/6 策略看多（50%阈值）
-    - 卖出仅需 ≥2/6 策略看空（34%阈值，保护优先）
+    - 买入需 ≥50% 策略看多（阈值0.5）
+    - 卖出仅需 ≥34% 策略看空（阈值0.34，保护优先）
+    
+    注意: 阈值是比例而非绝对数量，因此适用于任意数量的子策略。
+    当前有7个子策略（6技术+1基本面），阈值仍然有效：
+    - 买入: 需要 ≥4/7 策略看多（50%阈值）
+    - 卖出: 需要 ≥3/7 策略看空（34%阈值）
     """
     name = '保守组合'
     description = '多数看多才买入、少数看空即卖出，保护优先'
@@ -277,7 +286,10 @@ class ConservativeEnsemble(EnsembleStrategy):
 class BalancedEnsemble(EnsembleStrategy):
     """
     均衡组合: majority 模式
-    - 买入和卖出均需 ≥3/6 策略同意（50%阈值）
+    - 买入和卖出均需 ≥50% 策略同意（阈值0.5）
+    
+    注意: 阈值是比例，适用于任意数量的子策略。
+    当前有7个子策略，买入/卖出均需 ≥4/7 策略同意。
     """
     name = '均衡组合'
     description = '过半策略同意就行动，平衡收益与风险'
@@ -292,6 +304,9 @@ class AggressiveEnsemble(EnsembleStrategy):
     激进组合: weighted 加权投票模式
     - BUY/SELL 的加权得分占 active 总分≥35% 即行动
     - HOLD 不参与计分，反应更灵敏
+    
+    注意: 阈值是比例，适用于任意数量的子策略。
+    当前有7个子策略，加权投票模式下阈值仍然有效。
     """
     name = '激进组合'
     description = '加权投票，HOLD不计分，反应灵敏'

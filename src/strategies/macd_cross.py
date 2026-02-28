@@ -59,6 +59,11 @@ HOLD 仓位（动态）:
 import numpy as np
 import pandas as pd
 from .base import Strategy, StrategySignal
+from .turnover_helper import (
+    calc_relative_turnover_rate,
+    check_turnover_liquidity,
+    enhance_signal_with_turnover
+)
 
 
 class MACDStrategy(Strategy):
@@ -189,6 +194,9 @@ class MACDStrategy(Strategy):
         slope_std = dyn['slope_std']
         gap_std = dyn['gap_std']
         vol_ratio = dyn['vol_ratio']
+        
+        # 实盘标准：计算相对换手率（当前换手率/20日均换手率）
+        relative_turnover = calc_relative_turnover_rate(df, ma_period=20)
 
         indicators = {
             'DIF': round(cur_dif, 4),
@@ -198,26 +206,43 @@ class MACDStrategy(Strategy):
             'slope_std': round(slope_std, 6),
             'gap_std': round(gap_std, 6),
             'vol_ratio': round(vol_ratio, 2),
+            'relative_turnover': round(relative_turnover, 2) if relative_turnover else None,
         }
 
         # ---- 金叉: DIF 从下方上穿 DEA ----
         #  DIF 斜率越陡 + 量比越大 → factor 越高 → 置信度和仓位越高
         #  零轴上方金叉: base 上浮 _ABOVE_ZERO_BONUS（趋势延续确认）
         if prev_dif <= prev_dea and cur_dif > cur_dea:
+            # 实盘标准：流动性过滤
+            is_valid, liquidity_reason = check_turnover_liquidity(relative_turnover)
+            if not is_valid:
+                # 流动性异常，回避交易
+                return StrategySignal(
+                    action='HOLD', confidence=0.3, position=0.5,
+                    reason=f'MACD金叉但{liquidity_reason}，回避交易',
+                    indicators=indicators,
+                )
+            
             factor = self._combined_factor(dif_slope, slope_std, vol_ratio)
             above_zero = cur_dif > 0
             base = self._BASE_CONF + (self._ABOVE_ZERO_BONUS if above_zero else 0)
-            confidence = base + factor * (self._MAX_CONF - base)
-            position = self._BUY_POS_MIN + factor * (self._BUY_POS_MAX - self._BUY_POS_MIN)
+            base_confidence = base + factor * (self._MAX_CONF - base)
+            base_position = self._BUY_POS_MIN + factor * (self._BUY_POS_MAX - self._BUY_POS_MIN)
+            
+            # 实盘标准：突破时要求相对换手率>1.2倍（确认有效突破）
+            confidence, position, turnover_reason = enhance_signal_with_turnover(
+                'breakout', relative_turnover, base_confidence, base_position
+            )
 
             vol_desc = f', 量比{vol_ratio:.1f}' if vol_ratio > 1.2 else ''
+            turnover_desc = f', {turnover_reason}' if turnover_reason else ''
             zero_desc = '(零轴上方,强势)' if above_zero else ''
             return StrategySignal(
                 action='BUY', confidence=round(confidence, 2),
                 position=round(position, 2),
                 reason=f'MACD金叉{zero_desc}: '
                        f'DIF={cur_dif:.4f} 上穿 DEA={cur_dea:.4f}'
-                       f'{vol_desc}',
+                       f'{vol_desc}{turnover_desc}',
                 indicators=indicators,
             )
 
@@ -225,21 +250,34 @@ class MACDStrategy(Strategy):
         #  放量陡峭死叉 → factor 高 → 更坚决卖出（conf 高, pos 低）
         #  缩量平缓死叉 → factor 低 → 保留少量仓位
         if prev_dif >= prev_dea and cur_dif < cur_dea:
+            # 实盘标准：流动性过滤（死叉时也检查，但更宽松）
+            is_valid, liquidity_reason = check_turnover_liquidity(relative_turnover)
+            # 死叉时，如果流动性异常，仍然执行卖出，但降低置信度
+            liquidity_penalty = 0.0 if is_valid else 0.1
+            
             factor = self._combined_factor(dif_slope, slope_std, vol_ratio)
-            confidence = self._BASE_CONF + factor * (self._MAX_CONF - self._BASE_CONF)
+            base_confidence = self._BASE_CONF + factor * (self._MAX_CONF - self._BASE_CONF)
+            base_confidence = max(0.0, base_confidence - liquidity_penalty)
 
             # 仓位随 factor 平滑衰减:
             #   factor→0: position ≈ _SELL_POS_MAX (0.12)
             #   factor→1: position → 0
-            position = round(max(0, self._SELL_POS_MAX * (1 - factor)), 2)
+            base_position = max(0, self._SELL_POS_MAX * (1 - factor))
+            
+            # 实盘标准：回调时要求<0.8倍（确认缩量回调，而非资金出逃）
+            confidence, position, turnover_reason = enhance_signal_with_turnover(
+                'pullback', relative_turnover, base_confidence, base_position
+            )
 
             vol_desc = f', 量比{vol_ratio:.1f}' if vol_ratio > 1.2 else ''
+            turnover_desc = f', {turnover_reason}' if turnover_reason else ''
+            liquidity_desc = f', {liquidity_reason}' if not is_valid else ''
             return StrategySignal(
                 action='SELL', confidence=round(confidence, 2),
-                position=position,
+                position=round(position, 2),
                 reason=f'MACD死叉: '
                        f'DIF={cur_dif:.4f} 下穿 DEA={cur_dea:.4f}'
-                       f'{vol_desc}',
+                       f'{vol_desc}{turnover_desc}{liquidity_desc}',
                 indicators=indicators,
             )
 

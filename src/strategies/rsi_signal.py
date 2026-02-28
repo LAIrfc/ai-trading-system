@@ -53,6 +53,11 @@ min_bars 计算: period + _SLOPE_LOOKBACK + 5
 import numpy as np
 import pandas as pd
 from .base import Strategy, StrategySignal
+from .turnover_helper import (
+    calc_relative_turnover_rate,
+    check_turnover_liquidity,
+    enhance_signal_with_turnover
+)
 
 
 class RSIStrategy(Strategy):
@@ -171,6 +176,9 @@ class RSIStrategy(Strategy):
         rsi_slope = dyn['rsi_slope']
         rsi_slope_std = dyn['rsi_slope_std']
         vol_ratio = dyn['vol_ratio']
+        
+        # 实盘标准：计算相对换手率（当前换手率/20日均换手率）
+        relative_turnover = calc_relative_turnover_rate(df, ma_period=20)
 
         indicators = {
             'RSI': round(cur_rsi, 2),
@@ -178,25 +186,43 @@ class RSIStrategy(Strategy):
             'rsi_slope': round(rsi_slope, 2),
             'rsi_slope_std': round(rsi_slope_std, 2),
             'vol_ratio': round(vol_ratio, 2),
+            'relative_turnover': round(relative_turnover, 2) if relative_turnover else None,
         }
 
         # ---- 从超卖区回升突破（强买入）----
         #  RSI 从 < oversold 穿越到 >= oversold，确认离开超卖区
         #  RSI 变化幅度 + 量比 → factor → 动态置信度/仓位
         if prev_rsi < self.oversold and cur_rsi >= self.oversold:
+            # 实盘标准：流动性过滤
+            is_valid, liquidity_reason = check_turnover_liquidity(relative_turnover)
+            if not is_valid:
+                # 流动性异常，回避交易
+                return StrategySignal(
+                    action='HOLD', confidence=0.3, position=0.5,
+                    reason=f'RSI从超卖区回升但{liquidity_reason}，回避交易',
+                    indicators=indicators,
+                )
+            
             factor = self._combined_factor(
                 rsi_slope, rsi_slope_std, vol_ratio)
-            confidence = (self._BASE_CONF +
-                          factor * (self._MAX_CONF - self._BASE_CONF))
-            position = (self._BREAK_BUY_POS_MIN +
-                        factor * (self._BREAK_BUY_POS_MAX -
-                                  self._BREAK_BUY_POS_MIN))
+            base_confidence = (self._BASE_CONF +
+                              factor * (self._MAX_CONF - self._BASE_CONF))
+            base_position = (self._BREAK_BUY_POS_MIN +
+                            factor * (self._BREAK_BUY_POS_MAX -
+                                      self._BREAK_BUY_POS_MIN))
+            
+            # 实盘标准：突破时要求相对换手率>1.2倍（确认有效突破）
+            confidence, position, turnover_reason = enhance_signal_with_turnover(
+                'breakout', relative_turnover, base_confidence, base_position
+            )
+            
             vol_desc = f', 量比{vol_ratio:.1f}' if vol_ratio > 1.2 else ''
+            turnover_desc = f', {turnover_reason}' if turnover_reason else ''
             return StrategySignal(
                 action='BUY', confidence=round(confidence, 2),
                 position=round(position, 2),
                 reason=f'RSI从超卖区回升突破 '
-                       f'({prev_rsi:.1f}→{cur_rsi:.1f}){vol_desc}',
+                       f'({prev_rsi:.1f}→{cur_rsi:.1f}){vol_desc}{turnover_desc}',
                 indicators=indicators,
             )
 
@@ -205,26 +231,44 @@ class RSIStrategy(Strategy):
         #  回升幅度越大 → 置信度和仓位越高
         if cur_rsi < self.oversold:
             if cur_rsi > prev_rsi and prev_rsi > prev2_rsi:
+                # 实盘标准：流动性过滤（拐头信号也检查）
+                is_valid, liquidity_reason = check_turnover_liquidity(relative_turnover)
+                if not is_valid:
+                    # 流动性异常，回避交易
+                    return StrategySignal(
+                        action='HOLD', confidence=0.3, position=0.5,
+                        reason=f'RSI超卖区拐头但{liquidity_reason}，回避交易',
+                        indicators=indicators,
+                    )
+                
                 reversal = cur_rsi - prev2_rsi  # 两日累计回升（正值）
                 # 两日累计变化的标准差 ≈ 日变化标准差 × √2
                 # 除以 √2 缩放到日变化尺度, 使 _combined_factor 的 2σ 阈值正确
                 daily_eq = reversal / np.sqrt(2)
                 rev_factor = self._combined_factor(
                     daily_eq, rsi_slope_std, vol_ratio)
-                confidence = (self._REV_BASE_CONF +
-                              rev_factor * (self._REV_MAX_CONF -
-                                            self._REV_BASE_CONF))
-                position = (self._REV_BUY_POS_MIN +
-                            rev_factor * (self._REV_BUY_POS_MAX -
-                                          self._REV_BUY_POS_MIN))
+                base_confidence = (self._REV_BASE_CONF +
+                                  rev_factor * (self._REV_MAX_CONF -
+                                                self._REV_BASE_CONF))
+                base_position = (self._REV_BUY_POS_MIN +
+                                rev_factor * (self._REV_BUY_POS_MAX -
+                                              self._REV_BUY_POS_MIN))
+                
+                # 实盘标准：回调时要求<0.8倍（确认缩量回调，而非资金出逃）
+                # 但这里是超卖区拐头，更像是突破，使用'breakout'类型
+                confidence, position, turnover_reason = enhance_signal_with_turnover(
+                    'breakout', relative_turnover, base_confidence, base_position
+                )
+                
                 vol_desc = (f', 量比{vol_ratio:.1f}'
                             if vol_ratio > 1.2 else '')
+                turnover_desc = f', {turnover_reason}' if turnover_reason else ''
                 return StrategySignal(
                     action='BUY', confidence=round(confidence, 2),
                     position=round(position, 2),
                     reason=f'RSI超卖区拐头确认 '
                            f'({prev2_rsi:.1f}→{prev_rsi:.1f}'
-                           f'→{cur_rsi:.1f}){vol_desc}',
+                           f'→{cur_rsi:.1f}){vol_desc}{turnover_desc}',
                     indicators=indicators,
                 )
             else:
@@ -238,20 +282,33 @@ class RSIStrategy(Strategy):
         #  RSI 从 > overbought 跌到 <= overbought，确认离开超买区
         #  平滑卖出: 强回落(factor高)→清仓, 弱回落(factor低)→保留少量
         if prev_rsi > self.overbought and cur_rsi <= self.overbought:
+            # 实盘标准：流动性过滤（死叉时也检查，但更宽松）
+            is_valid, liquidity_reason = check_turnover_liquidity(relative_turnover)
+            liquidity_penalty = 0.0 if is_valid else 0.1
+            
             factor = self._combined_factor(
                 rsi_slope, rsi_slope_std, vol_ratio)
-            confidence = (self._BASE_CONF +
-                          factor * (self._MAX_CONF - self._BASE_CONF))
+            base_confidence = (self._BASE_CONF +
+                              factor * (self._MAX_CONF - self._BASE_CONF))
+            base_confidence = max(0.0, base_confidence - liquidity_penalty)
             # 仓位随 factor 平滑衰减:
             #   factor→0 (弱回落): position ≈ _SELL_POS_MAX (0.12)
             #   factor→1 (强回落): position → 0
-            position = round(max(0, self._SELL_POS_MAX * (1 - factor)), 2)
+            base_position = max(0, self._SELL_POS_MAX * (1 - factor))
+            
+            # 实盘标准：回调时要求<0.8倍（确认缩量回调，而非资金出逃）
+            confidence, position, turnover_reason = enhance_signal_with_turnover(
+                'pullback', relative_turnover, base_confidence, base_position
+            )
+            
             vol_desc = f', 量比{vol_ratio:.1f}' if vol_ratio > 1.2 else ''
+            turnover_desc = f', {turnover_reason}' if turnover_reason else ''
+            liquidity_desc = f', {liquidity_reason}' if not is_valid else ''
             return StrategySignal(
                 action='SELL', confidence=round(confidence, 2),
-                position=position,
+                position=round(position, 2),
                 reason=f'RSI从超买区回落突破 '
-                       f'({prev_rsi:.1f}→{cur_rsi:.1f}){vol_desc}',
+                       f'({prev_rsi:.1f}→{cur_rsi:.1f}){vol_desc}{turnover_desc}{liquidity_desc}',
                 indicators=indicators,
             )
 
@@ -260,26 +317,39 @@ class RSIStrategy(Strategy):
         #  回落幅度越大 → 置信度越高, 仓位越低
         if cur_rsi > self.overbought:
             if cur_rsi < prev_rsi and prev_rsi < prev2_rsi:
+                # 实盘标准：流动性过滤（死叉时也检查，但更宽松）
+                is_valid, liquidity_reason = check_turnover_liquidity(relative_turnover)
+                liquidity_penalty = 0.0 if is_valid else 0.1
+                
                 reversal = cur_rsi - prev2_rsi  # 两日累计回落（负值）
                 # 同买入拐头: 缩放到日变化尺度
                 daily_eq = reversal / np.sqrt(2)
                 rev_factor = self._combined_factor(
                     daily_eq, rsi_slope_std, vol_ratio)
-                confidence = (self._REV_BASE_CONF +
-                              rev_factor * (self._REV_MAX_CONF -
-                                            self._REV_BASE_CONF))
+                base_confidence = (self._REV_BASE_CONF +
+                                  rev_factor * (self._REV_MAX_CONF -
+                                                self._REV_BASE_CONF))
+                base_confidence = max(0.0, base_confidence - liquidity_penalty)
                 # 强回落(factor高) → 低仓位, 弱回落(factor低) → 高仓位
-                position = (self._REV_SELL_POS_MAX -
-                            rev_factor * (self._REV_SELL_POS_MAX -
-                                          self._REV_SELL_POS_MIN))
+                base_position = (self._REV_SELL_POS_MAX -
+                                rev_factor * (self._REV_SELL_POS_MAX -
+                                              self._REV_SELL_POS_MIN))
+                
+                # 实盘标准：回调时要求<0.8倍（确认缩量回调，而非资金出逃）
+                confidence, position, turnover_reason = enhance_signal_with_turnover(
+                    'pullback', relative_turnover, base_confidence, base_position
+                )
+                
                 vol_desc = (f', 量比{vol_ratio:.1f}'
                             if vol_ratio > 1.2 else '')
+                turnover_desc = f', {turnover_reason}' if turnover_reason else ''
+                liquidity_desc = f', {liquidity_reason}' if not is_valid else ''
                 return StrategySignal(
                     action='SELL', confidence=round(confidence, 2),
                     position=round(position, 2),
                     reason=f'RSI超买区拐头确认 '
                            f'({prev2_rsi:.1f}→{prev_rsi:.1f}'
-                           f'→{cur_rsi:.1f}){vol_desc}',
+                           f'→{cur_rsi:.1f}){vol_desc}{turnover_desc}{liquidity_desc}',
                     indicators=indicators,
                 )
             else:
