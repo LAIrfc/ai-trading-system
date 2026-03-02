@@ -31,6 +31,9 @@ import numpy as np
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../..'))
 
 from src.strategies.macd_cross import MACDStrategy
+from src.strategies.fundamental_pe import PEStrategy
+from src.strategies.fundamental_pb import PBStrategy
+from src.data.fetchers.fundamental_fetcher import FundamentalFetcher
 
 
 # ============================================================
@@ -95,9 +98,15 @@ def load_stock_pool(pool_file: str) -> list:
 # 技术指标扩展分析
 # ============================================================
 
-def analyze_stock_extended(df: pd.DataFrame, strat: MACDStrategy) -> dict:
+def analyze_stock_extended(df: pd.DataFrame, strat: MACDStrategy,
+                           pe_strat: PEStrategy = None,
+                           pb_strat: PBStrategy = None,
+                           fund_flow_signal: dict = None) -> dict:
     """
-    扩展分析：除了MACD信号，还计算辅助技术指标
+    扩展分析：MACD信号 + 基本面PE/PB信号 + 资金流信号 + 辅助技术指标
+
+    Args:
+        fund_flow_signal: 资金流信号字典（来自fundamental_fetcher.get_fund_flow_signal）
 
     Returns:
         {
@@ -111,6 +120,14 @@ def analyze_stock_extended(df: pd.DataFrame, strat: MACDStrategy) -> dict:
             'trend': str,           # 趋势判断
             'distance_from_high': float,  # 距离60日新高的距离
             'distance_from_low': float,   # 距离60日新低的距离
+            'pe_signal': str,       # PE信号
+            'pb_signal': str,       # PB信号
+            'pe_ttm': float,        # 当前PE
+            'pe_quantile': float,   # PE分位数
+            'pb': float,            # 当前PB
+            'pb_quantile': float,   # PB分位数
+            'fund_flow_signal': str,  # 资金流信号
+            'fund_flow_reason': str,   # 资金流原因
         }
     """
     close = df['close']
@@ -148,6 +165,36 @@ def analyze_stock_extended(df: pd.DataFrame, strat: MACDStrategy) -> dict:
     dist_high = (price / high_60 - 1) * 100
     dist_low = (price / low_60 - 1) * 100
 
+    # 基本面信号
+    pe_signal = 'N/A'
+    pb_signal = 'N/A'
+    pe_ttm = None
+    pe_quantile = None
+    pb_val = None
+    pb_quantile = None
+    
+    if pe_strat and 'pe_ttm' in df.columns:
+        try:
+            pe_sig = pe_strat.analyze(df)
+            pe_signal = pe_sig.action
+            pe_ttm = pe_sig.indicators.get('pe_ttm')
+            pe_quantile = pe_sig.indicators.get('pe_quantile')
+        except Exception:
+            pass
+    
+    if pb_strat and 'pb' in df.columns:
+        try:
+            pb_sig = pb_strat.analyze(df)
+            pb_signal = pb_sig.action
+            pb_val = pb_sig.indicators.get('pb')
+            pb_quantile = pb_sig.indicators.get('pb_quantile')
+        except Exception:
+            pass
+
+    # 资金流信号
+    fund_flow = fund_flow_signal.get('signal', 'neutral') if fund_flow_signal else 'neutral'
+    fund_flow_reason = fund_flow_signal.get('reason', '') if fund_flow_signal else ''
+    
     return {
         'signal': signal,
         'price': price,
@@ -159,6 +206,14 @@ def analyze_stock_extended(df: pd.DataFrame, strat: MACDStrategy) -> dict:
         'trend': trend,
         'distance_from_high': round(dist_high, 2),
         'distance_from_low': round(dist_low, 2),
+        'pe_signal': pe_signal,
+        'pb_signal': pb_signal,
+        'pe_ttm': pe_ttm,
+        'pe_quantile': pe_quantile,
+        'pb': pb_val,
+        'pb_quantile': pb_quantile,
+        'fund_flow_signal': fund_flow,
+        'fund_flow_reason': fund_flow_reason,
     }
 
 
@@ -168,18 +223,18 @@ def analyze_stock_extended(df: pd.DataFrame, strat: MACDStrategy) -> dict:
 
 def compute_score(info: dict) -> float:
     """
-    综合评分 = MACD信号 + 趋势 + 量价 + 位置
+    综合评分 = MACD信号 + 趋势 + 量价 + 位置 + 基本面
 
-    满分 100
+    满分 100+
     """
     sig = info['signal']
     score = 0.0
 
-    # 1. MACD信号权重 (40分)
+    # 1. MACD信号权重 (35分)
     if sig.action == 'BUY':
-        score += 25 + sig.confidence * 15  # 25~40
+        score += 20 + sig.confidence * 15  # 20~35
     elif sig.action == 'SELL':
-        score -= 25 + sig.confidence * 15
+        score -= 20 + sig.confidence * 15
     else:
         score += 0  # HOLD
 
@@ -202,7 +257,7 @@ def compute_score(info: dict) -> float:
         else:
             score += 3   # 缩量金叉信号偏弱
 
-    # 4. 近期涨幅 (15分) — 短线追涨动量
+    # 4. 近期涨幅 (10分) — 短线追涨动量
     if 0 < info['change_5d'] < 10:
         score += 10  # 温和上涨
     elif info['change_5d'] > 10:
@@ -222,6 +277,27 @@ def compute_score(info: dict) -> float:
     else:
         score -= 5   # 跌太深
 
+    # 6. 基本面PE/PB (10分) — 估值共振加分
+    pe_sig = info.get('pe_signal', 'N/A')
+    pb_sig = info.get('pb_signal', 'N/A')
+    
+    if pe_sig == 'BUY':
+        score += 5   # PE低估加分
+    elif pe_sig == 'SELL':
+        score -= 3   # PE高估扣分
+    
+    if pb_sig == 'BUY':
+        score += 5   # PB低估加分
+    elif pb_sig == 'SELL':
+        score -= 3   # PB高估扣分
+
+    # 7. 资金流信号 (8分) — 主力资金方向
+    fund_flow = info.get('fund_flow_signal', 'neutral')
+    if fund_flow == 'bullish':
+        score += 8   # 主力净流入，强烈看多
+    elif fund_flow == 'bearish':
+        score -= 5   # 主力净流出，看空
+
     return round(score, 1)
 
 
@@ -236,6 +312,8 @@ def main():
     parser.add_argument('--slow', type=int, default=30, help='MACD慢线')
     parser.add_argument('--signal', type=int, default=9, help='MACD信号线')
     parser.add_argument('--top', type=int, default=20, help='推荐TOP N只')
+    parser.add_argument('--fundamental', action='store_true', default=True,
+                        help='启用基本面分析(PE/PB)')
     args = parser.parse_args()
 
     pool_file = os.path.join(os.path.dirname(__file__), '..', 'data', args.pool)
@@ -243,6 +321,11 @@ def main():
 
     strat = MACDStrategy(fast_period=args.fast, slow_period=args.slow,
                          signal_period=args.signal)
+    
+    # 基本面策略
+    pe_strat = PEStrategy() if args.fundamental else None
+    pb_strat = PBStrategy() if args.fundamental else None
+    fund_fetcher = FundamentalFetcher() if args.fundamental else None
 
     today = datetime.now().strftime('%Y-%m-%d')
 
@@ -251,6 +334,7 @@ def main():
     print(f"{'='*70}")
     print(f"📌 MACD参数: ({args.fast},{args.slow},{args.signal})")
     print(f"📌 股票池: {len(stocks)} 只")
+    print(f"📌 基本面: {'✅ 启用(PE/PB)' if args.fundamental else '❌ 关闭'}")
     print(f"📌 推荐TOP: {args.top} 只")
     print()
 
@@ -302,7 +386,25 @@ def main():
             fail_count += 1
             continue
 
-        info = analyze_stock_extended(df, strat)
+        # 合并基本面数据（PE/PB）
+        fund_flow_signal = None
+        if fund_fetcher:
+            try:
+                start_dt = df['date'].iloc[0].strftime('%Y%m%d')
+                end_dt = df['date'].iloc[-1].strftime('%Y%m%d')
+                fund_df = fund_fetcher.get_daily_basic(code, start_date=start_dt, end_date=end_dt)
+                if not fund_df.empty:
+                    df = fund_fetcher.merge_to_daily(df, fund_df, fill_method='ffill')
+                
+                # 获取资金流信号
+                try:
+                    fund_flow_signal = fund_fetcher.get_fund_flow_signal(code)
+                except Exception:
+                    pass
+            except Exception:
+                pass
+
+        info = analyze_stock_extended(df, strat, pe_strat, pb_strat, fund_flow_signal)
         score = compute_score(info)
 
         all_results.append({
@@ -323,6 +425,14 @@ def main():
             'score': score,
             'dif': info['signal'].indicators.get('DIF', 0),
             'dea': info['signal'].indicators.get('DEA', 0),
+            'pe_signal': info['pe_signal'],
+            'pb_signal': info['pb_signal'],
+            'pe_ttm': info['pe_ttm'],
+            'pe_quantile': info['pe_quantile'],
+            'pb': info['pb'],
+            'pb_quantile': info['pb_quantile'],
+            'fund_flow_signal': info.get('fund_flow_signal', 'neutral'),
+            'fund_flow_reason': info.get('fund_flow_reason', ''),
         })
 
         time.sleep(0.05)
@@ -353,15 +463,20 @@ def main():
 
     if len(buy_stocks) > 0:
         print(f"{'排名':>4} {'代码':>8} {'名称':>8} {'价格':>8} {'评分':>6} "
-              f"{'信心':>5} {'仓位':>5} {'5日涨幅':>8} {'量比':>5} {'趋势':>8} {'理由'}")
-        print("-" * 110)
+              f"{'信心':>5} {'仓位':>5} {'5日涨幅':>8} {'量比':>5} {'PE':>6} {'PB':>5} {'资金流':>6} {'趋势':>8} {'理由'}")
+        print("-" * 145)
         for rank, (_, row) in enumerate(buy_stocks.head(args.top).iterrows(), 1):
             star = '🌟' if row['score'] >= 60 else ('⭐' if row['score'] >= 45 else '  ')
+            pe_str = f"{row['pe_ttm']:.0f}" if pd.notna(row.get('pe_ttm')) and row.get('pe_ttm') else '-'
+            pb_str = f"{row['pb']:.1f}" if pd.notna(row.get('pb')) and row.get('pb') else '-'
+            flow_emoji = '🟢' if row.get('fund_flow_signal') == 'bullish' else ('🔴' if row.get('fund_flow_signal') == 'bearish' else '⚪')
+            flow_str = f"{flow_emoji}{row.get('fund_flow_signal', 'neutral')[:4]}"
             print(f"{star}{rank:>2} {row['code']:>8} {row['name']:>8} "
                   f"{row['price']:>8.2f} {row['score']:>6.1f} "
                   f"{row['confidence']:>5.0%} {row['position']:>5.0%} "
                   f"{row['change_5d']:>+8.2f}% {row['volume_ratio']:>5.1f}x "
-                  f"{row['trend']:>8} {row['reason'][:40]}")
+                  f"{pe_str:>6} {pb_str:>5} {flow_str:>6} "
+                  f"{row['trend']:>8} {row['reason'][:30]}")
     else:
         print("  ⚠️ 今日无买入信号")
 

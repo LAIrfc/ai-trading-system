@@ -131,28 +131,21 @@ def backtest_one_stock(stock_info: dict, strategies: dict,
     # 合并基本面数据（如果启用）
     if enable_fundamental:
         try:
-            # 优先尝试从真实数据源获取（tushare）
-            fetcher = FundamentalFetcher(source='tushare')
+            # 使用baostock获取真实PE/PB数据
+            fetcher = FundamentalFetcher(source='baostock')
             start_date = df['date'].iloc[0].strftime('%Y%m%d')
             end_date = df['date'].iloc[-1].strftime('%Y%m%d')
             fund_df = fetcher.get_daily_basic(code, start_date=start_date, end_date=end_date)
             
             if not fund_df.empty:
-                # 使用真实数据
                 df = fetcher.merge_to_daily(df, fund_df, fill_method='ffill')
-            else:
-                # 真实数据获取失败，回退到模拟数据（仅用于测试）
-                # ⚠️ 警告：模拟数据隐含未来信息，不可用于真实回测验证
-                import warnings
-                warnings.warn(
-                    f"[{code}] 真实基本面数据获取失败，使用模拟数据（仅用于测试流程）",
-                    UserWarning
-                )
-                import hashlib
-                seed = int(hashlib.md5(code.encode()).hexdigest()[:8], 16) % 10000
-                fund_df = create_mock_fundamental_data(df, random_seed=seed)
-                if not fund_df.empty:
-                    df = fetcher.merge_to_daily(df, fund_df, fill_method='ffill')
+            
+            # 获取ROE数据，对齐到日频
+            fina_df = fetcher.get_financial_indicators(code)
+            if not fina_df.empty:
+                df = fetcher.align_roe_to_daily(df, fina_df)
+            
+            fetcher._bs_logout()
         except Exception as e:
             # 基本面数据获取失败不影响回测，继续使用纯技术数据
             pass
