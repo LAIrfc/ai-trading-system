@@ -65,15 +65,23 @@ def fetch_sina(code: str, datalen: int = 800, retries: int = 3) -> pd.DataFrame:
 
 
 def load_stock_pool(pool_file: str, max_count: int = 500) -> list:
-    """从 JSON 股票池加载股票列表，按板块均匀分配"""
+    """从 JSON 股票池加载股票列表，支持多种格式（sectors/stocks+etf/categories）"""
+    try:
+        from src.utils.pool_loader import load_pool
+        return load_pool(pool_file, max_count=max_count, include_etf=False)
+    except ImportError:
+        pass
+
+    # fallback: 直接解析
     with open(pool_file, 'r', encoding='utf-8') as f:
         pool = json.load(f)
 
-    sectors = pool.get('sectors', {})
-    total_available = sum(len(v) for v in sectors.values())
+    # 兼容综合格式 (stocks字段) 和老格式 (sectors字段)
+    sectors = pool.get('stocks', pool.get('sectors', {}))
     num_sectors = len(sectors)
+    if num_sectors == 0:
+        return []
 
-    # 每个板块分配的配额
     per_sector = max(1, max_count // num_sectors)
     remainder = max_count - per_sector * num_sectors
 

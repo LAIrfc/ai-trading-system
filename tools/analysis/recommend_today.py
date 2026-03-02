@@ -72,12 +72,19 @@ def fetch_stock_data(code: str, days: int = 200) -> pd.DataFrame:
 
 
 def load_stock_pool(pool_file: str) -> list:
-    """加载股票池"""
+    """加载股票池（兼容多种格式）"""
+    try:
+        from src.utils.pool_loader import load_pool
+        return load_pool(pool_file, include_etf=False)
+    except ImportError:
+        pass
+
     with open(pool_file, 'r', encoding='utf-8') as f:
         pool = json.load(f)
 
     stocks = []
-    for sec_name, sec_stocks in pool['sectors'].items():
+    sectors = pool.get('stocks', pool.get('sectors', {}))
+    for sec_name, sec_stocks in sectors.items():
         for s in sec_stocks:
             s['sector'] = sec_name
             stocks.append(s)

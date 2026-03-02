@@ -124,12 +124,19 @@ def fetch_data(code: str, days: int = 300, source: str = 'baostock') -> pd.DataF
 # ============================================================
 
 def load_stock_pool(pool_file: str, sector: str = None, top: int = None) -> list:
-    """加载股票池"""
+    """加载股票池（兼容多种格式）"""
+    try:
+        from src.utils.pool_loader import load_pool
+        return load_pool(pool_file, max_count=top or 0, sector=sector, include_etf=False)
+    except ImportError:
+        pass
+
     with open(pool_file, 'r', encoding='utf-8') as f:
         pool = json.load(f)
 
     stocks = []
-    for sec_name, sec_stocks in pool['sectors'].items():
+    sectors = pool.get('stocks', pool.get('sectors', {}))
+    for sec_name, sec_stocks in sectors.items():
         if sector and sector not in sec_name:
             continue
         for s in sec_stocks:

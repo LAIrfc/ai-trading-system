@@ -18,7 +18,8 @@ tools/
 │
 ├── data/                  # 数据工具
 │   ├── kline_fetcher.py        # K线数据获取
-│   └── refresh_stock_pool.py   # 刷新股票池
+│   ├── refresh_stock_pool.py   # 刷新股票池（含基本面过滤）
+│   └── quarterly_update.py     # 季度定期更新（指数成分+龙头+基本面）
 │
 └── testing/               # 测试工具
     ├── test_fundamental.py     # 基本面策略测试
@@ -60,8 +61,23 @@ python3 tools/analysis/recommend_today.py
 # 获取K线数据
 python3 tools/data/kline_fetcher.py 600000
 
-# 刷新股票池
+# 刷新综合股票池（合并个股+ETF，基本面过滤）
 python3 tools/data/refresh_stock_pool.py
+
+# 不过滤直接合并
+python3 tools/data/refresh_stock_pool.py --no-filter
+
+# 重新获取赛道龙头
+python3 tools/data/refresh_stock_pool.py --refresh-sectors
+
+# 验证池内股票数据可用性
+python3 tools/data/refresh_stock_pool.py --verify
+
+# 季度更新（指数成分+龙头+基本面缓存）
+python3 tools/data/quarterly_update.py
+
+# 检查是否需要季度更新
+python3 tools/data/quarterly_update.py --check
 ```
 
 ### 测试工具
