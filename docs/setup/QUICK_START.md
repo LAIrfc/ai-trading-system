@@ -138,6 +138,15 @@ for signal in signals:
 
 ## 常见问题
 
+### Q: pyautogui 需要 tkinter？
+
+**A**: 这是Linux系统的常见问题，详见 [Tkinter故障排除指南](TROUBLESHOOTING_TKINTER.md)
+
+快速解决：
+```bash
+sudo apt-get install python3-tk python3-dev -y
+```
+
 ### Q: 浏览器打不开？
 
 **A**: 检查Chrome是否安装：
@@ -183,6 +192,10 @@ for log in logs:
 - 仓位超限
 - 交易时间不符
 - 流动性不足
+
+### Q: Windows用户？
+
+**A**: 请查看 [Windows快速导航](WINDOWS_README.md) 和 [Windows完整指南](WINDOWS_GUIDE.md)
 
 ## 学习路径
 
@@ -237,7 +250,7 @@ for log in logs:
 
 1. 📖 查看文档目录
 2. 🔍 搜索代码注释
-3. 🐛 检查日志文件 `logs/`
+3. 🐛 检查日志文件 `mylog/`（或 `logs/`，系统会自动适配）
 4. 💡 参考示例代码 `examples/`
 
 ## 下一步

@@ -403,8 +403,11 @@ def print_summary(results_a, results_b, skipped_by_roe, enhanced_by_pe):
 
 
 def main():
-    # 加载股票池
-    pool_file = os.path.join(os.path.dirname(__file__), '../../data/stock_pool_600.json')
+    # 加载股票池（优先使用 mydate 目录）
+    base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    pool_file = os.path.join(base_dir, 'mydate', 'stock_pool_600.json')
+    if not os.path.exists(pool_file):
+        pool_file = os.path.join(base_dir, 'data', 'stock_pool_600.json')
     with open(pool_file, 'r') as f:
         pool = json.load(f)
     

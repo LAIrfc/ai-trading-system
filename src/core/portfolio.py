@@ -13,8 +13,8 @@ from loguru import logger
 from src.core.signal_engine import Signal, StrategyState
 
 
-# 持仓文件路径
-DATA_DIR = os.path.join(os.path.dirname(__file__), '..', '..', 'data')
+# 持仓文件路径（使用 mydate 目录）
+DATA_DIR = os.path.join(os.path.dirname(__file__), '..', '..', 'mydate')
 STATE_FILE = os.path.join(DATA_DIR, 'portfolio_state.json')
 TRADE_LOG_FILE = os.path.join(DATA_DIR, 'trade_log.jsonl')
 DAILY_LOG_DIR = os.path.join(DATA_DIR, 'daily_reports')

@@ -15,7 +15,7 @@ from src.core.portfolio import Portfolio
 from src.data.market_data import ETF_POOL
 
 
-DAILY_LOG_DIR = os.path.join(os.path.dirname(__file__), '..', '..', 'data', 'daily_reports')
+DAILY_LOG_DIR = os.path.join(os.path.dirname(__file__), '..', '..', 'mydate', 'daily_reports')
 
 
 def generate_daily_report(signal: Signal, analysis: dict,

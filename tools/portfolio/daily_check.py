@@ -95,7 +95,7 @@ def append_realtime(df: pd.DataFrame, rt: dict) -> pd.DataFrame:
 def main():
     import argparse
     parser = argparse.ArgumentParser(description='每日持仓检查')
-    parser.add_argument('--portfolio', default='data/my_portfolio.json',
+    parser.add_argument('--portfolio', default='mydate/my_portfolio.json',
                         help='持仓配置文件')
     parser.add_argument('--detail', action='store_true',
                         help='显示各策略详细信号')
@@ -266,7 +266,8 @@ def main():
               f'今日¥{rec["today_pnl"]:+,.0f} | {sig} → {advice}')
 
     # ── 保存记录 ──
-    data_dir = os.path.join(os.path.dirname(__file__), '../../data')
+    base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    data_dir = os.path.join(base_dir, 'mydate')
     os.makedirs(data_dir, exist_ok=True)
 
     # 明细

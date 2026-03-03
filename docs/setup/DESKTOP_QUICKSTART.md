@@ -129,18 +129,20 @@ crontab -e
 
 ## 📚 更多文档
 
-| 文档 | 说明 |
-|------|------|
-| [DESKTOP_TRADING_GUIDE.md](docs/DESKTOP_TRADING_GUIDE.md) | 详细使用指南 |
-| [STRATEGY_EXECUTION_GUIDE.md](docs/STRATEGY_EXECUTION_GUIDE.md) | 策略执行说明 |
-| [QUICK_START.md](docs/QUICK_START.md) | 完整入门教程 |
+| 文档 | 说明 | 适用场景 |
+|------|------|----------|
+| [QUICK_START.md](QUICK_START.md) | 通用快速开始 | 网页版/模拟盘用户 |
+| [WINDOWS_GUIDE.md](WINDOWS_GUIDE.md) | Windows完整指南 | Windows用户 |
+| [TROUBLESHOOTING_TKINTER.md](TROUBLESHOOTING_TKINTER.md) | Tkinter故障排除 | Linux用户遇到tkinter错误 |
+| [DESKTOP_TRADING_GUIDE.md](DESKTOP_TRADING_GUIDE.md) | 桌面交易详细指南 | 桌面客户端用户 |
+| [STRATEGY_EXECUTION_GUIDE.md](../strategy/STRATEGY_EXECUTION_GUIDE.md) | 策略执行说明 | 策略开发 |
 
 ## ⚠️ 重要提示
 
 1. **测试模式**: 第一次使用建议选择"手动模式"观察流程
 2. **小额测试**: 先用最小单位（100股）测试
 3. **规则设置**: 在`config/strategy_rules.yaml`中配置交易规则
-4. **审计日志**: 所有操作都会记录到`data/audit/`
+4. **审计日志**: 所有操作都会记录到`mydate/audit/`
 
 ## 🆚 为什么选择桌面版？
 

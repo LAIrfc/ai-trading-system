@@ -25,6 +25,7 @@ venv/
 ENV/
 env/
 .venv
+myvenv/
 
 # IDE
 .vscode/
@@ -42,7 +43,17 @@ config/broker_config.yaml
 config/strategy_rules.yaml
 *.secret
 
-# 数据文件
+# 数据文件（新目录结构）
+mydate/
+!mydate/.gitkeep
+mycache/
+!mycache/.gitkeep
+mylog/
+!mylog/.gitkeep
+myoutput/
+!myoutput/.gitkeep
+
+# 数据文件（旧目录，保留兼容）
 data/
 !data/.gitkeep
 data/market_data/*.csv
@@ -54,14 +65,17 @@ data/models/*.pkl
 data/models/*.h5
 data/models/*.pth
 
-# 日志文件
+# 日志文件（旧目录，保留兼容）
 logs/
 !logs/.gitkeep
 logs/*.log
 logs/*.txt
 
 # 个人交易记录（敏感）
-*.json
+# 注意：mydate/ 目录已在上方忽略，这里只处理根目录的敏感JSON
+mydate/*.json
+!mydate/.gitkeep
+!mydate/stock_pool*.json.example
 !package.json
 !tsconfig.json
 
@@ -73,7 +87,7 @@ account_*.json
 output/
 !output/.gitkeep
 
-# 缓存
+# 缓存（旧目录，保留兼容）
 cache/
 .cache/
 GPUCache/

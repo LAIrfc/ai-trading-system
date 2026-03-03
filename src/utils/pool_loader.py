@@ -9,8 +9,8 @@
 
 用法:
   from src.utils.pool_loader import load_pool
-  stocks = load_pool('data/stock_pool_all.json')
-  stocks = load_pool('data/stock_pool_all.json', include_etf=True, max_count=500)
+  stocks = load_pool('mydate/stock_pool_all.json')
+  stocks = load_pool('mydate/stock_pool_all.json', include_etf=True, max_count=500)
 """
 
 import json

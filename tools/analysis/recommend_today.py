@@ -320,7 +320,11 @@ def main():
                         help='启用基本面分析(PE/PB)')
     args = parser.parse_args()
 
-    pool_file = os.path.join(os.path.dirname(__file__), '..', 'data', args.pool)
+    # 优先使用 mydate 目录，如果不存在则使用 data 目录
+    base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    pool_file = os.path.join(base_dir, 'mydate', args.pool)
+    if not os.path.exists(pool_file):
+        pool_file = os.path.join(base_dir, 'data', args.pool)
     stocks = load_stock_pool(pool_file)
 
     # 选择策略

@@ -87,7 +87,7 @@ ai-trading-system/
 │       ├── test_pb_strategy.py        # PB策略测试
 │       └── ...
 │
-├── data/                          # 📊 数据文件
+├── mydate/                        # 📊 数据文件（股票池、持仓、回测结果等）
 │   ├── stock_pool_all.json            # ★ 综合股票池（869只=812个股+57ETF）
 │   ├── stock_pool.json                # 赛道龙头池（100只，7大赛道）
 │   ├── stock_pool_600.json            # 指数成分池（826只，HS300+ZZ500）
@@ -95,10 +95,15 @@ ai-trading-system/
 │   ├── market_fundamental_cache.json  # 基本面数据缓存
 │   ├── my_portfolio.json              # 我的持仓
 │   ├── portfolio_state.json           # 持仓状态
-│   ├── backtest_500_3year.json        # 回测结果（500只×3年）
 │   ├── backtest_results.json          # 回测结果
 │   ├── daily_reports/                 # 每日报告
 │   └── trade_log.jsonl                # 交易日志
+│
+├── mycache/                       # 💾 缓存文件（基本面数据、市场数据）
+│   └── market_data/                    # 市场数据缓存
+│
+├── mylog/                         # 📝 日志文件
+│   └── *.log                           # 各类日志
 │
 ├── config/                        # ⚙️ 配置文件
 │   ├── trading_config.yaml            # 交易配置（主配置）
@@ -118,8 +123,10 @@ ai-trading-system/
 ├── examples/                      # 📖 示例代码
 ├── tests/                         # 🧪 单元测试
 ├── scripts/                       # 📜 Shell脚本
-├── logs/                          # 📝 日志
-├── cache/                         # 💾 缓存
+├── mylog/                         # 📝 日志文件（新目录）
+├── logs/                          # 📝 日志（旧目录，保留兼容）
+├── mycache/                       # 💾 缓存文件（新目录）
+├── cache/                         # 💾 缓存（旧目录，保留兼容）
 │
 ├── run_daily.py                   # 每日运行入口
 ├── requirements.txt               # Python依赖

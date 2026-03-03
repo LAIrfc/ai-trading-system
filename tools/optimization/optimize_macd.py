@@ -181,7 +181,10 @@ def main():
     parser.add_argument('--cash', type=float, default=100000.0, help='初始资金')
     args = parser.parse_args()
 
-    pool_file = os.path.join(os.path.dirname(__file__), '..', 'data', args.pool)
+    base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    pool_file = os.path.join(base_dir, 'mydate', args.pool)
+    if not os.path.exists(pool_file):
+        pool_file = os.path.join(base_dir, 'data', args.pool)
     stocks = load_stock_pool(pool_file, top=args.top if args.top > 0 else None)
 
     print(f"=" * 70)

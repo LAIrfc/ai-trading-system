@@ -7,7 +7,7 @@
   2. 运行双核动量策略分析
   3. 生成买卖信号 + 完整决策理由
   4. 更新虚拟持仓
-  5. 输出操盘日志到 data/daily_reports/
+  5. 输出操盘日志到 mydate/daily_reports/
 
 用法:
   python3 run_daily.py              # 正常运行

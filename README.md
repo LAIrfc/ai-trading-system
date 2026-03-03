@@ -9,7 +9,7 @@
 - ✅ 自动检测系统并适配配置
 - ✅ 无需手动修改，开箱即用
 
-详见：[跨平台兼容说明](docs/CROSS_PLATFORM.md) | [Windows指南](docs/WINDOWS_GUIDE.md)
+详见：[跨平台兼容说明](docs/setup/CROSS_PLATFORM.md) | [Windows完整指南](docs/setup/WINDOWS_GUIDE.md) | [Windows快速导航](docs/setup/WINDOWS_README.md)
 
 ## ⚠️ 风险警告
 
@@ -23,16 +23,15 @@
 ## 系统特性
 
 ### 核心功能
+- ✅ **策略选股系统** ⭐ - 多策略组合从股票池挑选优质股票
+- ✅ **股票池管理** - 支持多个股票池（100只/800只/全市场），定期更新
+- ✅ **持仓分析** - 使用8个策略分析持仓，给出买卖建议
+- ✅ **8个内置策略** - MA/MACD/RSI/BOLL/KDJ/DUAL/PE/PB，可单独或组合使用
+- ✅ **基本面分析** - PE/PB估值、ROE筛选、行业PE分位数、资金流分析
 - ✅ 实时行情数据获取
-- ✅ 多因子特征工程
-- ✅ AI模型训练与预测
 - ✅ 策略回测引擎
-- ✅ 实盘交易执行
 - ✅ 多层风控系统
-- ✅ **策略文档驱动的严格执行** ⭐
-- ✅ **规则引擎和合规检查** ⭐
-- ✅ **完整审计追踪** ⭐
-- ✅ 策略文档自动维护
+- ✅ **自动化交易（可选）** - 支持桌面客户端和网页自动化
 - ✅ **双核动量轮动策略（完整实现）** 🆕
 
 ### 技术特点
@@ -45,7 +44,13 @@
 - 审批工作流（可选）
 - 详细的日志记录
 
-## 🚀 5分钟快速开始
+## 🚀 快速开始
+
+> **选择你的起点**：
+> - 🪟 **Windows用户** → [Windows快速导航](docs/setup/WINDOWS_README.md) | [Windows完整指南](docs/setup/WINDOWS_GUIDE.md)
+> - 🐧 **Linux用户** → [通用快速开始](docs/setup/QUICK_START.md)
+> - 🖥️ **桌面客户端用户** → [桌面客户端快速开始](docs/setup/DESKTOP_QUICKSTART.md)
+> - 🔧 **遇到tkinter错误** → [Tkinter故障排除](docs/setup/TROUBLESHOOTING_TKINTER.md)
 
 ### 🪟 Windows 用户
 
@@ -63,7 +68,7 @@ python tools\kline_fetcher.py 600519
 python tools\strategy_tester.py --interactive
 ```
 
-**详见**：[Windows 使用指南](docs/WINDOWS_GUIDE.md) ⭐
+**详见**：[Windows完整指南](docs/setup/WINDOWS_GUIDE.md) | [Windows快速导航](docs/setup/WINDOWS_README.md) ⭐
 
 ---
 
@@ -82,7 +87,46 @@ python3 tools/strategy_tester.py --interactive
 
 ### 选择你的起点
 
-#### 📊 策略开发（推荐新手）
+#### 🎯 策略选股（核心功能）⭐ 推荐
+
+**根据策略从股票池中挑选优质股票，系统核心功能！**
+
+```bash
+cd /home/wangxinghan/codetree/ai-trading-system
+
+# 1. 使用7策略组合（MA+MACD+RSI+BOLL+KDJ+DUAL+PE）从股票池选股
+python3 tools/analysis/recommend_today.py --pool mydate/stock_pool_600.json --strategy ensemble --top 20
+
+# 2. 使用单MACD策略选股
+python3 tools/analysis/recommend_today.py --pool mydate/stock_pool.json --strategy macd --top 10
+
+# 3. 分析持仓（使用所有8个策略）
+python3 tools/analysis/portfolio_strategy_analysis.py
+```
+
+**功能特点**：
+- ✅ **多策略组合** - 7个技术策略 + 1个基本面策略，综合评分
+- ✅ **股票池管理** - 支持多个股票池（100只/800只/全市场）
+- ✅ **基本面过滤** - PE/PB估值、ROE筛选、行业PE分位数
+- ✅ **资金流分析** - 主力资金流向信号
+- ✅ **持仓分析** - 多策略分析现有持仓，给出买卖建议
+- ✅ **实时数据** - 使用最新行情数据
+- ✅ **评分排序** - 按综合评分推荐TOP N只股票
+
+**输出内容**：
+- 📊 每只股票的8个策略信号（买入/卖出/观望）
+- 📈 综合评分和排名
+- 💰 资金流状态
+- 📋 推荐理由和建议仓位
+
+详见：
+- **[策略选股工具说明](#策略选股系统)** ⭐
+- **[股票池管理](#股票池管理)**
+- **[持仓分析](#持仓分析)**
+
+---
+
+#### 📊 策略开发（学习策略）
 
 开始开发和测试交易策略：
 
@@ -99,7 +143,7 @@ python3 tools/kline_fetcher.py 600519
 python3 tools/strategy_tester.py --interactive
 
 # 4. 查看策略指南
-cat docs/STRATEGY_QUICKSTART.md
+cat docs/strategy/STRATEGY_QUICKSTART.md
 ```
 
 **特点**：
@@ -110,9 +154,8 @@ cat docs/STRATEGY_QUICKSTART.md
 - ✅ 安全无风险
 
 详见：
-- **[K线数据获取指南](docs/KLINE_DATA_GUIDE.md)** 📊
-- **[策略开发快速开始](docs/STRATEGY_QUICKSTART.md)** ⭐
-- **[模拟交易指南](docs/PAPER_TRADING_GUIDE.md)** 🎮 NEW!
+- **[K线数据获取指南](docs/setup/KLINE_DATA_GUIDE.md)** 📊
+- **[策略开发快速开始](docs/strategy/STRATEGY_QUICKSTART.md)** ⭐
 
 ---
 
@@ -138,7 +181,7 @@ python3 examples/paper_trading_demo.py
 - ✅ **策略测试** - 验证策略有效性
 - ✅ **数据保存** - 可回放分析
 
-详见：**[模拟交易指南](docs/PAPER_TRADING_GUIDE.md)** 🎮
+详见：**[模拟交易指南](docs/setup/PAPER_TRADING_GUIDE.md)** 🎮
 
 ---
 
@@ -155,7 +198,7 @@ python3 examples/paper_trading_demo.py
 sudo apt-get install python3-tk python3-dev -y
 ```
 
-详见：[SIMPLE_START.md](docs/SIMPLE_START.md) | [TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md)
+详见：[Tkinter故障排除](docs/setup/TROUBLESHOOTING_TKINTER.md) | [故障排除](docs/setup/TROUBLESHOOTING.md)
 
 ---
 
@@ -179,7 +222,7 @@ python3 tests/simple_test.py
 
 **就这么简单！** 如果同花顺已安装且保存了密码，程序会自动登录。
 
-📖 **桌面版详细教程**: [DESKTOP_QUICKSTART.md](docs/DESKTOP_QUICKSTART.md)
+📖 **桌面版详细教程**: [桌面客户端快速开始](docs/setup/DESKTOP_QUICKSTART.md)
 
 ### 或使用网页版
 
@@ -213,7 +256,7 @@ python examples/web_trading_demo.py
    python examples/web_trading_demo.py
    ```
 
-**📚 完整教程**: [快速入门指南](docs/QUICK_START.md)
+**📚 完整教程**: [快速入门指南](docs/setup/QUICK_START.md)
 
 ### 3. 数据准备
 
@@ -260,13 +303,10 @@ python tests/test_dual_momentum_quick.py
 python tools/backtest_dual_momentum.py
 
 # 查看策略文档
-cat docs/strategies/dual_momentum_strategy.md
-
-# 查看使用教程
-cat docs/DUAL_MOMENTUM_GUIDE.md
+cat docs/strategy/DUAL_MOMENTUM_GUIDE.md
 ```
 
-**📚 完整教程**：[双核动量策略使用指南](docs/DUAL_MOMENTUM_GUIDE.md) ⭐
+**📚 完整教程**：[双核动量策略使用指南](docs/strategy/DUAL_MOMENTUM_GUIDE.md) ⭐
 
 ---
 
@@ -277,11 +317,164 @@ cat docs/DUAL_MOMENTUM_GUIDE.md
 python src/core/backtest/backtest_runner.py --strategy your_strategy --start 20230101 --end 20231231
 ```
 
-### 6. 实盘交易（谨慎！）
+---
+
+## 🎯 策略选股系统（核心功能）
+
+### 功能概述
+
+系统核心功能：**根据多策略组合从股票池中挑选优质股票**，帮助你做出投资决策。
+
+### 快速使用
 
 ```bash
-# 启动实盘交易（确保已充分测试）
-python src/main.py --mode live --strategy your_strategy
+# 从800只股票池中，使用7策略组合选出TOP 20
+python3 tools/analysis/recommend_today.py \
+    --pool mydate/stock_pool_600.json \
+    --strategy ensemble \
+    --top 20 \
+    --fundamental
+
+# 从100只股票池中，使用MACD策略选出TOP 10
+python3 tools/analysis/recommend_today.py \
+    --pool mydate/stock_pool.json \
+    --strategy macd \
+    --top 10
+```
+
+### 支持的策略
+
+系统内置 **8个策略**，可单独使用或组合使用：
+
+**技术面策略（6个）**：
+1. **MA（均线交叉）** - 均线多头/空头排列
+2. **MACD** - MACD金叉/死叉
+3. **RSI** - 相对强弱指标
+4. **BOLL（布林带）** - 价格突破上下轨
+5. **KDJ** - 随机指标
+6. **DUAL（双动量）** - 价格动量 + 均线确认
+
+**基本面策略（2个）**：
+7. **PE（市盈率估值）** - 分行业PE分位数
+8. **PB（市净率估值）** - 分行业PB分位数 + ROE过滤
+
+**组合策略**：
+- **Ensemble（7策略组合）** - 综合6个技术策略 + PE策略，加权投票
+
+### 选股流程
+
+```
+股票池 → 获取数据 → 策略分析 → 基本面过滤 → 资金流分析 → 综合评分 → TOP N推荐
+```
+
+### 输出内容
+
+选股报告包含：
+- 📊 每只股票的8个策略信号（买入/卖出/观望）
+- 📈 综合评分和排名
+- 💰 资金流状态
+- 📋 推荐理由和建议仓位
+
+**详细输出格式**：请查看 `tools/analysis/recommend_today.py` 的运行结果或代码注释。
+
+---
+
+## 📊 股票池管理
+
+### 股票池文件
+
+系统支持多个股票池，位于 `mydate/` 目录：
+
+- **stock_pool.json** - 100只精选股票（7大热门板块龙头）
+- **stock_pool_600.json** - 800只股票（HS300 + ZZ500成分股）
+- **stock_pool_all.json** - 全市场股票（含ETF）
+- **etf_pool.json** - ETF池（行业ETF + 宽基ETF）
+
+### 股票池结构
+
+```json
+{
+  "description": "800只股票池（HS300 + ZZ500）",
+  "created_at": "2026-02-25",
+  "stocks": {
+    "证券": [
+      {"code": "600030", "name": "中信证券", "pe_ttm": 15.2, "market_cap_yi": 3500},
+      ...
+    ],
+    "银行": [...],
+    ...
+  }
+}
+```
+
+### 股票池更新
+
+```bash
+# 刷新股票池（包含基本面过滤）
+python3 tools/data/refresh_stock_pool.py
+
+# 季度更新（同步指数成分调整）
+python3 tools/data/quarterly_update.py
+```
+
+### 股票池过滤规则
+
+- ✅ PE 0-100（排除异常值）
+- ✅ 市值 > 30亿
+- ✅ 非ST股票
+- ✅ 可选的ROE过滤（PB策略）
+
+---
+
+## 💼 持仓分析
+
+### 功能说明
+
+使用所有8个策略分析你的持仓，给出买卖建议。
+
+### 使用方法
+
+```bash
+# 分析持仓（使用所有8个策略）
+python3 tools/analysis/portfolio_strategy_analysis.py
+
+# 每日持仓检查（包含策略分析）
+python3 tools/portfolio/daily_check.py
+```
+
+### 持仓文件
+
+持仓数据保存在 `mydate/my_portfolio.json`，具体格式和示例请查看工具文档。
+
+### 分析输出
+
+分析报告包含：
+- 📊 每只持仓的8个策略信号（买入/卖出/观望）
+- 💰 实时价格和盈亏情况
+- 📈 综合建议（买入/卖出/观望）
+- 💡 资金流状态（如有）
+
+**详细说明**：请查看 `tools/analysis/portfolio_strategy_analysis.py` 的代码注释和输出示例。
+
+---
+
+## 📈 策略回测验证
+
+### 大规模回测
+
+```bash
+# 对股票池中的500只股票进行回测
+python3 tools/backtest/batch_backtest.py \
+    --pool mydate/stock_pool_600.json \
+    --count 500 \
+    --datalen 800
+```
+
+### 策略对比回测
+
+```bash
+# 对比纯技术策略 vs 技术+基本面策略
+python3 tools/backtest/compare_fundamental.py
 ```
 
 ## 项目结构
@@ -324,10 +517,11 @@ ai-trading-system/
 ├── examples/               # 使用示例
 ├── scripts/                # Shell/Bat 脚本
 ├── docs/                   # 所有文档（指南、设计、报告）
-├── output/                 # 生成的输出（图表、CSV）
-├── data/                   # 数据存储
-├── cache/                  # 缓存
-└── logs/                   # 日志
+│   └── setup/              # 安装和快速开始指南
+├── mydate/                 # 数据文件（股票池、持仓、回测结果等）
+├── mycache/                # 缓存文件（基本面数据、市场数据）
+├── mylog/                  # 日志文件
+└── myoutput/               # 输出文件（图表、报告等）
 ```
 
 ## 风控系统
@@ -410,7 +604,7 @@ order = executor.process_signal(signal, market_data)
 logs = executor.get_audit_logs(order_id=order.order_id)
 ```
 
-**详细文档**: 请查看 [策略严格执行指南](docs/STRATEGY_EXECUTION_GUIDE.md)
+**详细文档**: 请查看 [策略严格执行指南](docs/strategy/STRATEGY_EXECUTION_GUIDE.md)
 
 ### 核心优势
 
@@ -419,7 +613,11 @@ logs = executor.get_audit_logs(order_id=order.order_id)
 - ✅ **可复盘**: 基于数据持续优化策略规则
 - ✅ **风险可控**: 多层规则自动拦截风险交易
 
-## 自动化交易 🌐
+## 🤖 自动化交易（可选）
+
+> **说明**：自动化交易功能是可选的。你可以：
+> - ✅ 使用策略选股功能，根据推荐结果**手动交易**
+> - ✅ 或使用自动化功能，让系统自动执行交易
 
 本系统支持两种自动化方式，无需等待券商API申请即可开始测试！
 
@@ -447,7 +645,7 @@ if broker.login():
 - ✅ 更简单 - 已保存密码可自动登录
 - ✅ 已安装就能用 - 路径: `/opt/apps/cn.com.10jqka/files/HevoNext.B2CApp`
 
-**详细文档**: [桌面自动化指南](docs/DESKTOP_TRADING_GUIDE.md)
+**详细文档**: [桌面自动化指南](docs/setup/DESKTOP_TRADING_GUIDE.md)
 
 ### 方式2: 网页自动化
 
@@ -489,7 +687,7 @@ if broker.login():
 broker.close()
 ```
 
-**详细文档**: [网页自动化交易指南](docs/WEB_TRADING_GUIDE.md)
+**详细文档**: [网页自动化交易指南](docs/setup/WEB_TRADING_GUIDE.md)
 
 ### 为什么使用网页自动化？
 

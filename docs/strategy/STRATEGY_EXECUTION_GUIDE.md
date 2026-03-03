@@ -97,7 +97,7 @@ executor = StrategyExecutor(
     strategy_document=strategy_doc,
     rule_engine=rule_engine,
     risk_manager=risk_manager,
-    audit_dir="data/audit"
+    audit_dir="mydate/audit"
 )
 
 # 5. 配置审批模式

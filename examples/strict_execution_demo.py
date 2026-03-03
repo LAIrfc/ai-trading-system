@@ -375,7 +375,7 @@ def main():
         strategy_document=strategy_doc,
         rule_engine=rule_engine,
         risk_manager=risk_manager,
-        audit_dir="data/audit"
+        audit_dir="mydate/audit"
     )
     executor.require_manual_approval = False
     executor.auto_approve = True
@@ -400,8 +400,8 @@ def main():
     print("💾 导出规则和文档")
     print("="*60)
     
-    rule_engine.export_rules("data/demo_strategy_rules.json")
-    print("✅ 规则已导出到: data/demo_strategy_rules.json")
+    rule_engine.export_rules("mydate/demo_strategy_rules.json")
+    print("✅ 规则已导出到: mydate/demo_strategy_rules.json")
     
     strategy_doc.export_report("docs/strategies/demo_strategy_report.md")
     print("✅ 策略报告已导出到: docs/strategies/demo_strategy_report.md")

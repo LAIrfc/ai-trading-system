@@ -178,7 +178,7 @@ def demo_manual_trading():
         elif choice == '0':
             # 退出
             print("\n保存账户数据...")
-            filename = f"data/paper_trading_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+            filename = f"mydate/paper_trading_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
             account.save_to_file(filename)
             print(f"✅ 已保存到: {filename}")
             
@@ -304,7 +304,7 @@ def demo_strategy_trading():
     finally:
         # 保存并显示结果
         print("\n保存账户数据...")
-        filename = f"data/paper_trading_strategy_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+        filename = f"mydate/paper_trading_strategy_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
         account.save_to_file(filename)
         
         account.print_summary()

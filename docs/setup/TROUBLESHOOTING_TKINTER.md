@@ -1,8 +1,12 @@
-# 最简单的开始方式 🚀
+# Tkinter 故障排除指南 🔧
+
+> 如果您遇到 `pyautogui` 需要 `tkinter` 的错误，请按照本指南解决。
 
 ## 问题诊断
 
-您遇到的问题是：**pyautogui需要tkinter才能在Linux上运行**
+**错误信息**：`ModuleNotFoundError: No module named '_tkinter'` 或 `pyautogui需要tkinter才能在Linux上运行`
+
+**原因**：`pyautogui` 依赖 `tkinter`，但 Linux 系统默认可能未安装。
 
 ## ✅ 三步解决
 

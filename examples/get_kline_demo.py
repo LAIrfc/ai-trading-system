@@ -182,10 +182,10 @@ def demo_export_data():
     
     if df is not None and not df.empty:
         # 导出CSV
-        filename = f"data/600519_kline_{datetime.now().strftime('%Y%m%d')}.csv"
+        filename = f"mydate/600519_kline_{datetime.now().strftime('%Y%m%d')}.csv"
         
         # 创建目录
-        Path("data").mkdir(exist_ok=True)
+        Path("mydate").mkdir(exist_ok=True)
         
         # 保存
         df.to_csv(filename)

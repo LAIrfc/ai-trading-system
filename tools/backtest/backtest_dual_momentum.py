@@ -357,7 +357,7 @@ def main():
         format="<green>{time:YYYY-MM-DD HH:mm:ss}</green> | <level>{level: <8}</level> | <level>{message}</level>",
         level="WARNING"
     )
-    logger.add("logs/dual_momentum_backtest.log", rotation="10 MB", level="DEBUG")
+    logger.add("mylog/dual_momentum_backtest.log", rotation="10 MB", level="DEBUG")
     
     print("="*80)
     print("双核动量轮动策略 - 回测系统")

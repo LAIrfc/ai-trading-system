@@ -340,7 +340,7 @@ def aggregate_comparison_results(results: List[Dict]) -> Dict:
     return summary
 
 
-def load_stock_pool(pool_file: str = 'data/stock_pool.json', max_count: int = 150) -> List[Tuple[str, str]]:
+def load_stock_pool(pool_file: str = 'mydate/stock_pool.json', max_count: int = 150) -> List[Tuple[str, str]]:
     """从股票池加载股票列表"""
     try:
         with open(pool_file, 'r', encoding='utf-8') as f:

@@ -331,7 +331,7 @@ def print_summary(summary: dict, strategy_names: list, elapsed: float,
 
 def main():
     parser = argparse.ArgumentParser(description='大规模回测验证')
-    parser.add_argument('--pool', default='data/stock_pool_600.json',
+    parser.add_argument('--pool', default='mydate/stock_pool_600.json',
                         help='股票池JSON文件')
     parser.add_argument('--count', type=int, default=500,
                         help='测试股票数量')
@@ -339,12 +339,13 @@ def main():
                         help='并发线程数')
     parser.add_argument('--datalen', type=int, default=800,
                         help='拉取K线条数(800≈3.3年)')
-    parser.add_argument('--output', default='data/backtest_results.json',
+    parser.add_argument('--output', default='mydate/backtest_results.json',
                         help='结果输出JSON')
     args = parser.parse_args()
 
-    pool_path = os.path.join(os.path.dirname(__file__), '..', args.pool)
-    output_path = os.path.join(os.path.dirname(__file__), '..', args.output)
+    base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    pool_path = os.path.join(base_dir, args.pool) if not os.path.isabs(args.pool) else args.pool
+    output_path = os.path.join(base_dir, args.output) if not os.path.isabs(args.output) else args.output
 
     # 加载股票池
     stocks = load_stock_pool(pool_path, args.count)

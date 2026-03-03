@@ -57,20 +57,34 @@ class PlatformConfig:
             return None
     
     def get_data_dir(self):
-        """获取数据目录"""
-        if self.is_windows:
-            # Windows: 用户目录
-            return Path.home() / 'ai-trading-data'
+        """获取数据目录（优先使用 mydate，备选 data）"""
+        base_dir = Path.cwd()
+        mydate_dir = base_dir / 'mydate'
+        data_dir = base_dir / 'data'
+        
+        # 优先使用 mydate 目录
+        if mydate_dir.exists():
+            return mydate_dir
+        elif data_dir.exists():
+            return data_dir
         else:
-            # Linux/Mac: 当前目录
-            return Path('data')
+            # 都不存在时，返回 mydate（会创建）
+            return mydate_dir
     
     def get_log_dir(self):
-        """获取日志目录"""
-        if self.is_windows:
-            return Path.home() / 'ai-trading-logs'
+        """获取日志目录（优先使用 mylog，备选 logs）"""
+        base_dir = Path.cwd()
+        mylog_dir = base_dir / 'mylog'
+        logs_dir = base_dir / 'logs'
+        
+        # 优先使用 mylog 目录
+        if mylog_dir.exists():
+            return mylog_dir
+        elif logs_dir.exists():
+            return logs_dir
         else:
-            return Path('logs')
+            # 都不存在时，返回 mylog（会创建）
+            return mylog_dir
     
     def print_info(self):
         """打印平台信息"""

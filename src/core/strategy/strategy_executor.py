@@ -85,7 +85,7 @@ class StrategyExecutor:
                  strategy_document: StrategyDocument,
                  rule_engine: StrategyRuleEngine,
                  risk_manager: RiskManager,
-                 audit_dir: str = "data/audit"):
+                 audit_dir: str = "mydate/audit"):
         """
         初始化策略执行器
         

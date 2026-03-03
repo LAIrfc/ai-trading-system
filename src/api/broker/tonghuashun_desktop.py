@@ -317,7 +317,7 @@ class TonghuashunDesktop(WebBrokerBase):
         except Exception as e:
             logger.error(f"登录失败: {e}")
             if self.screenshot_on_error:
-                self._screenshot('logs/login_error.png')
+                self._screenshot('mylog/login_error.png')
             return False
     
     def logout(self):
@@ -594,7 +594,7 @@ class TonghuashunDesktop(WebBrokerBase):
             error_msg = f"买入失败: {e}"
             logger.error(error_msg)
             if self.screenshot_on_error:
-                self._screenshot('logs/buy_error.png')
+                self._screenshot('mylog/buy_error.png')
             return False, error_msg
     
     def sell(self, stock_code: str, price: float, quantity: int) -> Tuple[bool, str]:
@@ -643,7 +643,7 @@ class TonghuashunDesktop(WebBrokerBase):
             error_msg = f"卖出失败: {e}"
             logger.error(error_msg)
             if self.screenshot_on_error:
-                self._screenshot('logs/sell_error.png')
+                self._screenshot('mylog/sell_error.png')
             return False, error_msg
     
     def cancel_order(self, order_id: str) -> bool:

@@ -1,8 +1,12 @@
-# Windows 用户必读 🪟
+# Windows 用户快速导航 🪟
 
-## 🎉 完全支持Windows！
+> **Windows用户必读**：本系统完全支持Windows，且同花顺在Windows上更稳定！
 
-好消息！本系统**完全支持Windows**，而且有些功能在Windows上更好用！
+## 📖 完整文档
+
+**详细指南**：👉 [WINDOWS_GUIDE.md](WINDOWS_GUIDE.md) ⭐⭐⭐⭐⭐
+
+包含完整的Windows安装、配置、使用说明。
 
 ---
 
@@ -27,17 +31,6 @@
 选择 `7` 查看所有文档列表。
 
 ---
-
-## 📚 Windows 专属文档
-
-**必读**：[WINDOWS_GUIDE.md](WINDOWS_GUIDE.md)
-
-包含：
-- ✅ 详细安装步骤
-- ✅ 同花顺配置方法
-- ✅ Windows特定问题解决
-- ✅ 完整使用示例
-- ✅ 批处理脚本说明
 
 ---
 
@@ -115,16 +108,14 @@ python examples\tonghuashun_simulator.py
 
 ---
 
-## 📖 文档导航
+## 📖 相关文档
 
 | 文档 | 用途 | 必读程度 |
 |------|------|----------|
 | **[WINDOWS_GUIDE.md](WINDOWS_GUIDE.md)** | Windows完整指南 | ⭐⭐⭐⭐⭐ |
-| [README.md](README.md) | 项目总览 | ⭐⭐⭐⭐ |
-| [STRATEGY_QUICKSTART.md](STRATEGY_QUICKSTART.md) | 策略开发 | ⭐⭐⭐⭐ |
-| [KLINE_DATA_GUIDE.md](KLINE_DATA_GUIDE.md) | K线数据 | ⭐⭐⭐ |
-| [PAPER_TRADING_GUIDE.md](PAPER_TRADING_GUIDE.md) | 模拟交易 | ⭐⭐⭐ |
-| [QUICK_REFERENCE.md](QUICK_REFERENCE.md) | 快速参考 | ⭐⭐⭐ |
+| [QUICK_START.md](QUICK_START.md) | 通用快速开始 | ⭐⭐⭐⭐ |
+| [DESKTOP_QUICKSTART.md](DESKTOP_QUICKSTART.md) | 桌面客户端快速开始 | ⭐⭐⭐⭐ |
+| [README.md](../../README.md) | 项目总览 | ⭐⭐⭐⭐ |
 
 ---
 
@@ -210,42 +201,16 @@ python tools\kline_fetcher.py 600519
 
 ---
 
-## 💡 Windows 专属提示
-
-1. **使用 Windows Terminal** - 比CMD更好用
-2. **创建桌面快捷方式** - 右键拖动 scripts/start_windows.bat
-3. **设置计划任务** - 定时运行策略（类似Linux cron）
-4. **使用VSCode** - 最好的Python编辑器
-5. **启用虚拟环境** - `python -m venv venv`
-
 ---
 
-## 📞 获取帮助
+## 🎯 下一步
 
-遇到问题？
-
-1. **查看文档** - WINDOWS_GUIDE.md
-2. **测试系统** - 菜单选项1
-3. **查看平台信息** - `python src\config\platform_config.py`
-4. **查看错误** - 仔细阅读错误信息
-
----
-
-## 🎉 总结
-
-### Windows 完全支持！
-
-✅ **所有功能** 都能用  
-✅ **同花顺** 更稳定  
-✅ **安装** 更简单  
-✅ **文档** 更详细  
-
-### 第一步
-
-**双击** `scripts/scripts/start_windows.bat` 开始！
+1. **阅读完整指南** → [WINDOWS_GUIDE.md](WINDOWS_GUIDE.md)
+2. **开始使用** → 双击 `scripts/start_windows.bat`
+3. **遇到问题** → 查看 [WINDOWS_GUIDE.md](WINDOWS_GUIDE.md) 的常见问题部分
 
 ---
 
 **Windows用户，开始您的量化交易之旅！** 📈🪟
 
-详细说明请看：[WINDOWS_GUIDE.md](WINDOWS_GUIDE.md)
+> 💡 **提示**：本文件是快速导航，详细说明请查看 [WINDOWS_GUIDE.md](WINDOWS_GUIDE.md)
