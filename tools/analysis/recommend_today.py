@@ -31,6 +31,7 @@ import numpy as np
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../..'))
 
 from src.strategies.macd_cross import MACDStrategy
+from src.strategies.ensemble import EnsembleStrategy
 from src.strategies.fundamental_pe import PEStrategy
 from src.strategies.fundamental_pb import PBStrategy
 from src.data.fetchers.fundamental_fetcher import FundamentalFetcher
@@ -98,7 +99,7 @@ def load_stock_pool(pool_file: str) -> list:
 # 技术指标扩展分析
 # ============================================================
 
-def analyze_stock_extended(df: pd.DataFrame, strat: MACDStrategy,
+def analyze_stock_extended(df: pd.DataFrame, strat,
                            pe_strat: PEStrategy = None,
                            pb_strat: PBStrategy = None,
                            fund_flow_signal: dict = None) -> dict:
@@ -308,9 +309,12 @@ def compute_score(info: dict) -> float:
 def main():
     parser = argparse.ArgumentParser(description='每日选股推荐')
     parser.add_argument('--pool', type=str, default='stock_pool.json', help='股票池')
-    parser.add_argument('--fast', type=int, default=12, help='MACD快线')
-    parser.add_argument('--slow', type=int, default=30, help='MACD慢线')
-    parser.add_argument('--signal', type=int, default=9, help='MACD信号线')
+    parser.add_argument('--strategy', type=str, default='ensemble',
+                        choices=['macd', 'ensemble'],
+                        help='策略类型: macd(单MACD) 或 ensemble(7策略组合)')
+    parser.add_argument('--fast', type=int, default=12, help='MACD快线(仅macd模式)')
+    parser.add_argument('--slow', type=int, default=30, help='MACD慢线(仅macd模式)')
+    parser.add_argument('--signal', type=int, default=9, help='MACD信号线(仅macd模式)')
     parser.add_argument('--top', type=int, default=20, help='推荐TOP N只')
     parser.add_argument('--fundamental', action='store_true', default=True,
                         help='启用基本面分析(PE/PB)')
@@ -319,11 +323,17 @@ def main():
     pool_file = os.path.join(os.path.dirname(__file__), '..', 'data', args.pool)
     stocks = load_stock_pool(pool_file)
 
-    strat = MACDStrategy(fast_period=args.fast, slow_period=args.slow,
-                         signal_period=args.signal)
+    # 选择策略
+    if args.strategy == 'ensemble':
+        strat = EnsembleStrategy(mode='majority', buy_threshold=0.5, sell_threshold=0.5)
+        strategy_name = '7策略组合(MA+MACD+RSI+BOLL+KDJ+DUAL+PE)'
+    else:
+        strat = MACDStrategy(fast_period=args.fast, slow_period=args.slow,
+                             signal_period=args.signal)
+        strategy_name = f'MACD({args.fast},{args.slow},{args.signal})'
     
-    # 基本面策略
-    pe_strat = PEStrategy() if args.fundamental else None
+    # 基本面策略（ensemble已包含PE，这里单独处理PB）
+    pe_strat = PEStrategy() if args.fundamental and args.strategy != 'ensemble' else None
     pb_strat = PBStrategy() if args.fundamental else None
     fund_fetcher = FundamentalFetcher() if args.fundamental else None
 
@@ -332,7 +342,7 @@ def main():
     print(f"{'='*70}")
     print(f"📈 每日选股推荐 — {today}")
     print(f"{'='*70}")
-    print(f"📌 MACD参数: ({args.fast},{args.slow},{args.signal})")
+    print(f"📌 策略: {strategy_name}")
     print(f"📌 股票池: {len(stocks)} 只")
     print(f"📌 基本面: {'✅ 启用(PE/PB)' if args.fundamental else '❌ 关闭'}")
     print(f"📌 推荐TOP: {args.top} 只")
