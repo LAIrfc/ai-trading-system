@@ -436,7 +436,7 @@
 
 | 文件 | 作用 |
 |------|------|
-| `src/core/strategy/dual_momentum_strategy.py` | 策略核心计算逻辑 |
+| `src/core/signal_engine.py`、`tools/backtest/backtest_dual_momentum.py` | 策略与回测逻辑 |
 | `src/core/strategy/base_strategy.py` | 策略基类 |
 
 ---
@@ -719,7 +719,7 @@ ai-trading-system/
 │
 ├── 📄 策略文档
 │   └── strategies/
-│       └── dual_momentum_strategy.md       ← 策略的"宪法"，所有规则的源头
+│       └── DUAL_MOMENTUM_GUIDE.md         ← 策略规范与使用指南（含「策略规范」章节）
 │
 ├── 💻 核心代码
 │   └── src/
@@ -728,7 +728,7 @@ ai-trading-system/
 │       │
 │       └── core/strategy/
 │           ├── base_strategy.py            ← 策略基类（接口定义）
-│           └── dual_momentum_strategy.py   ← 第二阶段：策略核心计算
+│           └── signal_engine.py / backtest_dual_momentum.py   ← 第二阶段：策略与回测
 │
 ├── 🧪 回测 & 测试
 │   ├── tools/backtest_dual_momentum.py      ← 第四阶段：完整回测
@@ -772,7 +772,7 @@ python3 tests/test_dual_momentum_quick.py
 python3 tools/backtest_dual_momentum.py
 
 # 查看策略文档
-cat strategies/dual_momentum_strategy.md
+cat docs/strategy/DUAL_MOMENTUM_GUIDE.md
 
 # 查看回测报告图
 xdg-open dual_momentum_backtest_result.png    # Linux
@@ -845,4 +845,4 @@ git log --oneline
 
 ---
 
-> 📌 **本文档应当与策略文档 (`strategies/dual_momentum_strategy.md`) 一同维护，任何策略变更必须先更新文档，再修改代码。**
+> 📌 **本文档与 [DUAL_MOMENTUM_GUIDE.md](DUAL_MOMENTUM_GUIDE.md)（含策略规范）一同维护，策略变更先更新文档再改代码。**

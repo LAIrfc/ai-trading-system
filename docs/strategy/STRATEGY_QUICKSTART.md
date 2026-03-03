@@ -391,10 +391,10 @@ def calculate_position_size(self, signal, account_info):
 
 ## 📖 相关文档
 
-- [策略开发详细指南](docs/STRATEGY_GUIDE.md)
-- [技术指标参考](docs/INDICATORS.md)
-- [回测系统使用](docs/BACKTEST_GUIDE.md)
-- [风险管理配置](docs/RISK_MANAGEMENT.md)
+- [策略详细说明（6大基础+组合+回测）](STRATEGY_DETAIL.md)
+- [策略清单与工具对应](STRATEGY_LIST.md)
+- [回测与实盘规范](BACKTEST_AND_LIVE_SPEC.md)
+- [系统设计](../DESIGN.md)
 
 ---
 

@@ -388,7 +388,7 @@ A: AKShare免费版只提供日K线，分钟级需要：
 ## 📚 相关文档
 
 - [策略开发快速开始](STRATEGY_QUICKSTART.md)
-- [策略系统概览](STRATEGY_SYSTEM_OVERVIEW.md)
+- [策略详细说明](../strategy/STRATEGY_DETAIL.md) | [策略清单](../strategy/STRATEGY_LIST.md)
 - [快速参考](QUICK_REFERENCE.md)
 
 ---

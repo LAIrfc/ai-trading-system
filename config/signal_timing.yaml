@@ -1,0 +1,28 @@
+# 信号生效时点（V3.3）
+# 供组合引擎/执行层使用；回测须与此时点一致，避免未来函数。
+# 详见 docs/strategy/SENTIMENT_TECH.md
+
+# 情绪策略（Sentiment）
+sentiment:
+  # 计算：T 日收盘后
+  calc_after: "T_close"
+  # 确认：首版 T+1 收盘后（用 T+1 日 S 与 T 日 S 比较）
+  confirm_after: "T+1_close"
+  # 执行：T+2 开盘（或开盘后 15 分钟）
+  execute_at: "T+2_open"   # 可选: "T+2_open_15min"
+
+# 消息面（NewsSentiment）：盘中发布至当日收盘，盘后发布至次日收盘
+news_sentiment:
+  intraday_valid_until: "same_day_close"
+  after_hours_valid_until: "next_day_close"
+
+# 政策面（PolicyEvent）：有效期 5 日（利好）/ 3 日（利空）
+policy_event:
+  buy_valid_days: 5
+  sell_valid_days: 3
+
+# 龙虎榜/大宗（MoneyFlow）：T 日交易 T+1 披露，信号 T+2 开盘执行
+money_flow:
+  execute_at: "T+2_open"
+  lhb_valid_days: 3
+  dzjy_valid_days: 5

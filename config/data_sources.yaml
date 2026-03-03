@@ -1,0 +1,46 @@
+# 策略数据源配置（V3.3）
+# 占位 [指定数据商] 在接入前可替换为 akshare / tushare / Wind 等
+
+sentiment:
+  # 情绪因子所需指标，缺项权重置 0 并归一化
+  advance_decline_ratio:   # 涨跌家数比，日频
+    source: akshare  # 或 [指定数据商]，需提供历史日频
+    update: daily
+  turnover_rate:           # 换手率（市场/指数）
+    source: akshare
+    update: daily
+  margin_buy_ratio:        # 融资买入占比
+    source: akshare        # stock_margin_sse / stock_margin_sz 等
+    update: daily
+  option_pcr:              # 期权 PCR，可选
+    source: null           # 暂无则权重 0
+    update: daily
+  new_high_low_ratio:      # 新高新低比
+    source: akshare
+    update: daily
+  volatility_index:        # 波动率，默认用沪深300的HV20替代VIX
+    source: akshare
+    proxy: index_hv20      # 沪深300 20日历史波动率
+    update: daily
+  index_daily:             # 指数日线（沪深300等）
+    symbol: "000300"
+    source: akshare
+    update: daily
+
+news:
+  source: akshare          # 东方财富等，见 news_source_weights
+  update: realtime
+
+policy:
+  source: crawl            # 政府官网 + 财经媒体
+  update: daily
+
+industry:
+  # 申万二级行业指数，供消息/政策“板块涨幅”“行业市值占比”
+  standard: sw_level2      # 申万二级
+  code_source: "[指定数据商]"  # 如 Wind .WI
+
+money_flow:
+  lhb: akshare             # 龙虎榜
+  block_trade: akshare     # 大宗交易
+  update: T+1

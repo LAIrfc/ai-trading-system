@@ -30,9 +30,21 @@ from src.strategies.macd_cross import MACDStrategy
 from src.strategies.rsi_signal import RSIStrategy
 from src.strategies.bollinger_band import BollingerBandStrategy
 from src.strategies.kdj_signal import KDJStrategy
+from src.strategies.dual_momentum import DualMomentumSingleStrategy
 from src.strategies.fundamental_pe import PEStrategy
-from src.strategies.ensemble import EnsembleStrategy
+from src.strategies.ensemble import EnsembleStrategy, V33EnsembleStrategy
+from src.strategies.sentiment import SentimentStrategy
+from src.strategies.news_sentiment import NewsSentimentStrategy
+from src.strategies.policy_event import PolicyEventStrategy
+from src.strategies.money_flow import MoneyFlowStrategy
 from src.data.fetchers.fundamental_fetcher import FundamentalFetcher, create_mock_fundamental_data
+
+# V3.3 Phase 6.1：未来函数约束校验（可选）。逐日/截面回测时请使用 src.core.backtest_constraints 过滤新闻/政策/龙虎榜
+try:
+    from src.core.backtest_constraints import check_sentiment_no_future, filter_news_by_time, is_lhb_visible_at_date
+    _HAS_BACKTEST_CONSTRAINTS = True
+except ImportError:
+    _HAS_BACKTEST_CONSTRAINTS = False
 
 
 # ── 数据获取（新浪日线，带重试）──
@@ -100,11 +112,31 @@ def load_stock_pool(pool_file: str, max_count: int = 500) -> list:
     return stocks[:max_count]
 
 
+def _build_v33_strategies(symbol: str) -> tuple:
+    """构建 V3.3 的 11 个子策略 + V33 组合（需传 symbol）。"""
+    strategies = {
+        'MA': MACrossStrategy(),
+        'MACD': MACDStrategy(),
+        'RSI': RSIStrategy(),
+        'BOLL': BollingerBandStrategy(),
+        'KDJ': KDJStrategy(),
+        'DUAL': DualMomentumSingleStrategy(),
+        'PE': PEStrategy(),
+        'Sentiment': SentimentStrategy(),
+        'NewsSentiment': NewsSentimentStrategy(symbol=symbol),
+        'PolicyEvent': PolicyEventStrategy(),
+        'MoneyFlow': MoneyFlowStrategy(symbol=symbol),
+    }
+    ensemble = V33EnsembleStrategy(symbol=symbol)
+    return strategies, ensemble
+
+
 def backtest_one_stock(stock_info: dict, strategies: dict,
                        ensemble: EnsembleStrategy,
                        datalen: int = 800,
                        enable_fundamental: bool = False,
-                       min_market_cap: float = 50.0) -> dict:
+                       min_market_cap: float = 50.0,
+                       use_v33: bool = False) -> dict:
     """
     对一只股票运行所有策略回测
     
@@ -122,6 +154,12 @@ def backtest_one_stock(stock_info: dict, strategies: dict,
     code = stock_info['code']
     name = stock_info['name']
     sector = stock_info['sector']
+
+    if use_v33:
+        strategies, ensemble = _build_v33_strategies(code)
+        ensemble_key = 'V33组合'
+    else:
+        ensemble_key = 'Ensemble'
 
     df = fetch_sina(code, datalen)
     if df.empty or len(df) < 100:
@@ -200,7 +238,7 @@ def backtest_one_stock(stock_info: dict, strategies: dict,
         if len(df) >= ensemble.min_bars:
             bt = ensemble.backtest(df, initial_cash=100000,
                                    stop_loss=0.08, trailing_stop=0.05)
-            results['Ensemble'] = {
+            results[ensemble_key] = {
                 'total_return': bt['total_return'],
                 'annualized_return': bt['annualized_return'],
                 'max_drawdown': bt['max_drawdown'],
@@ -209,14 +247,14 @@ def backtest_one_stock(stock_info: dict, strategies: dict,
                 'trade_count': bt['trade_count'],
             }
         else:
-            results['Ensemble'] = {
+            results[ensemble_key] = {
                 'total_return': 0, 'annualized_return': 0,
                 'max_drawdown': 0, 'sharpe': 0,
                 'win_rate': 0, 'trade_count': 0,
                 'status': 'skip',
             }
     except Exception as e:
-        results['Ensemble'] = {
+        results[ensemble_key] = {
             'total_return': 0, 'annualized_return': 0,
             'max_drawdown': 0, 'sharpe': 0,
             'win_rate': 0, 'trade_count': 0,
@@ -341,6 +379,10 @@ def main():
                         help='拉取K线条数(800≈3.3年)')
     parser.add_argument('--output', default='mydate/backtest_results.json',
                         help='结果输出JSON')
+    parser.add_argument('--check-future', action='store_true',
+                        help='启用 V3.3 未来函数校验提示（逐日回测时请用 src.core.backtest_constraints 过滤新闻/政策/龙虎榜）')
+    parser.add_argument('--v33', action='store_true',
+                        help='使用 V3.3 新策略（情绪/消息/政策/龙虎榜）+ V33组合 回测')
     args = parser.parse_args()
 
     base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -351,22 +393,30 @@ def main():
     stocks = load_stock_pool(pool_path, args.count)
     print(f'已加载 {len(stocks)} 只股票')
 
-    # 策略实例（每个线程共享只读实例，无状态安全）
-    strategies = {
-        'MA':   MACrossStrategy(),
-        'MACD': MACDStrategy(),
-        'RSI':  RSIStrategy(),
-        'BOLL': BollingerBandStrategy(),
-        'KDJ':  KDJStrategy(),
-        'PE':   PEStrategy(),  # 基本面策略
-    }
-    ensemble = EnsembleStrategy()
-    strategy_names = list(strategies.keys()) + ['Ensemble']
+    use_v33 = getattr(args, 'v33', False)
+    if use_v33:
+        strategy_names = ['MA', 'MACD', 'RSI', 'BOLL', 'KDJ', 'DUAL', 'PE',
+                          'Sentiment', 'NewsSentiment', 'PolicyEvent', 'MoneyFlow', 'V33组合']
+        strategies = None
+        ensemble = None
+    else:
+        strategies = {
+            'MA':   MACrossStrategy(),
+            'MACD': MACDStrategy(),
+            'RSI':  RSIStrategy(),
+            'BOLL': BollingerBandStrategy(),
+            'KDJ':  KDJStrategy(),
+            'PE':   PEStrategy(),
+        }
+        ensemble = EnsembleStrategy()
+        strategy_names = list(strategies.keys()) + ['Ensemble']
 
     print(f'策略: {", ".join(strategy_names)}')
     print(f'数据: {args.datalen}条日线 (约{args.datalen/240:.1f}年)')
     print(f'并发: {args.workers} 线程')
     print(f'风控: 止损8% + 跟踪止损5%')
+    if getattr(args, 'check_future', False) and _HAS_BACKTEST_CONSTRAINTS:
+        print('  [V3.3] 未来函数校验: 已加载 backtest_constraints；逐日/截面回测时请用 filter_news_by_time / filter_policy_by_time / is_lhb_visible_at_date')
     print(f'\n开始回测...')
 
     start_time = time.time()
@@ -375,30 +425,33 @@ def main():
     skip = 0
     errors = 0
 
+    ensemble_key = 'V33组合' if use_v33 else 'Ensemble'
     # 用线程池并发获取数据和回测
     with ThreadPoolExecutor(max_workers=args.workers) as executor:
         futures = {}
         for stock in stocks:
             future = executor.submit(
-                backtest_one_stock, stock, strategies, ensemble, args.datalen, False)
+                backtest_one_stock, stock,
+                strategies or {}, ensemble or EnsembleStrategy(),
+                args.datalen, False, 50.0, use_v33)
             futures[future] = stock
 
         for i, future in enumerate(as_completed(futures), 1):
             stock = futures[future]
             try:
-                result = future.result(timeout=120)
+                result = future.result(timeout=180)
                 all_results.append(result)
                 if result['status'] == 'ok':
                     ok += 1
                     # 打印进度
-                    ens_ret = result.get('Ensemble', {}).get('total_return', 0)
+                    ens_ret = result.get(ensemble_key, {}).get('total_return', 0)
                     ma_ret = result.get('MA', {}).get('total_return', 0)
                     if i % 20 == 0 or i <= 5:
                         elapsed = time.time() - start_time
                         eta = elapsed / i * (len(stocks) - i)
                         print(f'  [{i:>4}/{len(stocks)}] {stock["name"]:8s} '
                               f'({stock["code"]}) '
-                              f'MA:{ma_ret:+.1f}% Ens:{ens_ret:+.1f}% '
+                              f'MA:{ma_ret:+.1f}% {ensemble_key}:{ens_ret:+.1f}% '
                               f'| 已用{elapsed:.0f}s 预计剩余{eta:.0f}s')
                 else:
                     skip += 1

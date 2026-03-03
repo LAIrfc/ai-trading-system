@@ -20,10 +20,15 @@ from .rsi_signal import RSIStrategy
 from .bollinger_band import BollingerBandStrategy
 from .kdj_signal import KDJStrategy
 from .dual_momentum import DualMomentumSingleStrategy
+from .sentiment import SentimentStrategy
+from .news_sentiment import NewsSentimentStrategy
+from .policy_event import PolicyEventStrategy
+from .money_flow import MoneyFlowStrategy
 from .ensemble import (EnsembleStrategy, ConservativeEnsemble,
-                       BalancedEnsemble, AggressiveEnsemble)
+                       BalancedEnsemble, AggressiveEnsemble,
+                       V33EnsembleStrategy)
 
-# 所有可用策略的注册表（含6个单策略 + 3个组合策略）
+# 所有可用策略的注册表（含单策略 + 组合策略）
 STRATEGY_REGISTRY = {
     # 单策略
     'MA':   MACrossStrategy,
@@ -32,10 +37,15 @@ STRATEGY_REGISTRY = {
     'BOLL': BollingerBandStrategy,
     'KDJ':  KDJStrategy,
     'DUAL': DualMomentumSingleStrategy,
+    'Sentiment': SentimentStrategy,
+    'NewsSentiment': NewsSentimentStrategy,
+    'PolicyEvent': PolicyEventStrategy,
+    'MoneyFlow': MoneyFlowStrategy,
     # 组合策略
     '保守组合': ConservativeEnsemble,
     '均衡组合': BalancedEnsemble,
     '激进组合': AggressiveEnsemble,
+    'V33组合': V33EnsembleStrategy,
 }
 
 

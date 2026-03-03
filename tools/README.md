@@ -4,26 +4,33 @@
 
 ```
 tools/
-├── backtest/              # 回测相关工具
-│   ├── batch_backtest.py       # 大规模批量回测（500只股票×3年）
+├── backtest/              # 回测
+│   ├── batch_backtest.py       # 大规模批量回测（支持 --check-future）
 │   ├── cross_validate.py      # 策略交叉验证
-│   └── backtest_dual_momentum.py  # 双核动量策略回测
+│   ├── backtest_dual_momentum.py  # 双核动量回测
+│   └── compare_fundamental.py  # 技术 vs 基本面对比
 │
-├── optimization/          # 参数优化工具
-│   └── optimize_macd.py       # MACD参数优化
+├── optimization/          # 参数优化
+│   ├── optimize_macd.py       # MACD 参数优化
+│   └── v33_sensitivity.py     # V3.3 参数敏感性（如新闻阈值）
 │
-├── analysis/              # 分析报告工具
-│   ├── generate_trade_report.py  # 生成交易报告
-│   └── recommend_today.py        # 今日推荐（选股）
+├── analysis/              # 分析报告（策略见 docs/strategy/STRATEGY_LIST.md）
+│   ├── recommend_today.py    # 每日选股推荐（MACD 或 7 策略组合）
+│   ├── analyze_single_stock.py   # 单股 11 大策略分析
+│   ├── portfolio_strategy_analysis.py  # 持仓 11 大策略分析
+│   └── generate_trade_report.py # 双核动量交易报告
 │
-├── data/                  # 数据工具
-│   ├── kline_fetcher.py        # K线数据获取
-│   ├── refresh_stock_pool.py   # 刷新股票池（含基本面过滤）
-│   └── quarterly_update.py     # 季度定期更新（指数成分+龙头+基本面）
+├── data/                  # 数据
+│   ├── kline_fetcher.py       # K 线获取
+│   ├── refresh_stock_pool.py  # 股票池刷新（含基本面过滤）
+│   └── quarterly_update.py   # 季度更新（指数成分+龙头+基本面）
 │
-└── testing/               # 测试工具
-    ├── test_fundamental.py     # 基本面策略测试
-    └── strategy_tester.py      # 策略测试器
+├── portfolio/             # 持仓
+│   └── daily_check.py        # 每日持仓检查
+│
+└── testing/               # 测试
+    ├── test_fundamental.py   # 基本面策略测试
+    └── strategy_tester.py    # 策略测试器
 ```
 
 ## 使用说明
@@ -48,11 +55,19 @@ python3 tools/optimization/optimize_macd.py
 ### 分析报告
 
 ```bash
-# 生成交易报告
-python3 tools/analysis/generate_trade_report.py
-
-# 今日推荐
+# 每日选股推荐（默认 MACD；可选 --strategy ensemble 使用 7 策略组合）
 python3 tools/analysis/recommend_today.py
+python3 tools/analysis/recommend_today.py --pool stock_pool_600.json --strategy ensemble
+
+# 单股多策略分析（11 大策略：技术+情绪+消息+政策+龙虎榜+PE/PB）
+python3 tools/analysis/analyze_single_stock.py 002015
+python3 tools/analysis/analyze_single_stock.py 002015 --name "协鑫能科"
+
+# 持仓多策略分析（同上 11 大策略）
+python3 tools/analysis/portfolio_strategy_analysis.py
+
+# 双核动量交易报告（ETF 轮动）
+python3 tools/analysis/generate_trade_report.py
 ```
 
 ### 数据工具

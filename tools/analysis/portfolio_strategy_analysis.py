@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 持仓多策略分析工具
-使用所有8个策略分析持仓
+使用 11 大策略分析持仓（MA/MACD/RSI/BOLL/KDJ/DUAL + Sentiment/NewsSentiment/PolicyEvent/MoneyFlow + PE/PB）
 """
 
 import sys
@@ -17,6 +17,10 @@ from src.strategies.rsi_signal import RSIStrategy
 from src.strategies.bollinger_band import BollingerBandStrategy
 from src.strategies.kdj_signal import KDJStrategy
 from src.strategies.dual_momentum import DualMomentumSingleStrategy
+from src.strategies.sentiment import SentimentStrategy
+from src.strategies.news_sentiment import NewsSentimentStrategy
+from src.strategies.policy_event import PolicyEventStrategy
+from src.strategies.money_flow import MoneyFlowStrategy
 from src.strategies.fundamental_pe import PEStrategy
 from src.strategies.fundamental_pb import PBStrategy
 from src.data.fetchers.fundamental_fetcher import FundamentalFetcher
@@ -25,7 +29,7 @@ import baostock as bs
 import time
 
 def get_stock_data_bs(code):
-    """使用baostock获取历史数据"""
+    """使用baostock获取历史数据（股票）"""
     prefix = 'sh' if code.startswith(('5', '6')) else 'sz'
     bs_code = f'{prefix}.{code}'
     end_date = datetime.now().strftime('%Y-%m-%d')
@@ -45,6 +49,62 @@ def get_stock_data_bs(code):
             df[col] = pd.to_numeric(df[col], errors='coerce')
         df = df.sort_values('date').reset_index(drop=True)
         return df
+    return None
+
+def get_etf_data_akshare(code):
+    """使用akshare获取ETF历史数据"""
+    try:
+        # 确定市场
+        if code.startswith('15') or code.startswith('16'):
+            symbol = f'sz{code}'  # 深交所ETF
+        elif code.startswith('51'):
+            symbol = f'sh{code}'  # 上交所ETF
+        else:
+            symbol = code
+        
+        end_date = datetime.now().strftime('%Y%m%d')
+        start_date = (datetime.now() - timedelta(days=800)).strftime('%Y%m%d')
+        
+        # 方法1: stock_zh_a_hist (优先)
+        try:
+            df = ak.stock_zh_a_hist(symbol=symbol, period="日k", start_date=start_date, end_date=end_date, adjust="qfq")
+            if not df.empty and len(df) >= 60:
+                # 转换列名
+                df = df.rename(columns={
+                    '日期': 'date',
+                    '开盘': 'open',
+                    '收盘': 'close',
+                    '最高': 'high',
+                    '最低': 'low',
+                    '成交量': 'volume'
+                })
+                df['date'] = pd.to_datetime(df['date'])
+                df = df.sort_values('date').reset_index(drop=True)
+                return df
+        except Exception:
+            pass
+        
+        # 方法2: fund_etf_hist_em
+        try:
+            df = ak.fund_etf_hist_em(symbol=code, period="日k", start_date=start_date, end_date=end_date, adjust="qfq")
+            if not df.empty and len(df) >= 60:
+                df = df.rename(columns={
+                    '日期': 'date',
+                    '开盘': 'open',
+                    '收盘': 'close',
+                    '最高': 'high',
+                    '最低': 'low',
+                    '成交量': 'volume'
+                })
+                df['date'] = pd.to_datetime(df['date'])
+                df = df.sort_values('date').reset_index(drop=True)
+                return df
+        except Exception:
+            pass
+        
+    except Exception:
+        pass
+    
     return None
 
 def get_realtime_price(code):
@@ -74,10 +134,10 @@ def main():
     bs.login()
     
     print("=" * 100)
-    print("📊 持仓多策略分析报告（8大策略）")
+    print("📊 持仓多策略分析报告（11大策略）")
     print("=" * 100)
     print(f"更新时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
-    print("策略: MA(均线) | MACD | RSI | BOLL(布林带) | KDJ | DUAL(双动量) | PE(估值) | PB(估值)\n")
+    print("策略: MA | MACD | RSI | BOLL | KDJ | DUAL | Sentiment | NewsSentiment | PolicyEvent(政策) | PE | PB\n")
     
     for holding in portfolio['holdings']:
         code = holding['code']
@@ -159,6 +219,10 @@ def main():
             'BOLL': BollingerBandStrategy(),
             'KDJ': KDJStrategy(),
             'DUAL': DualMomentumSingleStrategy(),
+            'Sentiment': SentimentStrategy(),
+            'NewsSentiment': NewsSentimentStrategy(symbol=code),
+            'PolicyEvent': PolicyEventStrategy(),
+            'MoneyFlow': MoneyFlowStrategy(symbol=code),
         }
         
         for strat_name, strat in tech_strategies.items():

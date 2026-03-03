@@ -232,8 +232,8 @@ python3 examples/desktop_trading_demo.py
 | **[PAPER_TRADING_GUIDE.md](PAPER_TRADING_GUIDE.md)** | **模拟交易指南** 🎮 | **10分钟 ⭐** |
 | [STRATEGY_QUICKSTART.md](STRATEGY_QUICKSTART.md) | 策略开发入门 | 10分钟 ⭐ |
 | [KLINE_DATA_GUIDE.md](KLINE_DATA_GUIDE.md) | K线数据获取 | 10分钟 |
-| [STRATEGY_SYSTEM_OVERVIEW.md](STRATEGY_SYSTEM_OVERVIEW.md) | 系统完整介绍 | 15分钟 ⭐ |
-| [STRATEGY_GUIDE.md](docs/STRATEGY_GUIDE.md) | 策略详细指南 | 30分钟 |
+| [STRATEGY_DETAIL.md](../strategy/STRATEGY_DETAIL.md) | 策略详解（6大基础+组合+回测） | 20分钟 ⭐ |
+| [STRATEGY_LIST.md](../strategy/STRATEGY_LIST.md) | 策略清单与工具对应 | 5分钟 |
 | [SIMPLE_START.md](SIMPLE_START.md) | 环境配置 | 5分钟 |
 | [DESKTOP_QUICKSTART.md](DESKTOP_QUICKSTART.md) | 桌面交易入门 | 10分钟 |
 | [TROUBLESHOOTING.md](TROUBLESHOOTING.md) | 问题排查 | 按需查阅 |
@@ -405,13 +405,13 @@ ps aux | grep HevoNext
 
 遇到问题？查看：
 1. [TROUBLESHOOTING.md](TROUBLESHOOTING.md) - 常见问题
-2. [STRATEGY_SYSTEM_OVERVIEW.md](STRATEGY_SYSTEM_OVERVIEW.md) - 系统说明
+2. [STRATEGY_DETAIL.md](../strategy/STRATEGY_DETAIL.md) - 策略说明
 3. 代码注释 - 所有代码都有详细注释
 
 ---
 
 **记住**: 
-- 📊 测试策略：`python3 tools/strategy_tester.py --interactive`
+- 📊 测试策略：`python3 tools/testing/strategy_tester.py --interactive`
 - ✍️ 创建策略：`cp examples/my_strategy_template.py my_strategy.py`
 - 📖 查看文档：`cat STRATEGY_QUICKSTART.md`
 

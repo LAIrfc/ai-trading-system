@@ -477,6 +477,24 @@ python3 tools/backtest/batch_backtest.py \
 python3 tools/backtest/compare_fundamental.py
 ```
 
+## 策略与设计文档
+
+与**策略体系升级（情绪/消息/政策）**相关的设计规格与落地说明：
+
+| 文档 | 说明 |
+|------|------|
+| [**V3.3 设计规格书**](docs/strategy/V33_DESIGN_SPEC.md) | 情绪、消息、政策三大类策略的完整设计规格（信号规则、参数表、附录） |
+| [**V3.3 落地计划**](docs/strategy/V33_IMPLEMENTATION_PLAN.md) | 分阶段实施计划（Phase 0～6）、与现有代码衔接方式 |
+| [**V3 设计评审**](docs/strategy/V3_DESIGN_REVIEW.md) | 对设计文档的审阅意见与澄清建议 |
+| [**策略优化路线图**](docs/strategy/STRATEGY_OPTIMIZATION_ROADMAP.md) | 情绪/消息/政策/龙虎榜的优化方向与实施进度 |
+| [**V3.3 落地与状态**](docs/strategy/V33_落地与状态.md) | Phase 0～6 完成情况、产出、落地过程与自检（已全部落地） |
+| [**回测与实盘规范**](docs/strategy/BACKTEST_AND_LIVE_SPEC.md) | 未来函数约束、参数敏感性、成本与延迟、人工覆盖（Phase 6） |
+| [**策略清单**](docs/strategy/STRATEGY_LIST.md) | 11 单策略 + 4 组合、注册表、与各分析/回测工具的对应关系 |
+
+其他策略文档：[策略开发快速开始](docs/strategy/STRATEGY_QUICKSTART.md) | [策略详解](docs/strategy/STRATEGY_DETAIL.md) | [双核动量指南](docs/strategy/DUAL_MOMENTUM_GUIDE.md) | [策略严格执行指南](docs/strategy/STRATEGY_EXECUTION_GUIDE.md)
+
+---
+
 ## 项目结构
 
 ```

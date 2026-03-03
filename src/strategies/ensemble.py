@@ -30,6 +30,8 @@ HOLD 计分规则:
 """
 
 import logging
+from datetime import datetime
+
 import pandas as pd
 from typing import Dict, List, Optional
 from .base import Strategy, StrategySignal
@@ -40,8 +42,34 @@ from .bollinger_band import BollingerBandStrategy
 from .kdj_signal import KDJStrategy
 from .dual_momentum import DualMomentumSingleStrategy
 from .fundamental_pe import PEStrategy
+from .sentiment import SentimentStrategy
+from .news_sentiment import NewsSentimentStrategy
+from .policy_event import PolicyEventStrategy
+from .money_flow import MoneyFlowStrategy
+
+try:
+    from src.core.v33_weights import (
+        fetch_index_for_state,
+        get_market_state,
+        should_trigger_adjustment,
+        compute_v33_weights,
+        base_weights,
+    )
+except ImportError:
+    fetch_index_for_state = None
+    get_market_state = None
+    should_trigger_adjustment = None
+    compute_v33_weights = None
+    base_weights = None
 
 logger = logging.getLogger(__name__)
+
+# V3.3 新策略（情绪+消息+政策）仓位合计上限
+V33_NEW_STRATEGY_POSITION_CAP = 0.4
+# 重大利空优先：SELL 原因包含此关键词则无条件卖出
+MAJOR_NEGATIVE_REASON_KEY = "重大利空"
+# 冲突规则：卖出总分 × 此系数 与 买入总分 比较
+SELL_SCORE_MULTIPLIER = 1.2
 
 
 class EnsembleStrategy(Strategy):
@@ -314,3 +342,163 @@ class AggressiveEnsemble(EnsembleStrategy):
     def __init__(self, **kwargs):
         super().__init__(mode='weighted', buy_threshold=0.35,
                          sell_threshold=0.35, **kwargs)
+
+
+# ============================================================
+# V3.3 全策略组合（11 策略 + 重大利空优先 + 冲突规则 + 新策略仓位 40%）
+# ============================================================
+
+class V33EnsembleStrategy(Strategy):
+    """
+    V3.3 组合：11 策略投票，重大利空无条件卖出优先，否则买入总分 vs 卖出总分×1.2；
+    情绪+消息+政策触发的开仓合计 ≤ 40%。
+    """
+
+    name = "V33组合"
+    description = "11策略投票+重大利空优先+卖出×1.2+新策略仓位≤40%"
+
+    param_ranges = {
+        "buy_threshold": (0.35, 0.5, 0.7, 0.05),
+        "sell_threshold": (0.35, 0.5, 0.7, 0.05),
+    }
+
+    def __init__(
+        self,
+        symbol: Optional[str] = None,
+        buy_threshold: float = 0.5,
+        sell_threshold: float = 0.5,
+        weights: Optional[Dict[str, float]] = None,
+        use_dynamic_weights: bool = True,
+        **kwargs,
+    ):
+        self.symbol = symbol
+        self.buy_threshold = buy_threshold
+        self.sell_threshold = sell_threshold
+        self.use_dynamic_weights = use_dynamic_weights and compute_v33_weights is not None
+        self.sub_strategies: Dict[str, Strategy] = {
+            "MA": MACrossStrategy(),
+            "MACD": MACDStrategy(),
+            "RSI": RSIStrategy(),
+            "BOLL": BollingerBandStrategy(),
+            "KDJ": KDJStrategy(),
+            "DUAL": DualMomentumSingleStrategy(),
+            "PE": PEStrategy(),
+            "Sentiment": SentimentStrategy(),
+            "NewsSentiment": NewsSentimentStrategy(symbol=symbol or ""),
+            "PolicyEvent": PolicyEventStrategy(),
+            "MoneyFlow": MoneyFlowStrategy(symbol=symbol),
+        }
+        self.weights: Dict[str, float] = weights or {
+            "DUAL": 1.5, "BOLL": 1.3, "MA": 1.2, "MACD": 1.1,
+            "RSI": 1.0, "PE": 1.0, "KDJ": 0.9,
+            "Sentiment": 1.0, "NewsSentiment": 1.0, "PolicyEvent": 1.0, "MoneyFlow": 1.0,
+        }
+        self.min_bars = max(s.min_bars for s in self.sub_strategies.values())
+        # 动态权重冷却：上次调整日期、冷却截止日期、当前市场状态
+        self._weight_adjustment_date: Optional[pd.Timestamp] = None
+        self._weight_cooldown_until: Optional[pd.Timestamp] = None
+        self._weight_state: Optional[str] = None
+
+    def analyze(self, df: pd.DataFrame) -> StrategySignal:
+        # 动态权重与冷却（Phase 5.2–5.4）
+        as_of = pd.Timestamp(datetime.now().date())
+        if df is not None and len(df) > 0 and hasattr(df.get("date", pd.Series()), "iloc"):
+            try:
+                d = df["date"] if "date" in df.columns else df.index
+                as_of = pd.Timestamp(d.iloc[-1]) if hasattr(d, "iloc") else pd.Timestamp(datetime.now().date())
+            except Exception:
+                pass
+        if self.use_dynamic_weights and compute_v33_weights is not None and fetch_index_for_state is not None:
+            in_cooldown = (
+                self._weight_cooldown_until is not None
+                and as_of is not None
+                and as_of < self._weight_cooldown_until
+            )
+            if not in_cooldown:
+                index_df = fetch_index_for_state("000300", 60)
+                trigger = should_trigger_adjustment(index_df, self._weight_state) if should_trigger_adjustment else True
+                if trigger and index_df is not None:
+                    as_of_dt = as_of.to_pydatetime() if hasattr(as_of, "to_pydatetime") else datetime.now()
+                    w, state, adj_date = compute_v33_weights(
+                        index_df, self._weight_state, self._weight_adjustment_date, as_of_dt
+                    )
+                    self.weights = {k: v for k, v in w.items() if k in self.sub_strategies}
+                    self._weight_state = state
+                    self._weight_adjustment_date = pd.Timestamp(adj_date) if adj_date else as_of
+                    self._weight_cooldown_until = self._weight_adjustment_date + pd.Timedelta(days=7)
+
+        votes: Dict[str, StrategySignal] = {}
+        buy_votes: List[tuple] = []
+        sell_votes: List[tuple] = []
+
+        for name, strat in self.sub_strategies.items():
+            if strat.min_bars > 0 and (df is None or len(df) < strat.min_bars):
+                continue
+            try:
+                sig = strat.analyze(df if df is not None else pd.DataFrame())
+                votes[name] = sig
+                if sig.action == "BUY":
+                    buy_votes.append((name, sig))
+                elif sig.action == "SELL":
+                    sell_votes.append((name, sig))
+            except Exception as e:
+                logger.warning("[V33组合] 子策略 %s 异常: %s", name, e)
+
+        total = len(votes)
+        if total == 0:
+            return StrategySignal("HOLD", 0.0, "无策略可用", 0.5, {})
+
+        # 1) 重大利空优先：任一 SELL 原因包含「重大利空」则无条件卖出
+        for name, sig in sell_votes:
+            if sig.reason and MAJOR_NEGATIVE_REASON_KEY in sig.reason:
+                return StrategySignal(
+                    action="SELL",
+                    confidence=sig.confidence,
+                    position=sig.position,
+                    reason=f"重大利空优先({name}): {sig.reason}",
+                    indicators={"投票详情": {n: f"{s.action}({s.confidence:.0%})" for n, s in votes.items()}},
+                )
+
+        # 2) 加权得分：买入总分 vs 卖出总分×1.2
+        buy_score = sum(self.weights.get(n, 1.0) * s.confidence for n, s in buy_votes)
+        sell_score = sum(self.weights.get(n, 1.0) * s.confidence for n, s in sell_votes) * SELL_SCORE_MULTIPLIER
+        total_active = buy_score + sell_score
+        if total_active <= 0:
+            action, conf = "HOLD", 0.5
+        elif buy_score > sell_score and buy_score / total_active >= self.buy_threshold:
+            action, conf = "BUY", buy_score / total_active
+        elif sell_score > buy_score and sell_score / total_active >= self.sell_threshold:
+            action, conf = "SELL", sell_score / total_active
+        else:
+            action, conf = "HOLD", 0.5
+
+        # 3) 目标仓位：加权平均，且新策略（情绪+消息+政策）合计 ≤ 40%
+        total_w = sum(self.weights.get(n, 1.0) for n in votes)
+        rest_weighted_pos = 0.0
+        new_weighted_pos = 0.0
+        new_names = {"Sentiment", "NewsSentiment", "PolicyEvent"}
+        for n, s in votes.items():
+            w = self.weights.get(n, 1.0)
+            if n in new_names and s.action == "BUY":
+                new_weighted_pos += w * s.position
+            else:
+                rest_weighted_pos += w * s.position
+        new_capped = min(new_weighted_pos, V33_NEW_STRATEGY_POSITION_CAP * total_w)
+        position = (rest_weighted_pos + new_capped) / total_w if total_w > 0 else 0.5
+        position = max(0.0, min(1.0, position))
+
+        if action == "HOLD":
+            position = 0.5
+
+        reason = f"V33投票: 买{buy_score:.2f} vs 卖×1.2={sell_score:.2f} → {action}"
+        return StrategySignal(
+            action=action,
+            confidence=round(conf, 2),
+            position=round(position, 2),
+            reason=reason,
+            indicators={
+                "投票详情": {n: f"{s.action}({s.confidence:.0%})" for n, s in votes.items()},
+                "买入票": len(buy_votes),
+                "卖出票": len(sell_votes),
+            },
+        )
