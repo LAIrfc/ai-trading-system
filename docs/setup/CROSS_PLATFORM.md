@@ -203,7 +203,7 @@ process_name = platform_config.get_tonghuashun_process_name()
 
 | 操作 | Windows | Linux |
 |------|---------|-------|
-| 运行脚本 | `python tools\kline_fetcher.py` | `python3 tools/kline_fetcher.py` |
+| 运行脚本 | `python tools\data\kline_fetcher.py` | `python3 tools/data/kline_fetcher.py` |
 | 进入目录 | `cd C:\ai-trading-system` | `cd /home/user/ai-trading-system` |
 | 列出文件 | `dir` | `ls` |
 | 查看文件 | `type file.md` | `cat file.md` |
@@ -267,7 +267,7 @@ python tools\strategy_tester.py --strategy MA --stocks 600519
 
 **Linux**：
 ```bash
-python3 tools/strategy_tester.py --strategy MA --stocks 600519
+python3 tools/validation/strategy_tester.py --strategy MA --stocks 600519
 ```
 
 **结果**：完全相同！数据、信号、输出都一样。

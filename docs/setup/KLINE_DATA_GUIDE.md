@@ -25,22 +25,22 @@
 cd /home/wangxinghan/codetree/ai-trading-system
 
 # 获取贵州茅台日K线（最近30天）
-python3 tools/kline_fetcher.py 600519
+python3 tools/data/kline_fetcher.py 600519
 
 # 获取周K线（最近60天）
-python3 tools/kline_fetcher.py 600519 --period weekly --days 60
+python3 tools/data/kline_fetcher.py 600519 --period weekly --days 60
 
 # 获取月K线
-python3 tools/kline_fetcher.py 600519 --period monthly --days 365
+python3 tools/data/kline_fetcher.py 600519 --period monthly --days 365
 
 # 对比历史和实时
-python3 tools/kline_fetcher.py 600519 --compare
+python3 tools/data/kline_fetcher.py 600519 --compare
 
 # 导出到CSV
-python3 tools/kline_fetcher.py 600519 --export
+python3 tools/data/kline_fetcher.py 600519 --export
 
 # 查看常用股票代码
-python3 tools/kline_fetcher.py --list
+python3 tools/data/kline_fetcher.py --list
 ```
 
 **输出示例**：
@@ -261,7 +261,7 @@ df.to_excel('data/600519_kline.xlsx')
 
 ```bash
 # 自动导出CSV
-python3 tools/kline_fetcher.py 600519 --export
+python3 tools/data/kline_fetcher.py 600519 --export
 
 # 文件会保存到: data/600519_daily_kline_20260224.csv
 ```
@@ -397,7 +397,7 @@ A: AKShare免费版只提供日K线，分钟级需要：
 
 1. **测试获取数据**:
    ```bash
-   python3 tools/kline_fetcher.py 600519
+   python3 tools/data/kline_fetcher.py 600519
    ```
 
 2. **运行完整演示**:
@@ -407,7 +407,7 @@ A: AKShare免费版只提供日K线，分钟级需要：
 
 3. **在策略中使用**:
    ```bash
-   python3 tools/strategy_tester.py --strategy MA --stocks 600519
+   python3 tools/validation/strategy_tester.py --strategy MA --stocks 600519
    ```
 
 ---

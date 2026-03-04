@@ -9,7 +9,7 @@
 - ✅ 自动检测系统并适配配置
 - ✅ 无需手动修改，开箱即用
 
-详见：[跨平台兼容说明](docs/setup/CROSS_PLATFORM.md) | [Windows完整指南](docs/setup/WINDOWS_GUIDE.md) | [Windows快速导航](docs/setup/WINDOWS_README.md)
+详见：[跨平台兼容说明](docs/setup/CROSS_PLATFORM.md) | [Windows完整指南](docs/setup/WINDOWS_GUIDE.md)
 
 ## ⚠️ 风险警告
 
@@ -24,15 +24,16 @@
 
 ### 核心功能
 - ✅ **策略选股系统** ⭐ - 多策略组合从股票池挑选优质股票
-- ✅ **股票池管理** - 支持多个股票池（100只/800只/全市场），定期更新
-- ✅ **持仓分析** - 使用8个策略分析持仓，给出买卖建议
-- ✅ **8个内置策略** - MA/MACD/RSI/BOLL/KDJ/DUAL/PE/PB，可单独或组合使用
-- ✅ **基本面分析** - PE/PB估值、ROE筛选、行业PE分位数、资金流分析
+- ✅ **单股多策略分析** - 单只股票跑遍 11 单策略 + PE/PB + 5 组合（含 V33）
+- ✅ **股票池管理** - 支持多个股票池（精选/验证池/全市场），定期更新
+- ✅ **持仓分析** - 使用 11 大策略 + 5 组合分析持仓，给出买卖建议
+- ✅ **11 单策略 + 5 组合** - MA/MACD/RSI/BOLL/KDJ/DUAL、情绪/新闻/政策/资金流、PE/PB；多策略/保守/均衡/激进/V33 组合
+- ✅ **基本面分析** - PE/PB 估值、ROE 筛选、行业分位数、资金流（龙虎榜/大宗）
 - ✅ 实时行情数据获取
 - ✅ 策略回测引擎
 - ✅ 多层风控系统
 - ✅ **自动化交易（可选）** - 支持桌面客户端和网页自动化
-- ✅ **双核动量轮动策略（完整实现）** 🆕
+- ✅ **双核动量轮动策略（完整实现）** - ETF 轮动回测与报告
 
 ### 技术特点
 - 模块化设计，易于扩展
@@ -47,28 +48,31 @@
 ## 🚀 快速开始
 
 > **选择你的起点**：
-> - 🪟 **Windows用户** → [Windows快速导航](docs/setup/WINDOWS_README.md) | [Windows完整指南](docs/setup/WINDOWS_GUIDE.md)
+> - 🪟 **Windows用户** → 见下方 Windows 超快速开始 | [Windows完整指南](docs/setup/WINDOWS_GUIDE.md)
 > - 🐧 **Linux用户** → [通用快速开始](docs/setup/QUICK_START.md)
-> - 🖥️ **桌面客户端用户** → [桌面客户端快速开始](docs/setup/DESKTOP_QUICKSTART.md)
+> - 🖥️ **桌面客户端用户** → [桌面交易指南](docs/setup/DESKTOP_TRADING_GUIDE.md)
 > - 🔧 **遇到tkinter错误** → [Tkinter故障排除](docs/setup/TROUBLESHOOTING_TKINTER.md)
 
 ### 🪟 Windows 用户
 
-Windows完全支持！使用更简单：
+Windows 完全支持，同花顺在 Windows 上更稳定。
+
+**超快速开始（约 3 分钟）**：  
+1. 下载项目到本地（如 `C:\ai-trading-system`）  
+2. **双击** `scripts\start_windows.bat`  
+3. 选择 `6` 安装依赖 → 选择 `1` 测试系统  
+4. 菜单中可选：`2` 获取K线、`3` 测试策略、`4` 模拟交易  
 
 ```powershell
-# 安装依赖
+# 或命令行安装依赖
 pip install pandas numpy akshare loguru
 
-# 双击运行（推荐）
-scripts\start_windows.bat
-
-# 或命令行
-python tools\kline_fetcher.py 600519
-python tools\strategy_tester.py --interactive
+# 命令行运行
+python tools\data\kline_fetcher.py 600519
+python tools\validation\strategy_tester.py --interactive
 ```
 
-**详见**：[Windows完整指南](docs/setup/WINDOWS_GUIDE.md) | [Windows快速导航](docs/setup/WINDOWS_README.md) ⭐
+**详见**：[Windows完整指南](docs/setup/WINDOWS_GUIDE.md)
 
 ---
 
@@ -79,8 +83,8 @@ python tools\strategy_tester.py --interactive
 pip3 install --user pandas numpy akshare loguru
 
 # 运行测试
-python3 tools/kline_fetcher.py 600519
-python3 tools/strategy_tester.py --interactive
+python3 tools/data/kline_fetcher.py 600519
+python3 tools/validation/strategy_tester.py --interactive
 ```
 
 ---
@@ -94,33 +98,37 @@ python3 tools/strategy_tester.py --interactive
 ```bash
 cd /home/wangxinghan/codetree/ai-trading-system
 
-# 1. 使用7策略组合（MA+MACD+RSI+BOLL+KDJ+DUAL+PE）从股票池选股
+# 1. 使用 7 策略组合（MA+MACD+RSI+BOLL+KDJ+DUAL+PE）从股票池选股
 python3 tools/analysis/recommend_today.py --pool mydate/stock_pool_600.json --strategy ensemble --top 20
 
-# 2. 使用单MACD策略选股
+# 2. 使用单 MACD 策略选股
 python3 tools/analysis/recommend_today.py --pool mydate/stock_pool.json --strategy macd --top 10
 
-# 3. 分析持仓（使用所有8个策略）
+# 3. 单股多策略分析（11 单策略 + PE+PB + 5 组合，含 V33）
+python3 tools/analysis/analyze_single_stock.py 600519 --name "贵州茅台"
+
+# 4. 分析持仓（11 大策略 + 5 组合）
 python3 tools/analysis/portfolio_strategy_analysis.py
 ```
 
 **功能特点**：
-- ✅ **多策略组合** - 7个技术策略 + 1个基本面策略，综合评分
-- ✅ **股票池管理** - 支持多个股票池（100只/800只/全市场）
-- ✅ **基本面过滤** - PE/PB估值、ROE筛选、行业PE分位数
-- ✅ **资金流分析** - 主力资金流向信号
+- ✅ **多策略组合** - 选股支持 7 策略 ensemble；单股/持仓支持 11 单策略 + PE/PB + 5 组合（含 V33）
+- ✅ **股票池管理** - 支持多个股票池（精选/验证池/全市场）
+- ✅ **基本面过滤** - PE/PB 估值、ROE 筛选、行业分位数
+- ✅ **资金流与情绪** - 龙虎榜/大宗、情绪/新闻/政策（V3.3）
 - ✅ **持仓分析** - 多策略分析现有持仓，给出买卖建议
 - ✅ **实时数据** - 使用最新行情数据
-- ✅ **评分排序** - 按综合评分推荐TOP N只股票
+- ✅ **评分排序** - 按综合评分推荐 TOP N 只股票
 
 **输出内容**：
-- 📊 每只股票的8个策略信号（买入/卖出/观望）
+- 📊 每只股票的 11 单策略 + PE+PB + 5 组合信号（买入/卖出/观望）
 - 📈 综合评分和排名
 - 💰 资金流状态
 - 📋 推荐理由和建议仓位
 
 详见：
 - **[策略选股工具说明](#策略选股系统)** ⭐
+- **[策略清单](docs/strategy/STRATEGY_LIST.md)**（11 单策略 + 5 组合与工具对应）
 - **[股票池管理](#股票池管理)**
 - **[持仓分析](#持仓分析)**
 
@@ -137,10 +145,10 @@ cd /home/wangxinghan/codetree/ai-trading-system
 pip3 install --user pandas numpy akshare loguru
 
 # 2. 获取K线数据（日线/周线/月线）
-python3 tools/kline_fetcher.py 600519
+python3 tools/data/kline_fetcher.py 600519
 
 # 3. 测试内置策略
-python3 tools/strategy_tester.py --interactive
+python3 tools/validation/strategy_tester.py --interactive
 
 # 4. 查看策略指南
 cat docs/strategy/STRATEGY_QUICKSTART.md
@@ -222,7 +230,7 @@ python3 tests/simple_test.py
 
 **就这么简单！** 如果同花顺已安装且保存了密码，程序会自动登录。
 
-📖 **桌面版详细教程**: [桌面客户端快速开始](docs/setup/DESKTOP_QUICKSTART.md)
+📖 **桌面版详细教程**: [桌面交易指南](docs/setup/DESKTOP_TRADING_GUIDE.md)
 
 ### 或使用网页版
 
@@ -244,12 +252,13 @@ python examples/web_trading_demo.py
    - 访问 https://t.10jqka.com.cn/
    - 免费注册账号
 
-3. **配置文件**
+3. **配置文件**（若使用主入口 `src/main.py` 或回测）
    ```bash
-   cp config/broker_config.yaml.example config/broker_config.yaml
-   cp config/strategy_rules.yaml.example config/strategy_rules.yaml
-   # 编辑 broker_config.yaml 填入账号密码
+   cp config/trading_config.yaml.example config/trading_config.yaml
+   cp config/risk_config.yaml.example config/risk_config.yaml
+   # 编辑上述两个文件填入参数；详见 config/README.md
    ```
+   网页/桌面自动化所需账号与规则配置见 [网页交易指南](docs/setup/WEB_TRADING_GUIDE.md)、[桌面交易指南](docs/setup/DESKTOP_TRADING_GUIDE.md)。
 
 4. **开始交易**
    ```bash
@@ -261,12 +270,14 @@ python examples/web_trading_demo.py
 ### 3. 数据准备
 
 ```bash
-# 下载历史数据
-python scripts/download_data.py --start 20200101 --end 20241231
+# 获取单只股票 K 线（日/周/月线）
+python3 tools/data/kline_fetcher.py 600519
 
-# 计算因子数据
-python scripts/calculate_factors.py
+# 批量预取股票池日线（供回测提速）
+python3 tools/data/backtest_prefetch.py --pool mydate/stock_pool.json --count 50
 ```
+
+更多见 [K线数据获取指南](docs/setup/KLINE_DATA_GUIDE.md)、[数据接口与容错](docs/data/API_INTERFACES_AND_FETCHERS.md)。
 
 ### 4. 🆕 双核动量轮动策略（完整实现）
 
@@ -276,7 +287,7 @@ python scripts/calculate_factors.py
 
 ```bash
 # 运行完整回测（自动下载数据 + 生成报告 + 绘制图表）
-python tools/backtest_dual_momentum.py
+python3 tools/backtest/backtest_dual_momentum.py
 ```
 
 #### 什么是双核动量策略？
@@ -300,7 +311,7 @@ python tools/backtest_dual_momentum.py
 python tests/test_dual_momentum_quick.py
 
 # 完整回测（5分钟）
-python tools/backtest_dual_momentum.py
+python3 tools/backtest/backtest_dual_momentum.py
 
 # 查看策略文档
 cat docs/strategy/DUAL_MOMENTUM_GUIDE.md
@@ -313,8 +324,15 @@ cat docs/strategy/DUAL_MOMENTUM_GUIDE.md
 ### 5. 其他策略回测
 
 ```bash
-# 运行回测
-python src/core/backtest/backtest_runner.py --strategy your_strategy --start 20230101 --end 20231231
+# 大规模批量回测（可配置策略、股票池、本地 K 线）
+python3 tools/backtest/batch_backtest.py --pool mydate/stock_pool.json --count 50 --datalen 800
+```
+
+**大规模回测与数据预取**：先预取日线到本地再回测可显著提速。参见 [数据接口与容错](docs/data/API_INTERFACES_AND_FETCHERS.md#七回测数据预取流程两步走)。
+
+```bash
+python3 tools/data/backtest_prefetch.py --pool mydate/stock_pool.json --count 50
+python3 tools/backtest/batch_backtest.py --pool mydate/stock_pool.json --count 50 --local-kline mydate/backtest_kline
 ```
 
 ---
@@ -328,54 +346,55 @@ python src/core/backtest/backtest_runner.py --strategy your_strategy --start 202
 ### 快速使用
 
 ```bash
-# 从800只股票池中，使用7策略组合选出TOP 20
+# 从股票池中，使用 7 策略组合选出 TOP 20
 python3 tools/analysis/recommend_today.py \
     --pool mydate/stock_pool_600.json \
     --strategy ensemble \
     --top 20 \
     --fundamental
 
-# 从100只股票池中，使用MACD策略选出TOP 10
+# 使用 MACD 策略选出 TOP 10
 python3 tools/analysis/recommend_today.py \
     --pool mydate/stock_pool.json \
     --strategy macd \
     --top 10
+
+# 单股跑遍所有策略（11 单策略 + PE+PB + 5 组合）
+python3 tools/analysis/analyze_single_stock.py 600519 --name "贵州茅台"
 ```
 
 ### 支持的策略
 
-系统内置 **8个策略**，可单独使用或组合使用：
+系统内置 **11 个单策略 + PE/PB + 5 个组合**，可单独使用或组合使用：
 
-**技术面策略（6个）**：
-1. **MA（均线交叉）** - 均线多头/空头排列
-2. **MACD** - MACD金叉/死叉
-3. **RSI** - 相对强弱指标
-4. **BOLL（布林带）** - 价格突破上下轨
-5. **KDJ** - 随机指标
-6. **DUAL（双动量）** - 价格动量 + 均线确认
+**技术面（6 个）**：MA（均线交叉）、MACD、RSI、BOLL（布林带）、KDJ、DUAL（双核动量单股）
 
-**基本面策略（2个）**：
-7. **PE（市盈率估值）** - 分行业PE分位数
-8. **PB（市净率估值）** - 分行业PB分位数 + ROE过滤
+**基本面**：PE（行业 PE 分位数）、PB（行业 PB 分位数 + ROE）、PE+PB 双因子
 
-**组合策略**：
-- **Ensemble（7策略组合）** - 综合6个技术策略 + PE策略，加权投票
+**V3.3 扩展（4 个）**：Sentiment（市场情绪）、NewsSentiment（新闻情感）、PolicyEvent（政策事件）、MoneyFlow（龙虎榜/大宗）
+
+**组合策略（5 个）**：多策略、保守、均衡、激进、**V33**（11 子策略投票，重大利空优先、卖出×1.2）
+
+- **每日选股**（`recommend_today.py`）：支持单 MACD 或 **7 策略 Ensemble**（MA+MACD+RSI+BOLL+KDJ+DUAL+PE）
+- **单股/持仓分析**（`analyze_single_stock.py`、`portfolio_strategy_analysis.py`）：跑遍上述 11 单策略 + PE+PB + 5 组合
+
+详见 [策略清单](docs/strategy/STRATEGY_LIST.md)。
 
 ### 选股流程
 
 ```
-股票池 → 获取数据 → 策略分析 → 基本面过滤 → 资金流分析 → 综合评分 → TOP N推荐
+股票池 → 获取数据 → 策略分析 → 基本面过滤 → 资金流分析 → 综合评分 → TOP N 推荐
 ```
 
 ### 输出内容
 
-选股报告包含：
-- 📊 每只股票的8个策略信号（买入/卖出/观望）
+选股/单股/持仓报告包含：
+- 📊 11 单策略 + PE+PB + 5 组合信号（买入/卖出/观望）
 - 📈 综合评分和排名
 - 💰 资金流状态
 - 📋 推荐理由和建议仓位
 
-**详细输出格式**：请查看 `tools/analysis/recommend_today.py` 的运行结果或代码注释。
+**详细输出格式**：请查看 `tools/analysis/recommend_today.py`、`tools/analysis/analyze_single_stock.py` 的运行结果或代码注释。
 
 ---
 
@@ -385,16 +404,16 @@ python3 tools/analysis/recommend_today.py \
 
 系统支持多个股票池，位于 `mydate/` 目录：
 
-- **stock_pool.json** - 100只精选股票（7大热门板块龙头）
-- **stock_pool_600.json** - 800只股票（HS300 + ZZ500成分股）
-- **stock_pool_all.json** - 全市场股票（含ETF）
-- **etf_pool.json** - ETF池（行业ETF + 宽基ETF）
+- **stock_pool.json** - 精选股票池（多赛道龙头，约 100 只）
+- **stock_pool_600.json** - 验证/小型池（可按需配置）
+- **stock_pool_all.json** - 全市场股票（含 ETF）
+- **etf_pool.json** - ETF 池（行业 ETF + 宽基 ETF）
 
 ### 股票池结构
 
 ```json
 {
-  "description": "800只股票池（HS300 + ZZ500）",
+  "description": "精选股票池（多赛道）",
   "created_at": "2026-02-25",
   "stocks": {
     "证券": [
@@ -430,12 +449,12 @@ python3 tools/data/quarterly_update.py
 
 ### 功能说明
 
-使用所有8个策略分析你的持仓，给出买卖建议。
+使用 **11 大策略 + 5 组合**（含 V33）分析你的持仓，给出买卖建议。
 
 ### 使用方法
 
 ```bash
-# 分析持仓（使用所有8个策略）
+# 分析持仓（11 大策略 + 5 组合）
 python3 tools/analysis/portfolio_strategy_analysis.py
 
 # 每日持仓检查（包含策略分析）
@@ -449,7 +468,7 @@ python3 tools/portfolio/daily_check.py
 ### 分析输出
 
 分析报告包含：
-- 📊 每只持仓的8个策略信号（买入/卖出/观望）
+- 📊 每只持仓的 11 单策略 + PE+PB + 5 组合信号（买入/卖出/观望）
 - 💰 实时价格和盈亏情况
 - 📈 综合建议（买入/卖出/观望）
 - 💡 资金流状态（如有）
@@ -463,9 +482,9 @@ python3 tools/portfolio/daily_check.py
 ### 大规模回测
 
 ```bash
-# 对股票池中的500只股票进行回测
+# 对股票池中的股票进行回测（示例：最多 500 只，需池内有足够标的）
 python3 tools/backtest/batch_backtest.py \
-    --pool mydate/stock_pool_600.json \
+    --pool mydate/stock_pool.json \
     --count 500 \
     --datalen 800
 ```
@@ -479,17 +498,15 @@ python3 tools/backtest/compare_fundamental.py
 
 ## 策略与设计文档
 
-与**策略体系升级（情绪/消息/政策）**相关的设计规格与落地说明：
+与**策略体系升级（V3.3：情绪/消息/政策/龙虎榜）**相关的设计规格与落地说明：
 
 | 文档 | 说明 |
 |------|------|
-| [**V3.3 设计规格书**](docs/strategy/V33_DESIGN_SPEC.md) | 情绪、消息、政策三大类策略的完整设计规格（信号规则、参数表、附录） |
-| [**V3.3 落地计划**](docs/strategy/V33_IMPLEMENTATION_PLAN.md) | 分阶段实施计划（Phase 0～6）、与现有代码衔接方式 |
-| [**V3 设计评审**](docs/strategy/V3_DESIGN_REVIEW.md) | 对设计文档的审阅意见与澄清建议 |
+| [**V3.3 设计规格**](docs/strategy/V33_DESIGN_SPEC.md) | 情绪、消息、政策、龙虎榜等完整设计规格（含落地计划与评审摘要） |
+| [**V3.3 落地与状态**](docs/strategy/V33_落地与状态.md) | Phase 0～6 完成情况、产出与自检（已全部落地） |
 | [**策略优化路线图**](docs/strategy/STRATEGY_OPTIMIZATION_ROADMAP.md) | 情绪/消息/政策/龙虎榜的优化方向与实施进度 |
-| [**V3.3 落地与状态**](docs/strategy/V33_落地与状态.md) | Phase 0～6 完成情况、产出、落地过程与自检（已全部落地） |
-| [**回测与实盘规范**](docs/strategy/BACKTEST_AND_LIVE_SPEC.md) | 未来函数约束、参数敏感性、成本与延迟、人工覆盖（Phase 6） |
-| [**策略清单**](docs/strategy/STRATEGY_LIST.md) | 11 单策略 + 4 组合、注册表、与各分析/回测工具的对应关系 |
+| [**回测与实盘规范**](docs/strategy/BACKTEST_AND_LIVE_SPEC.md) | 未来函数约束、参数敏感性、成本与延迟、人工覆盖 |
+| [**策略清单**](docs/strategy/STRATEGY_LIST.md) | 11 单策略 + 4 组合 + 工具对应关系（选股/单股/持仓/回测） |
 
 其他策略文档：[策略开发快速开始](docs/strategy/STRATEGY_QUICKSTART.md) | [策略详解](docs/strategy/STRATEGY_DETAIL.md) | [双核动量指南](docs/strategy/DUAL_MOMENTUM_GUIDE.md) | [策略严格执行指南](docs/strategy/STRATEGY_EXECUTION_GUIDE.md)
 
@@ -502,34 +519,32 @@ ai-trading-system/
 ├── README.md               # 项目说明
 ├── LICENSE                  # 许可证
 ├── requirements.txt         # Python 依赖
+├── run_daily.py             # 每日策略分析入口（双核动量）
 │
-├── config/                 # 配置文件
-│   ├── trading_config.yaml
-│   ├── risk_config.yaml
-│   └── *.yaml.example         # 配置模板
+├── config/                 # 配置文件（详见 config/README.md）
+│   ├── trading_config.yaml(.example)
+│   ├── risk_config.yaml(.example)
+│   ├── news_source_weights.yaml、policy_overrides.yaml 等
 │
 ├── src/                    # 核心源代码
 │   ├── main.py                # 主入口
+│   ├── strategies/             # 策略实现（11 单策略 + 组合，见 docs/strategy/STRATEGY_LIST.md）
 │   ├── core/                  # 核心模块
-│   │   ├── strategy/             # 策略引擎（含双核动量策略）
+│   │   ├── strategy/             # 策略引擎（规则执行、双核动量等）
 │   │   ├── risk/                 # 风险管理
-│   │   ├── execution/            # 交易执行
-│   │   ├── backtest/             # 回测系统
-│   │   └── simulator/            # 模拟交易
-│   ├── ai/                    # AI 模块
-│   ├── data/                  # 数据服务
-│   │   ├── etf_data_fetcher.py   # ETF 数据获取
-│   │   ├── realtime_data.py      # 实时数据
-│   │   └── collectors/           # 数据采集器
-│   ├── api/                   # 接口层
-│   │   └── broker/               # 券商自动化（同花顺桌面/网页）
+│   │   ├── simulator/            # 模拟交易
+│   │   └── backtest_constraints.py  # 回测未来函数约束（V3.3）
+│   ├── data/                  # 数据服务（fetchers/：行情、基本面、ETF、预取）
+│   ├── api/broker/             # 券商自动化（同花顺桌面/网页）
 │   └── config/                # 平台配置
 │
 ├── tools/                  # 工具脚本
-│   ├── backtest_dual_momentum.py # 回测工具
-│   ├── generate_trade_report.py  # 交易报告生成
-│   ├── kline_fetcher.py          # K线数据获取
-│   └── strategy_tester.py        # 策略测试器
+│   ├── data/                    # 数据：kline_fetcher, refresh_stock_pool, quarterly_update, backtest_prefetch
+│   ├── backtest/                 # 回测：batch_backtest, backtest_dual_momentum, compare_fundamental, cross_validate
+│   ├── analysis/                 # 分析：recommend_today, analyze_single_stock, portfolio_strategy_analysis, generate_trade_report
+│   ├── optimization/            # 参数优化：optimize_macd, v33_sensitivity
+│   ├── portfolio/                # 持仓：daily_check
+│   └── validation/               # 验证与手工测试：strategy_tester 等
 │
 ├── tests/                  # 测试代码
 ├── examples/               # 使用示例
@@ -568,25 +583,21 @@ ai-trading-system/
 
 ## 策略开发
 
-### 创建新策略
+### 创建新策略（信号策略）
+
+单策略信号（MA/MACD/RSI 等）继承 `src.strategies.base.Strategy`，接收 K 线 DataFrame，返回 `StrategySignal`。规则执行与审批流程见 `src.core.strategy` 与 [策略严格执行指南](docs/strategy/STRATEGY_EXECUTION_GUIDE.md)。
 
 ```python
-from src.core.strategy.base_strategy import BaseStrategy
+from src.strategies.base import Strategy, StrategySignal
 
-class MyStrategy(BaseStrategy):
-    def __init__(self, config):
-        super().__init__(config)
-        
-    def generate_signals(self, market_data):
-        """生成交易信号"""
-        # 实现您的策略逻辑
-        pass
-        
-    def calculate_position_size(self, signal, risk_metrics):
-        """计算仓位大小"""
-        # 实现仓位管理逻辑
+class MyStrategy(Strategy):
+    def generate_signal(self, df, **kwargs) -> StrategySignal:
+        # df: date, open, high, low, close, volume, amount
+        # 返回 StrategySignal(action, confidence, position, reason, indicators)
         pass
 ```
+
+**快速上手**：[策略开发快速开始](docs/strategy/STRATEGY_QUICKSTART.md) | [策略清单](docs/strategy/STRATEGY_LIST.md)
 
 ## 策略严格执行系统 ⭐
 

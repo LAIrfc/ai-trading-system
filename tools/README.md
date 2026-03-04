@@ -28,7 +28,7 @@ tools/
 ├── portfolio/             # 持仓
 │   └── daily_check.py        # 每日持仓检查
 │
-└── testing/               # 测试
+└── validation/            # 验证与手工测试（与 tests/ 单元测试区分）
     ├── test_fundamental.py   # 基本面策略测试
     └── strategy_tester.py    # 策略测试器
 ```
@@ -95,12 +95,12 @@ python3 tools/data/quarterly_update.py
 python3 tools/data/quarterly_update.py --check
 ```
 
-### 测试工具
+### 验证工具
 
 ```bash
 # 测试基本面策略
-python3 tools/testing/test_fundamental.py
+python3 tools/validation/test_fundamental.py
 
 # 策略测试器
-python3 tools/testing/strategy_tester.py
+python3 tools/validation/strategy_tester.py
 ```

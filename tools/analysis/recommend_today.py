@@ -9,9 +9,9 @@
 4. 每只推荐股票附带：信号强度、建议仓位、理由
 
 用法:
-    python3 tools/recommend_today.py                    # 使用默认100只池
-    python3 tools/recommend_today.py --pool stock_pool_600.json  # 800只全扫
-    python3 tools/recommend_today.py --fast 12 --slow 30 --signal 9  # 自定义参数
+    python3 tools/analysis/recommend_today.py                    # 使用默认股票池
+    python3 tools/analysis/recommend_today.py --pool mydate/stock_pool_600.json  # 指定池
+    python3 tools/analysis/recommend_today.py --fast 12 --slow 30 --signal 9  # 自定义参数
 
 输出:
     终端彩色报告 + output/daily_recommendation_YYYY-MM-DD.md

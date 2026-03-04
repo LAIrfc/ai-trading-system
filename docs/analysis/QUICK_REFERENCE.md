@@ -9,7 +9,7 @@
 python3 tests/test_dual_momentum_quick.py
 
 # 完整回测（5分钟，生成报告+图表）
-python3 tools/backtest_dual_momentum.py
+python3 tools/backtest/backtest_dual_momentum.py
 ```
 
 **策略原理**：
@@ -29,7 +29,7 @@ python3 tools/backtest_dual_momentum.py
 
 ```powershell
 # 使用反斜杠 \
-python tools\kline_fetcher.py 600519
+python tools\data\kline_fetcher.py 600519
 python examples\paper_trading_demo.py
 
 # 或双击运行
@@ -40,7 +40,7 @@ scripts/start_windows.bat
 
 ```bash
 # 使用正斜杠 /
-python3 tools/kline_fetcher.py 600519
+python3 tools/data/kline_fetcher.py 600519
 python3 examples/paper_trading_demo.py
 ```
 
@@ -85,16 +85,16 @@ account.print_summary()
 ### 测试内置策略
 ```bash
 # 交互式
-python3 tools/strategy_tester.py --interactive
+python3 tools/validation/strategy_tester.py --interactive
 
 # 测试均线策略
-python3 tools/strategy_tester.py --strategy MA --stocks 600519
+python3 tools/validation/strategy_tester.py --strategy MA --stocks 600519
 
 # 测试MACD策略
-python3 tools/strategy_tester.py --strategy MACD --stocks 600519,000001
+python3 tools/validation/strategy_tester.py --strategy MACD --stocks 600519,000001
 
 # 测试RSI策略
-python3 tools/strategy_tester.py --strategy RSI --stocks 600519
+python3 tools/validation/strategy_tester.py --strategy RSI --stocks 600519
 ```
 
 ### 创建新策略
@@ -133,19 +133,19 @@ print(signals)
 ### 命令行工具（最快）
 ```bash
 # 获取日K线
-python3 tools/kline_fetcher.py 600519
+python3 tools/data/kline_fetcher.py 600519
 
 # 获取周K线
-python3 tools/kline_fetcher.py 600519 --period weekly
+python3 tools/data/kline_fetcher.py 600519 --period weekly
 
 # 对比历史和实时
-python3 tools/kline_fetcher.py 600519 --compare
+python3 tools/data/kline_fetcher.py 600519 --compare
 
 # 导出CSV
-python3 tools/kline_fetcher.py 600519 --export
+python3 tools/data/kline_fetcher.py 600519 --export
 
 # 查看常用股票
-python3 tools/kline_fetcher.py --list
+python3 tools/data/kline_fetcher.py --list
 ```
 
 ### 完整演示
@@ -235,7 +235,7 @@ python3 examples/desktop_trading_demo.py
 | [STRATEGY_DETAIL.md](../strategy/STRATEGY_DETAIL.md) | 策略详解（6大基础+组合+回测） | 20分钟 ⭐ |
 | [STRATEGY_LIST.md](../strategy/STRATEGY_LIST.md) | 策略清单与工具对应 | 5分钟 |
 | [SIMPLE_START.md](SIMPLE_START.md) | 环境配置 | 5分钟 |
-| [DESKTOP_QUICKSTART.md](DESKTOP_QUICKSTART.md) | 桌面交易入门 | 10分钟 |
+| [DESKTOP_TRADING_GUIDE.md](../setup/DESKTOP_TRADING_GUIDE.md) | 桌面交易指南 | 10分钟 |
 | [TROUBLESHOOTING.md](TROUBLESHOOTING.md) | 问题排查 | 按需查阅 |
 
 ---
@@ -264,7 +264,7 @@ python3 tests/simple_test.py
 python3 test_desktop_auto.py
 
 # 策略测试
-python3 tools/strategy_tester.py --list
+python3 tools/validation/strategy_tester.py --list
 ```
 
 ---
@@ -314,7 +314,7 @@ python3 examples/paper_trading_demo.py
 
 ### 场景2：我想测试一个策略
 ```bash
-python3 tools/strategy_tester.py --interactive
+python3 tools/validation/strategy_tester.py --interactive
 # 按提示选择策略和股票
 ```
 
@@ -411,7 +411,7 @@ ps aux | grep HevoNext
 ---
 
 **记住**: 
-- 📊 测试策略：`python3 tools/testing/strategy_tester.py --interactive`
+- 📊 测试策略：`python3 tools/validation/strategy_tester.py --interactive`
 - ✍️ 创建策略：`cp examples/my_strategy_template.py my_strategy.py`
 - 📖 查看文档：`cat STRATEGY_QUICKSTART.md`
 

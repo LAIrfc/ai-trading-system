@@ -10,7 +10,7 @@
 
 import sys
 import os
-# 调整路径：tools/testing/ -> 项目根目录
+# 调整路径：tools/validation/ -> 项目根目录
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../..'))
 
 import pandas as pd

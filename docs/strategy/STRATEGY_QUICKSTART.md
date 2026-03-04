@@ -33,19 +33,19 @@ python3 -c "import pandas; print('✅ Pandas OK')"
 
 ```bash
 # 测试均线策略 - 贵州茅台
-python3 tools/strategy_tester.py --strategy MA --stocks 600519
+python3 tools/validation/strategy_tester.py --strategy MA --stocks 600519
 
 # 测试MACD策略 - 多只股票
-python3 tools/strategy_tester.py --strategy MACD --stocks 600519,000001,600036
+python3 tools/validation/strategy_tester.py --strategy MACD --stocks 600519,000001,600036
 
 # 测试RSI策略
-python3 tools/strategy_tester.py --strategy RSI --stocks 600519
+python3 tools/validation/strategy_tester.py --strategy RSI --stocks 600519
 ```
 
 ### 方式2: 交互式测试
 
 ```bash
-python3 tools/strategy_tester.py --interactive
+python3 tools/validation/strategy_tester.py --interactive
 ```
 
 然后按提示选择策略和股票。

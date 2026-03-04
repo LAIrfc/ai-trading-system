@@ -115,10 +115,10 @@ def main():
         if platform.system() == 'Windows':
             print("   Windows用户:")
             print("   - 双击 start_windows.bat")
-            print("   - 或运行: python tools\\kline_fetcher.py 600519")
+            print("   - 或运行: python tools\\data\\kline_fetcher.py 600519")
         else:
             print("   Linux用户:")
-            print("   - 运行: python3 tools/kline_fetcher.py 600519")
+            print("   - 运行: python3 tools/data/kline_fetcher.py 600519")
         
         print()
         

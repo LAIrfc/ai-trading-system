@@ -22,18 +22,16 @@ pip install -r requirements.txt
 2. 注册账号（免费）
 3. 记下用户名和密码
 
-## 第三步：配置策略规则 (2分钟)
+## 第三步：配置 (2分钟)
 
+**若使用主入口或回测**：复制并编辑交易/风控配置（模板在 config 目录）：
 ```bash
-# 复制配置模板
-cp config/strategy_rules.yaml.example config/strategy_rules.yaml
-cp config/broker_config.yaml.example config/broker_config.yaml
-
-# 编辑broker_config.yaml，填入同花顺账号
-vim config/broker_config.yaml
+cp config/trading_config.yaml.example config/trading_config.yaml
+cp config/risk_config.yaml.example config/risk_config.yaml
+# 编辑上述文件；详见 config/README.md
 ```
 
-修改以下内容：
+**若使用网页交易演示**：需自行创建 `config/broker_config.yaml`（本仓库无模板），例如：
 
 ```yaml
 tonghuashun_simulator:
@@ -79,7 +77,7 @@ python examples/strict_execution_demo.py
 
 ### 2. 自定义策略规则
 
-编辑 `config/strategy_rules.yaml`，例如：
+若使用策略严格执行演示，可自行创建 `config/strategy_rules.yaml`，例如：
 
 ```yaml
 entry_rules:
@@ -172,7 +170,7 @@ sudo apt install google-chrome-stable
 
 1. 按 F12 打开开发者工具
 2. 找到对应元素的ID/Class
-3. 更新 `tonghuashun_simulator.py` 中的选择器
+3. 更新网页版示例中的选择器（见 WEB_TRADING_GUIDE）
 
 详见 [网页自动化交易指南](WEB_TRADING_GUIDE.md)
 
@@ -195,7 +193,7 @@ for log in logs:
 
 ### Q: Windows用户？
 
-**A**: 请查看 [Windows快速导航](WINDOWS_README.md) 和 [Windows完整指南](WINDOWS_GUIDE.md)
+**A**: 请查看 [Windows完整指南](WINDOWS_GUIDE.md)
 
 ## 学习路径
 

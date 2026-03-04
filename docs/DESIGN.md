@@ -61,10 +61,7 @@
   - 个股级风控
   - 市场风险监控
 
-- **回测引擎 (backtest/)**
-  - `backtest_runner.py`: 回测执行器
-  - `performance_analyzer.py`: 绩效分析
-  - `event_engine.py`: 事件驱动引擎
+- **回测**：批量回测入口为 `tools/backtest/batch_backtest.py`；双核动量回测为 `tools/backtest/backtest_dual_momentum.py`。未来函数约束见 `src/core/backtest_constraints.py`。
 
 - **交易执行 (execution/)**
   - `order_manager.py`: 订单管理

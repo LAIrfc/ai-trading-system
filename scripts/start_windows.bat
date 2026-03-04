@@ -75,7 +75,7 @@ echo ========================================
 echo.
 set /p stock=请输入股票代码（如600519）: 
 echo.
-python tools\kline_fetcher.py %stock%
+python tools\data\kline_fetcher.py %stock%
 echo.
 pause
 goto MENU
@@ -114,7 +114,7 @@ echo 2. 登录模拟交易账户
 echo 3. 确保模拟交易界面可见
 echo.
 pause
-python examples\tonghuashun_simulator.py
+python examples\desktop_trading_demo.py
 echo.
 pause
 goto MENU

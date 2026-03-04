@@ -55,6 +55,9 @@ import pandas as pd
 
 logger = logging.getLogger(__name__)
 
+# 回测进行中：设为 True 时，依赖外部 I/O 的策略可跳过拉取、直接 HOLD，用于快速验证
+_BACKTEST_ACTIVE = False
+
 
 @dataclass
 class StrategySignal:
@@ -217,187 +220,199 @@ class Strategy(ABC):
                 'trade_count': 0, 'sharpe': 0.0,
             }
 
-        cash = initial_cash
-        shares = 0
-        avg_buy_price = 0.0             # 加权平均买入价（支持多次加仓）
-        total_buy_cost = 0.0            # 累计买入成本（用于计算平均价）
-        max_price_since_buy = 0.0       # 跟踪止损用
-        trades: List[dict] = []
-        equity_curve: List[float] = []
+        # 回测前预取：依赖外部数据的策略可实现 prepare_backtest(df)，只拉取一次，避免逐 bar 重复 I/O
+        global _BACKTEST_ACTIVE
+        _BACKTEST_ACTIVE = True
+        try:
+            if hasattr(self, 'prepare_backtest') and callable(getattr(self, 'prepare_backtest')):
+                try:
+                    self.prepare_backtest(df)
+                except Exception as e:
+                    logger.debug("prepare_backtest 失败(将逐 bar 拉取): %s", e)
 
-        for i in range(self.min_bars, len(df)):
-            # 不复制 DataFrame，策略只读不写，iloc 切片是视图
-            window = df.iloc[:i + 1]
-            close = float(window['close'].iloc[-1])
-            date_str = str(window['date'].iloc[-1])[:10]
+            cash = initial_cash
+            shares = 0
+            avg_buy_price = 0.0             # 加权平均买入价（支持多次加仓）
+            total_buy_cost = 0.0            # 累计买入成本（用于计算平均价）
+            max_price_since_buy = 0.0       # 跟踪止损用
+            trades: List[dict] = []
+            equity_curve: List[float] = []
 
-            # ---- 当前权益 ----
-            equity = cash + shares * close
+            for i in range(self.min_bars, len(df)):
+                # 不复制 DataFrame，策略只读不写，iloc 切片是视图
+                window = df.iloc[:i + 1]
+                close = float(window['close'].iloc[-1])
+                date_str = str(window['date'].iloc[-1])[:10]
 
-            # ---- 风控检查（持仓时优先于策略信号）----
-            risk_exit = False
-            risk_reason = ''
+                # ---- 当前权益 ----
+                equity = cash + shares * close
 
-            if shares > 0:
-                pnl_pct = (close - avg_buy_price) / avg_buy_price
+                # ---- 风控检查（持仓时优先于策略信号）----
+                risk_exit = False
+                risk_reason = ''
 
-                # 跟踪止损：更新最高价
-                if close > max_price_since_buy:
-                    max_price_since_buy = close
+                if shares > 0:
+                    pnl_pct = (close - avg_buy_price) / avg_buy_price
 
-                # 硬止损
-                if stop_loss > 0 and pnl_pct <= -stop_loss:
-                    risk_exit = True
-                    risk_reason = f'硬止损触发(亏损{pnl_pct:.1%}≤-{stop_loss:.0%})'
+                    # 跟踪止损：更新最高价
+                    if close > max_price_since_buy:
+                        max_price_since_buy = close
 
-                # 跟踪止损
-                if (trailing_stop > 0 and max_price_since_buy > avg_buy_price):
-                    drawdown_from_peak = (max_price_since_buy - close) / max_price_since_buy
-                    if drawdown_from_peak >= trailing_stop:
+                    # 硬止损
+                    if stop_loss > 0 and pnl_pct <= -stop_loss:
                         risk_exit = True
-                        risk_reason = (f'跟踪止损触发(从最高{max_price_since_buy:.2f}'
-                                       f'回撤{drawdown_from_peak:.1%}≥{trailing_stop:.0%})')
+                        risk_reason = f'硬止损触发(亏损{pnl_pct:.1%}≤-{stop_loss:.0%})'
 
-                # 止盈
-                if take_profit > 0 and pnl_pct >= take_profit:
-                    risk_exit = True
-                    risk_reason = f'止盈触发(盈利{pnl_pct:.1%}≥{take_profit:.0%})'
+                    # 跟踪止损
+                    if (trailing_stop > 0 and max_price_since_buy > avg_buy_price):
+                        drawdown_from_peak = (max_price_since_buy - close) / max_price_since_buy
+                        if drawdown_from_peak >= trailing_stop:
+                            risk_exit = True
+                            risk_reason = (f'跟踪止损触发(从最高{max_price_since_buy:.2f}'
+                                           f'回撤{drawdown_from_peak:.1%}≥{trailing_stop:.0%})')
 
-            # ---- 风控强制平仓（全部清仓）----
-            if risk_exit and shares > 0:
-                revenue = shares * close * (1 - commission - stamp_tax)
-                pnl = (close - avg_buy_price) / avg_buy_price
-                cash += revenue
-                trades.append({
-                    'date': date_str, 'action': 'SELL',
-                    'price': close, 'shares': shares,
-                    'pnl_pct': round(pnl * 100, 2),
-                    'reason': f'[风控] {risk_reason}',
-                })
-                shares = 0
-                avg_buy_price = 0.0
-                total_buy_cost = 0.0
-                max_price_since_buy = 0.0
-                equity = cash
-                equity_curve.append(equity)
-                continue  # 风控平仓后跳过当天策略信号，不同天反手
+                    # 止盈
+                    if take_profit > 0 and pnl_pct >= take_profit:
+                        risk_exit = True
+                        risk_reason = f'止盈触发(盈利{pnl_pct:.1%}≥{take_profit:.0%})'
 
-            # ---- 策略信号 ----
-            try:
-                signal = self.analyze(window)
-            except Exception:
-                signal = StrategySignal('HOLD', 0.0, '分析异常', 0.5)
-
-            if signal.action == 'BUY':
-                target_pos = min(0.95, signal.position)
-                # 需要加仓的金额 = 目标持仓市值 - 当前持仓市值
-                target_value = equity * target_pos
-                current_value = shares * close
-                delta_value = target_value - current_value
-
-                if delta_value >= close * 100:  # 至少买1手(100股)才值得交易
-                    add_shares = int(delta_value / close / 100) * 100
-                    if add_shares > 0:
-                        cost = add_shares * close * (1 + commission)
-                        if cost <= cash:  # 现金充足
-                            cash -= cost
-                            # 更新加权平均买入价
-                            total_buy_cost += add_shares * close
-                            shares += add_shares
-                            avg_buy_price = total_buy_cost / shares
-                            if close > max_price_since_buy:
-                                max_price_since_buy = close
-                            trades.append({
-                                'date': date_str, 'action': 'BUY',
-                                'price': close, 'shares': add_shares,
-                                'total_shares': shares,
-                                'reason': signal.reason,
-                            })
-
-            elif signal.action == 'SELL' and shares > 0:
-                target_pos = max(0.0, signal.position)
-                target_value = equity * target_pos
-                current_value = shares * close
-                delta_value = current_value - target_value
-
-                # 需要卖出的股数（A股最小交易单位100股，尾股允许一次卖出）
-                sell_shares = int(delta_value / close / 100) * 100
-                # 如果目标仓位接近 0 或剩余不足1手，则全部清仓
-                if target_pos < 0.05 or (shares - sell_shares) < 100:
-                    sell_shares = shares
-
-                if sell_shares > 0 and sell_shares <= shares:
-                    revenue = sell_shares * close * (1 - commission - stamp_tax)
+                # ---- 风控强制平仓（全部清仓）----
+                if risk_exit and shares > 0:
+                    revenue = shares * close * (1 - commission - stamp_tax)
                     pnl = (close - avg_buy_price) / avg_buy_price
                     cash += revenue
-                    shares -= sell_shares
                     trades.append({
                         'date': date_str, 'action': 'SELL',
-                        'price': close, 'shares': sell_shares,
-                        'remaining_shares': shares,
+                        'price': close, 'shares': shares,
                         'pnl_pct': round(pnl * 100, 2),
-                        'reason': signal.reason,
+                        'reason': f'[风控] {risk_reason}',
                     })
-                    if shares == 0:
-                        avg_buy_price = 0.0
-                        total_buy_cost = 0.0
-                        max_price_since_buy = 0.0
-                    else:
-                        total_buy_cost = shares * avg_buy_price
+                    shares = 0
+                    avg_buy_price = 0.0
+                    total_buy_cost = 0.0
+                    max_price_since_buy = 0.0
+                    equity = cash
+                    equity_curve.append(equity)
+                    continue  # 风控平仓后跳过当天策略信号，不同天反手
 
-            # ---- 记录当日收盘后权益（所有交易处理完毕）----
-            equity = cash + shares * close
-            equity_curve.append(equity)
+                # ---- 策略信号 ----
+                try:
+                    signal = self.analyze(window)
+                except Exception:
+                    signal = StrategySignal('HOLD', 0.0, '分析异常', 0.5)
 
-        # 最终市值
-        final_close = float(df['close'].iloc[-1])
-        final_value = cash + shares * final_close
+                if signal.action == 'BUY':
+                    target_pos = min(0.95, signal.position)
+                    # 需要加仓的金额 = 目标持仓市值 - 当前持仓市值
+                    target_value = equity * target_pos
+                    current_value = shares * close
+                    delta_value = target_value - current_value
 
-        # 计算指标
-        total_return = (final_value / initial_cash - 1) * 100
+                    if delta_value >= close * 100:  # 至少买1手(100股)才值得交易
+                        add_shares = int(delta_value / close / 100) * 100
+                        if add_shares > 0:
+                            cost = add_shares * close * (1 + commission)
+                            if cost <= cash:  # 现金充足
+                                cash -= cost
+                                # 更新加权平均买入价
+                                total_buy_cost += add_shares * close
+                                shares += add_shares
+                                avg_buy_price = total_buy_cost / shares
+                                if close > max_price_since_buy:
+                                    max_price_since_buy = close
+                                trades.append({
+                                    'date': date_str, 'action': 'BUY',
+                                    'price': close, 'shares': add_shares,
+                                    'total_shares': shares,
+                                    'reason': signal.reason,
+                                })
 
-        # 年化收益率
-        days = len(df)
-        try:
-            days = (pd.Timestamp(df['date'].iloc[-1])
-                    - pd.Timestamp(df['date'].iloc[self.min_bars])).days
-        except Exception:
-            pass
-        years = max(days / 365.0, 0.01)
-        annualized = ((final_value / initial_cash) ** (1 / years) - 1) * 100
+                elif signal.action == 'SELL' and shares > 0:
+                    target_pos = max(0.0, signal.position)
+                    target_value = equity * target_pos
+                    current_value = shares * close
+                    delta_value = current_value - target_value
 
-        # 最大回撤
-        max_drawdown = 0.0
-        if equity_curve:
-            peak = equity_curve[0]
-            for eq in equity_curve:
-                if eq > peak:
-                    peak = eq
-                dd = (peak - eq) / peak
-                if dd > max_drawdown:
-                    max_drawdown = dd
-        max_drawdown *= 100
+                    # 需要卖出的股数（A股最小交易单位100股，尾股允许一次卖出）
+                    sell_shares = int(delta_value / close / 100) * 100
+                    # 如果目标仓位接近 0 或剩余不足1手，则全部清仓
+                    if target_pos < 0.05 or (shares - sell_shares) < 100:
+                        sell_shares = shares
 
-        # 胜率（基于卖出交易的盈亏）
-        sell_trades = [t for t in trades if t['action'] == 'SELL']
-        wins = sum(1 for t in sell_trades if t.get('pnl_pct', 0) > 0)
-        win_rate = (wins / len(sell_trades) * 100) if sell_trades else 0.0
+                    if sell_shares > 0 and sell_shares <= shares:
+                        revenue = sell_shares * close * (1 - commission - stamp_tax)
+                        pnl = (close - avg_buy_price) / avg_buy_price
+                        cash += revenue
+                        shares -= sell_shares
+                        trades.append({
+                            'date': date_str, 'action': 'SELL',
+                            'price': close, 'shares': sell_shares,
+                            'remaining_shares': shares,
+                            'pnl_pct': round(pnl * 100, 2),
+                            'reason': signal.reason,
+                        })
+                        if shares == 0:
+                            avg_buy_price = 0.0
+                            total_buy_cost = 0.0
+                            max_price_since_buy = 0.0
+                        else:
+                            total_buy_cost = shares * avg_buy_price
 
-        # 夏普比率
-        sharpe = 0.0
-        if len(equity_curve) > 1:
-            import numpy as np
-            returns = pd.Series(equity_curve).pct_change().dropna()
-            if returns.std() > 0:
-                sharpe = float((returns.mean() / returns.std()) * (252 ** 0.5))
+                # ---- 记录当日收盘后权益（所有交易处理完毕）----
+                equity = cash + shares * close
+                equity_curve.append(equity)
 
-        return {
-            'trades': trades,
-            'final_value': round(final_value, 2),
-            'total_return': round(total_return, 2),
-            'annualized_return': round(annualized, 2),
-            'max_drawdown': round(max_drawdown, 2),
-            'win_rate': round(win_rate, 2),
-            'trade_count': len(sell_trades),
-            'sharpe': round(sharpe, 2),
-        }
+            # 最终市值
+            final_close = float(df['close'].iloc[-1])
+            final_value = cash + shares * final_close
+
+            # 计算指标
+            total_return = (final_value / initial_cash - 1) * 100
+
+            # 年化收益率
+            days = len(df)
+            try:
+                days = (pd.Timestamp(df['date'].iloc[-1])
+                        - pd.Timestamp(df['date'].iloc[self.min_bars])).days
+            except Exception:
+                pass
+            years = max(days / 365.0, 0.01)
+            annualized = ((final_value / initial_cash) ** (1 / years) - 1) * 100
+
+            # 最大回撤
+            max_drawdown = 0.0
+            if equity_curve:
+                peak = equity_curve[0]
+                for eq in equity_curve:
+                    if eq > peak:
+                        peak = eq
+                    dd = (peak - eq) / peak
+                    if dd > max_drawdown:
+                        max_drawdown = dd
+            max_drawdown *= 100
+
+            # 胜率（基于卖出交易的盈亏）
+            sell_trades = [t for t in trades if t['action'] == 'SELL']
+            wins = sum(1 for t in sell_trades if t.get('pnl_pct', 0) > 0)
+            win_rate = (wins / len(sell_trades) * 100) if sell_trades else 0.0
+
+            # 夏普比率
+            sharpe = 0.0
+            if len(equity_curve) > 1:
+                import numpy as np
+                returns = pd.Series(equity_curve).pct_change().dropna()
+                if returns.std() > 0:
+                    sharpe = float((returns.mean() / returns.std()) * (252 ** 0.5))
+
+            return {
+                'trades': trades,
+                'final_value': round(final_value, 2),
+                'total_return': round(total_return, 2),
+                'annualized_return': round(annualized, 2),
+                'max_drawdown': round(max_drawdown, 2),
+                'win_rate': round(win_rate, 2),
+                'trade_count': len(sell_trades),
+                'sharpe': round(sharpe, 2),
+            }
+        finally:
+            _BACKTEST_ACTIVE = False

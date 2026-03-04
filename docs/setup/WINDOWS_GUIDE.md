@@ -88,7 +88,7 @@ pip install -r requirements.txt
 #### 测试1：数据获取
 
 ```powershell
-python tools/kline_fetcher.py 600519
+python tools/data/kline_fetcher.py 600519
 ```
 
 应该能看到贵州茅台的K线数据。
@@ -96,7 +96,7 @@ python tools/kline_fetcher.py 600519
 #### 测试2：策略测试
 
 ```powershell
-python tools/strategy_tester.py --strategy MA --stocks 600519
+python tools\validation\strategy_tester.py --strategy MA --stocks 600519
 ```
 
 应该能看到策略生成的交易信号。
@@ -144,7 +144,7 @@ TONGHUASHUN_PATH = r"C:\Program Files (x86)\同花顺\hexin.exe"
 
 #### 修改自动化脚本
 
-编辑 `examples/tonghuashun_simulator.py`，找到同花顺路径配置：
+编辑 `examples/desktop_trading_demo.py` 或相关示例，找到同花顺路径配置：
 
 ```python
 # 原来（Linux）
@@ -176,7 +176,7 @@ else:
 cd C:\Users\你的用户名\ai-trading-system
 
 # 获取数据
-python tools\kline_fetcher.py 600519
+python tools\data\kline_fetcher.py 600519
 ```
 
 ### 2. 测试策略
@@ -206,7 +206,7 @@ python examples\paper_trading_demo.py
 # 1. 先打开同花顺，登录模拟账户
 
 # 2. 运行自动化脚本
-python examples\tonghuashun_simulator.py
+python examples\desktop_trading_demo.py
 
 # 3. 按提示操作
 ```
@@ -308,13 +308,13 @@ echo.
 set /p choice=请选择 (1-4): 
 
 if "%choice%"=="1" (
-    python tools\kline_fetcher.py 600519
+    python tools\data\kline_fetcher.py 600519
 ) else if "%choice%"=="2" (
     python tools\strategy_tester.py --interactive
 ) else if "%choice%"=="3" (
     python examples\paper_trading_demo.py
 ) else if "%choice%"=="4" (
-    python examples\tonghuashun_simulator.py
+    python examples\desktop_trading_demo.py
 ) else (
     echo 无效选择
 )
@@ -373,7 +373,7 @@ pip install -r requirements.txt
 3. 触发器：选择时间（如每天9:30）
 4. 操作：启动程序
    - 程序：`python.exe`
-   - 参数：`C:\...\examples\tonghuashun_simulator.py`
+   - 参数：`C:\...\examples\desktop_trading_demo.py`
    - 起始于：`C:\...\ai-trading-system`
 
 ---
@@ -467,7 +467,7 @@ C:\Users\你的用户名\
 pip install pandas numpy akshare loguru pyautogui
 
 # 2. 测试数据
-python tools\kline_fetcher.py 600519
+python tools\data\kline_fetcher.py 600519
 
 # 3. 测试策略
 python tools\strategy_tester.py --interactive
@@ -528,7 +528,7 @@ python examples\paper_trading_demo.py
 **第一步**：
 ```powershell
 pip install pandas numpy akshare loguru
-python tools\kline_fetcher.py 600519
+python tools\data\kline_fetcher.py 600519
 ```
 
 ---

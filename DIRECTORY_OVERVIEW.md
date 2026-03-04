@@ -15,11 +15,17 @@ ai-trading-system/
 │   ├── .gitignore                     # Git忽略规则
 │   └── run_daily.py                   # ⭐ 每日策略分析入口（双核动量）
 │
-├── ⚙️ config/                         # 配置文件目录
-│   ├── trading_config.yaml            # 交易配置（账户、市场、策略、AI模型）
-│   ├── trading_config.yaml.example    # 交易配置模板
-│   ├── risk_config.yaml               # 风控配置（账户/策略/个股/市场风控）
-│   └── risk_config.yaml.example       # 风控配置模板
+├── ⚙️ config/                         # 配置文件目录（详见 config/README.md）
+│   ├── README.md                      # 配置说明（必读）
+│   ├── trading_config.yaml(.example)  # 交易配置（主入口用）
+│   ├── risk_config.yaml(.example)     # 风控配置（主入口用）
+│   ├── news_source_weights.yaml       # 新闻源权重（V3.3）
+│   ├── policy_overrides.yaml          # 政策标签人工覆盖（V3.3）
+│   ├── data_sources.yaml              # 数据源说明（占位）
+│   ├── signal_timing.yaml             # 信号时点规范（占位）
+│   ├── trading_costs.yaml             # 交易成本与延迟（占位）
+│   ├── policy_industry_mapping.yaml   # 政策行业映射（占位）
+│   └── seat_alias.csv                 # 龙虎榜席位别名（占位）
 │
 ├── 🧠 src/                            # 核心源代码
 │   ├── __init__.py
@@ -76,7 +82,8 @@ ai-trading-system/
 │   │   │   ├── market_data.py        # 市场行情数据
 │   │   │   ├── realtime_data.py      # 实时数据
 │   │   │   ├── etf_data_fetcher.py   # ETF数据获取
-│   │   │   └── fundamental_fetcher.py  # 基本面数据（PE/PB/市值/ROE）
+│   │   │   ├── fundamental_fetcher.py  # 基本面数据（PE/PB/市值/ROE）
+│   │   │   └── data_prefetch.py      # 日线主备容错（Sina→东方财富→腾讯），见 docs/data/API_INTERFACES_AND_FETCHERS.md
 │   │   │
 │   │   ├── collectors/                # 数据采集器
 │   │   │   ├── __init__.py
@@ -129,7 +136,7 @@ ai-trading-system/
 │   ├── portfolio/                    # 持仓管理
 │   │   └── daily_check.py            # 每日持仓检查
 │   │
-│   └── testing/                       # 测试验证工具
+│   └── validation/                    # 验证与手工测试（与 tests/ 单元测试区分）
 │       ├── strategy_tester.py        # 策略测试器（交互式）
 │       ├── test_fundamental.py       # 基本面策略测试
 │       ├── test_industry_pe.py        # 行业PE测试
@@ -147,7 +154,7 @@ ai-trading-system/
 │   ├── desktop_trading_demo.py       # 桌面交易示例
 │   ├── desktop_trading_auto.py      # 桌面自动交易示例
 │   ├── web_trading_demo.py          # 网页交易示例
-│   ├── tonghuashun_simulator.py     # 同花顺模拟器示例
+│   ├── desktop_trading_demo.py      # 桌面交易示例
 │   ├── strict_execution_demo.py     # 严格执行示例
 │   └── my_strategy_template.py      # 策略模板
 │
@@ -173,10 +180,8 @@ ai-trading-system/
 │   ├── setup/                         # 安装和快速开始指南
 │   │   ├── QUICK_START.md            # 通用快速开始
 │   │   ├── WINDOWS_GUIDE.md          # Windows完整指南
-│   │   ├── WINDOWS_README.md         # Windows快速导航
 │   │   ├── CROSS_PLATFORM.md         # 跨平台兼容说明
-│   │   ├── DESKTOP_QUICKSTART.md     # 桌面客户端快速开始
-│   │   ├── DESKTOP_TRADING_GUIDE.md  # 桌面交易指南
+│   │   ├── DESKTOP_TRADING_GUIDE.md  # 桌面交易指南（含快速开始）
 │   │   ├── WEB_TRADING_GUIDE.md      # 网页交易指南
 │   │   ├── TONGHUASHUN_SIMULATOR_GUIDE.md  # 同花顺模拟器指南
 │   │   ├── PAPER_TRADING_GUIDE.md   # 模拟交易指南
@@ -186,12 +191,14 @@ ai-trading-system/
 │   │   └── GIT_GUIDE.md              # Git使用指南
 │   │
 │   ├── strategy/                      # 策略文档
-│   │   ├── STRATEGY_LIST.md           # 策略清单（11单策略+4组合，与工具对应）
+│   │   ├── STRATEGY_LIST.md           # 策略清单（11单策略+组合，与工具对应）
 │   │   ├── STRATEGY_QUICKSTART.md     # 策略开发快速开始
 │   │   ├── STRATEGY_DETAIL.md         # 策略详细说明（6大基础+组合+回测）
 │   │   ├── STRATEGY_EXECUTION_GUIDE.md # 策略严格执行指南
-│   │   ├── DUAL_MOMENTUM_GUIDE.md     # 双核动量指南（含策略规范）
-│   │   └── DUAL_MOMENTUM_WORKFLOW.md  # 双核动量完整工作流
+│   │   ├── STRATEGY_HOLD_REASONS.md   # 策略观望/失败原因说明
+│   │   ├── DUAL_MOMENTUM_GUIDE.md     # 双核动量指南（含策略规范与工作流）
+│   │   ├── V33_DESIGN_SPEC.md         # V3.3 设计规格（含落地与评审摘要）
+│   │   └── V33_落地与状态.md          # V3.3 完成状态
 │   │
 │   ├── fundamental/                   # 基本面分析文档
 │   │   ├── FUNDAMENTAL_STRATEGY_GUIDE.md  # 基本面策略指南
@@ -205,9 +212,8 @@ ai-trading-system/
 │   │   ├── TRADE_ANALYSIS_REPORT.md  # 交易分析报告
 │   │   └── VALIDATION_REPORT.md      # 验证报告
 │   │
-│   ├── reports/                       # 生成的报告
-│   │   ├── CROSS_VALIDATION_REPORT.md  # 交叉验证报告
-│   │   └── daily_recommendation_2026-02-25.md  # 每日推荐报告示例
+│   ├── reports/                       # 报告说明（实际报告输出在 mydate/daily_reports/）
+│   │   └── README.md
 │   │
 │   └── images/                        # 图片资源
 │       ├── dual_momentum_backtest_result.png  # 双核动量回测结果图
@@ -282,7 +288,7 @@ ai-trading-system/
 | 持仓分析 | `tools/analysis/portfolio_strategy_analysis.py` | 11大策略分析持仓 |
 | 批量回测 | `tools/backtest/batch_backtest.py` | 大规模回测验证 |
 | 股票池刷新 | `tools/data/refresh_stock_pool.py` | 更新股票池 |
-| 策略测试器 | `tools/testing/strategy_tester.py` | 交互式策略测试 |
+| 策略测试器 | `tools/validation/strategy_tester.py` | 交互式策略测试 |
 
 ### 📚 重要文档
 
@@ -295,6 +301,7 @@ ai-trading-system/
 | 策略快速开始 | `docs/strategy/STRATEGY_QUICKSTART.md` | 策略开发快速开始 |
 | 策略详解 | `docs/strategy/STRATEGY_DETAIL.md` | 6大基础策略+组合+回测 |
 | 双核动量指南 | `docs/strategy/DUAL_MOMENTUM_GUIDE.md` | 双核动量策略与规范 |
+| 数据接口与容错 | `docs/data/API_INTERFACES_AND_FETCHERS.md` | 主备数据源、接口明细、落地步骤 |
 
 ## 🗂️ 目录分类统计
 
@@ -331,7 +338,7 @@ ai-trading-system/
 ### 策略开发
 1. 阅读 `docs/strategy/STRATEGY_QUICKSTART.md`
 2. 参考 `examples/my_strategy_template.py` 创建策略
-3. 使用 `tools/testing/strategy_tester.py` 测试策略
+3. 使用 `tools/validation/strategy_tester.py` 测试策略
 
 ### 每日运行
 1. 运行 `run_daily.py` 执行双核动量策略
@@ -345,5 +352,5 @@ ai-trading-system/
 
 ---
 
-**最后更新**: 2026-03-02  
+**最后更新**: 2026-03-04  
 **项目路径**: `/home/wangxinghan/codetree/ai-trading-system`

@@ -1,7 +1,7 @@
 # 新策略详细设计 V3.3（设计规格书）
 
-> 本文档为情绪、消息、政策三大类策略的完整设计规格，与落地计划、评审意见配套使用。  
-> 相关文档：[V3.3 落地计划](V33_IMPLEMENTATION_PLAN.md) | [V3 设计评审](V3_DESIGN_REVIEW.md) | [策略优化路线图](STRATEGY_OPTIMIZATION_ROADMAP.md)
+> 本文档为情绪、消息、政策三大类策略的完整设计规格。落地计划与评审结论摘要见文末；**当前完成状态**见 [V33_落地与状态](V33_落地与状态.md)。  
+> 相关文档：[策略优化路线图](STRATEGY_OPTIMIZATION_ROADMAP.md) | [回测与实盘规范](BACKTEST_AND_LIVE_SPEC.md)
 
 ---
 
@@ -193,5 +193,29 @@
 
 ---
 
+## 落地计划摘要（原 V33_IMPLEMENTATION_PLAN）
+
+| 阶段 | 内容 |
+|------|------|
+| Phase 0 | 数据与配置底座：data_sources、trading_costs、新闻源权重、席位别名、行业占位 |
+| Phase 1 | 情绪因子 V3.3：多指标 Z-score、20/80 与次日确认、趋势过滤 |
+| Phase 2 | 消息面 V3.3：24h N、S_news、预期差、新闻源权重 |
+| Phase 3 | 政策面 V3.3：关键词+影响力、重大利空、行业映射、政策覆盖 |
+| Phase 4 | 龙虎榜/大宗：席位、lhb/dzjy、MoneyFlow 策略 |
+| Phase 5 | 组合与风控：V33 组合、重大利空优先、40% cap、动态权重 |
+| Phase 6 | 回测与实盘规范：未来函数、敏感性、人工覆盖 |
+
+**完成情况**：见 [V33_落地与状态](V33_落地与状态.md)。
+
+---
+
+## 设计评审结论摘要（原 V3_DESIGN_REVIEW）
+
+- **结论**：情绪/消息/政策/龙虎榜规则与现有架构兼容，可按文档分阶段落地。
+- **澄清点**：数据可得性（期权 PCR/VIX 等缺项权重置 0）；「次日 S 回升」实盘采用 T+1 收盘确认或 T+1 盘中 S_intra 估算（见 SENTIMENT_TECH）；趋势过滤为市场情绪+个股指标。
+- **建议**：先做数据可得、规则无歧义子集，再补数据与规则细节。均已体现在 V3.3 规格与落地计划中。
+
+---
+
 **文档版本**：V3.3  
-**相关文档**：[V3.3 落地计划](V33_IMPLEMENTATION_PLAN.md) | [V3 设计评审](V3_DESIGN_REVIEW.md) | [策略优化路线图](STRATEGY_OPTIMIZATION_ROADMAP.md)
+**相关文档**：[V33_落地与状态](V33_落地与状态.md) | [策略优化路线图](STRATEGY_OPTIMIZATION_ROADMAP.md) | [回测与实盘规范](BACKTEST_AND_LIVE_SPEC.md)

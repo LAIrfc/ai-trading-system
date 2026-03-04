@@ -1,6 +1,6 @@
 # 回测与实盘规范（V3.3 Phase 6）
 
-> 配套 [V3.3 设计规格](V33_DESIGN_SPEC.md)、[落地计划](V33_IMPLEMENTATION_PLAN.md)。  
+> 配套 [V3.3 设计规格](V33_DESIGN_SPEC.md)（含落地计划摘要）。  
 > 用于回测框架与实盘执行时的一致性约束与校验说明。
 
 ---
@@ -59,4 +59,4 @@
 ---
 
 **文档版本**：V3.3 Phase 6  
-**相关**：[V33_IMPLEMENTATION_PLAN](V33_IMPLEMENTATION_PLAN.md) | [SENTIMENT_TECH](SENTIMENT_TECH.md) | [V33_落地与状态](V33_落地与状态.md)
+**相关**：[V33_DESIGN_SPEC](V33_DESIGN_SPEC.md) | [SENTIMENT_TECH](SENTIMENT_TECH.md) | [V33_落地与状态](V33_落地与状态.md)

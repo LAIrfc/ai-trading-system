@@ -106,7 +106,7 @@ broker.close()
 
 1. 使用Chrome开发者工具（F12）查看页面结构
 2. 找到对应元素的ID、Class或CSS选择器
-3. 更新 `tonghuashun_simulator.py` 中的选择器
+3. 更新网页版示例中的选择器（见本指南）
 
 ### 示例：查找登录按钮
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 单股票多策略分析工具
-使用 11 大策略分析单只股票（MA/MACD/RSI/BOLL/KDJ/DUAL + Sentiment/NewsSentiment/PolicyEvent/MoneyFlow + PE/PB）
+使用多策略分析单只股票（11 单策略 + PE+PB双因子 + 多策略/保守/均衡/激进/V33 组合）
 
 用法:
     python3 tools/analysis/analyze_single_stock.py 002015
@@ -28,6 +28,14 @@ from src.strategies.policy_event import PolicyEventStrategy
 from src.strategies.money_flow import MoneyFlowStrategy
 from src.strategies.fundamental_pe import PEStrategy
 from src.strategies.fundamental_pb import PBStrategy
+from src.strategies.fundamental_pe_pb import PE_PB_CombinedStrategy
+from src.strategies.ensemble import (
+    EnsembleStrategy,
+    ConservativeEnsemble,
+    BalancedEnsemble,
+    AggressiveEnsemble,
+    V33EnsembleStrategy,
+)
 from src.data.fetchers.fundamental_fetcher import FundamentalFetcher
 import akshare as ak
 import baostock as bs
@@ -250,7 +258,7 @@ def analyze_stock(code: str, name: str = None):
     
     # 运行所有策略
     print("=" * 100)
-    print("📊 策略信号汇总 (11大策略)")
+    print("📊 策略信号汇总 (11单策略 + PE+PB + 5组合)")
     print("=" * 100)
     print(f"{'策略':>8} {'信号':>8} {'信心':>10} {'仓位':>10} {'理由'}")
     print("-" * 100)
@@ -294,20 +302,22 @@ def analyze_stock(code: str, name: str = None):
         except Exception as e:
             print(f"{strat_name:>8} {'错误':>8} {'-':>10} {'-':>10} {str(e)[:40]}")
     
-    # 基本面策略 - PE
+    # 基本面策略 - PE（与策略内过滤一致：0 < pe_ttm <= 100）
     if 'pe_ttm' in df.columns and df['pe_ttm'].notna().sum() > 100:
         try:
-            available_data = len(df[df['pe_ttm'].notna()])
-            rolling_window = min(available_data, 756)
+            pe_valid = df['pe_ttm'].dropna()
+            pe_valid = pe_valid[(pe_valid > 0) & (pe_valid <= 100)]
+            valid_pe_count = len(pe_valid)
+            rolling_window = min(valid_pe_count, 756)
             
             if industry and industry_pe_data is not None and len(industry_pe_data) > 100:
                 pe_strat = PEStrategy(industry=industry, industry_pe_data=industry_pe_data, rolling_window=rolling_window)
             else:
                 pe_strat = PEStrategy(rolling_window=rolling_window)
             
-            pe_strat.min_bars = max(100, available_data)
+            pe_strat.min_bars = max(100, min(valid_pe_count, 756))
             
-            if len(df) >= pe_strat.min_bars:
+            if valid_pe_count >= pe_strat.min_bars:
                 pe_sig = pe_strat.safe_analyze(df)
                 action_emoji = '🟢' if pe_sig.action == 'BUY' else ('🔴' if pe_sig.action == 'SELL' else '⚪')
                 print(f"{'PE':>8} {action_emoji}{pe_sig.action:>6} {pe_sig.confidence:>9.1%} {pe_sig.position:>9.1%} {pe_sig.reason[:45]}")
@@ -318,16 +328,20 @@ def analyze_stock(code: str, name: str = None):
                     sell_count += 1
                 else:
                     hold_count += 1
+            else:
+                print(f"{'PE':>8} {'观望':>8} {'0%':>10} {'50%':>10} PE有效条数不足(需至少100条，实际{valid_pe_count}条，PE>100已过滤)")
         except Exception as e:
             print(f"{'PE':>8} {'错误':>8} {'-':>10} {'-':>10} {str(e)[:40]}")
     else:
         print(f"{'PE':>8} {'无PE数据':>8} {'-':>10} {'-':>10} 缺少PE数据")
     
-    # 基本面策略 - PB
+    # 基本面策略 - PB（与策略内过滤一致：0 < pb <= 20）
     if 'pb' in df.columns and df['pb'].notna().sum() > 100:
         try:
-            available_data = len(df[df['pb'].notna()])
-            rolling_window = min(available_data, 756)
+            pb_valid = df['pb'].dropna()
+            pb_valid = pb_valid[(pb_valid > 0) & (pb_valid <= 20)]
+            valid_pb_count = len(pb_valid)
+            rolling_window = min(valid_pb_count, 756)
             
             roe_passes, _, _ = fetcher.get_roe_for_filter(code)
             if industry and industry_pb_data is not None and len(industry_pb_data) > 100:
@@ -335,9 +349,9 @@ def analyze_stock(code: str, name: str = None):
             else:
                 pb_strat = PBStrategy(min_roe=8.0 if roe_passes else 0, rolling_window=rolling_window)
             
-            pb_strat.min_bars = max(100, available_data)
+            pb_strat.min_bars = max(100, min(valid_pb_count, 756))
             
-            if len(df) >= pb_strat.min_bars:
+            if valid_pb_count >= pb_strat.min_bars:
                 pb_sig = pb_strat.safe_analyze(df)
                 action_emoji = '🟢' if pb_sig.action == 'BUY' else ('🔴' if pb_sig.action == 'SELL' else '⚪')
                 print(f"{'PB':>8} {action_emoji}{pb_sig.action:>6} {pb_sig.confidence:>9.1%} {pb_sig.position:>9.1%} {pb_sig.reason[:45]}")
@@ -348,10 +362,71 @@ def analyze_stock(code: str, name: str = None):
                     sell_count += 1
                 else:
                     hold_count += 1
+            else:
+                print(f"{'PB':>8} {'观望':>8} {'0%':>10} {'50%':>10} PB有效条数不足(需至少100条，实际{valid_pb_count}条)")
         except Exception as e:
             print(f"{'PB':>8} {'错误':>8} {'-':>10} {'-':>10} {str(e)[:40]}")
     else:
         print(f"{'PB':>8} {'无PB数据':>8} {'-':>10} {'-':>10} 缺少PB数据")
+    
+    # 基本面策略 - PE+PB双因子（需 PE/PB 有效条数均>=100）
+    if 'pe_ttm' in df.columns and 'pb' in df.columns:
+        try:
+            pe_v = df['pe_ttm'].dropna()
+            pe_v = pe_v[(pe_v > 0) & (pe_v <= 100)]
+            pb_v = df['pb'].dropna()
+            pb_v = pb_v[(pb_v > 0) & (pb_v <= 20)]
+            n_pe, n_pb = len(pe_v), len(pb_v)
+            if n_pe >= 100 and n_pb >= 100:
+                rw = min(min(n_pe, n_pb), 756)
+                roe_ok, _, _ = fetcher.get_roe_for_filter(code)
+                if industry and industry_pe_data is not None and industry_pb_data is not None and len(industry_pe_data) > 100 and len(industry_pb_data) > 100:
+                    pe_pb_strat = PE_PB_CombinedStrategy(industry=industry, industry_pe_data=industry_pe_data, industry_pb_data=industry_pb_data, min_roe=8.0 if roe_ok else 0, rolling_window=rw)
+                else:
+                    pe_pb_strat = PE_PB_CombinedStrategy(min_roe=8.0 if roe_ok else 0, rolling_window=rw)
+                pe_pb_strat.min_bars = max(100, rw)
+                pe_pb_sig = pe_pb_strat.safe_analyze(df)
+                action_emoji = '🟢' if pe_pb_sig.action == 'BUY' else ('🔴' if pe_pb_sig.action == 'SELL' else '⚪')
+                print(f"{'PE+PB':>8} {action_emoji}{pe_pb_sig.action:>6} {pe_pb_sig.confidence:>9.1%} {pe_pb_sig.position:>9.1%} {pe_pb_sig.reason[:45]}")
+                signals.append(('PE+PB', pe_pb_sig))
+                if pe_pb_sig.action == 'BUY':
+                    buy_count += 1
+                elif pe_pb_sig.action == 'SELL':
+                    sell_count += 1
+                else:
+                    hold_count += 1
+            else:
+                print(f"{'PE+PB':>8} {'观望':>8} {'0%':>10} {'50%':>10} PE或PB有效条数不足(需各>=100)")
+        except Exception as e:
+            print(f"{'PE+PB':>8} {'错误':>8} {'-':>10} {'-':>10} {str(e)[:40]}")
+    else:
+        print(f"{'PE+PB':>8} {'无数据':>8} {'-':>10} {'-':>10} 缺少PE或PB")
+    
+    # 组合策略（多策略/保守/均衡/激进/V33）
+    ensemble_strategies = {
+        '多策略': EnsembleStrategy(),
+        '保守': ConservativeEnsemble(),
+        '均衡': BalancedEnsemble(),
+        '激进': AggressiveEnsemble(),
+        'V33': V33EnsembleStrategy(symbol=code),
+    }
+    for strat_name, strat in ensemble_strategies.items():
+        try:
+            if len(df) < strat.min_bars:
+                print(f"{strat_name:>8} {'数据不足':>8} {'-':>10} {'-':>10} 需要{strat.min_bars}条")
+                continue
+            sig = strat.safe_analyze(df)
+            action_emoji = '🟢' if sig.action == 'BUY' else ('🔴' if sig.action == 'SELL' else '⚪')
+            print(f"{strat_name:>8} {action_emoji}{sig.action:>6} {sig.confidence:>9.1%} {sig.position:>9.1%} {sig.reason[:45]}")
+            signals.append((strat_name, sig))
+            if sig.action == 'BUY':
+                buy_count += 1
+            elif sig.action == 'SELL':
+                sell_count += 1
+            else:
+                hold_count += 1
+        except Exception as e:
+            print(f"{strat_name:>8} {'错误':>8} {'-':>10} {'-':>10} {str(e)[:40]}")
     
     print("-" * 100)
     print(f"汇总: 🟢买入 {buy_count} | 🔴卖出 {sell_count} | ⚪观望 {hold_count}")

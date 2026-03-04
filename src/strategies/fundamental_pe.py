@@ -106,15 +106,18 @@ class PEStrategy(Strategy):
             )
         
         pe_series = df['pe_ttm'].dropna()
-        
+        raw_count = len(pe_series)
+
         # 实盘标准：过滤异常值（PE<0或PE>100）
         # PE<0表示亏损，PE>100通常表示异常高估或数据错误
         pe_series = pe_series[(pe_series > 0) & (pe_series <= 100)]
-        
-        if len(pe_series) < self.min_bars:
+        valid_count = len(pe_series)
+
+        if valid_count < self.min_bars:
+            suffix = '（PE>100被过滤导致有效条数不足）' if raw_count > valid_count and raw_count > self.min_bars else ''
             return StrategySignal(
                 action='HOLD', confidence=0.0, position=0.5,
-                reason=f'PE数据不足(需{self.min_bars}条，实际{len(pe_series)}条)',
+                reason=f'PE数据不足(需{self.min_bars}条，实际{valid_count}条){suffix}',
                 indicators={'pe_ttm': None, 'pe_quantile': None}
             )
         

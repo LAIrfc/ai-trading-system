@@ -9,6 +9,8 @@
 """
 
 import logging
+import time
+from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeoutError
 from datetime import datetime, timedelta
 from typing import Optional, Tuple
 
@@ -18,6 +20,9 @@ import pandas as pd
 from .base import Strategy, StrategySignal
 
 logger = logging.getLogger(__name__)
+
+# 回测预取缓存：同一日期范围只拉一次（市场级数据），避免单策略回测+组合回测重复拉取
+_backtest_sentiment_cache: dict = {}
 
 # 趋势过滤参数（V3.3）
 MACD_SLOPE_WINDOW = 3
@@ -130,6 +135,19 @@ def _get_sentiment_v2_last_two(lookback_days: int = 80) -> Optional[pd.DataFrame
         return None
 
 
+def _get_sentiment_v2_for_date(start_date: str, end_date: str) -> Optional[pd.DataFrame]:
+    """按日期范围获取情绪序列（供回测预取用）。"""
+    try:
+        from src.data.sentiment.sentiment_index import get_sentiment_series_v2
+        df = get_sentiment_series_v2(start_date, end_date)
+        if df is None or df.empty:
+            return None
+        return df
+    except Exception as e:
+        logger.debug("获取情绪 V2 失败: %s", e)
+        return None
+
+
 def _get_latest_sentiment_legacy(lookback_days: int = 80) -> Optional[float]:
     """旧版：最近一日情绪指数 0~100。"""
     try:
@@ -162,10 +180,43 @@ class SentimentStrategy(Strategy):
     def __init__(self, low_threshold: float = 20.0, high_threshold: float = 80.0, **kwargs):
         self.low_threshold = low_threshold
         self.high_threshold = high_threshold
+        self._backtest_sentiment_df: Optional[pd.DataFrame] = None  # 回测时预取的情绪序列，避免逐 bar 拉取
+
+    def prepare_backtest(self, df: pd.DataFrame) -> None:
+        """回测前预取整段情绪数据，避免逐 bar 调用接口；同日期范围用缓存；拉取超时则跳过（该策略回测多为 HOLD）。"""
+        if df.empty or "date" not in df.columns:
+            return
+        start = (pd.Timestamp(df["date"].iloc[0]) - timedelta(days=80)).strftime("%Y-%m-%d")
+        end = pd.Timestamp(df["date"].iloc[-1]).strftime("%Y-%m-%d")
+        key = (start, end)
+        if key not in _backtest_sentiment_cache:
+            _backtest_sentiment_cache[key] = None
+            for retry in range(3):
+                try:
+                    with ThreadPoolExecutor(max_workers=1) as ex:
+                        fut = ex.submit(_get_sentiment_v2_for_date, start, end)
+                        _backtest_sentiment_cache[key] = fut.result(timeout=15)
+                    if _backtest_sentiment_cache[key] is not None and not _backtest_sentiment_cache[key].empty:
+                        break
+                except (FuturesTimeoutError, Exception) as e:
+                    logger.debug("情绪预取第%d次失败: %s", retry + 1, e)
+                if retry < 2:
+                    time.sleep(2)
+        self._backtest_sentiment_df = _backtest_sentiment_cache[key]
 
     def analyze(self, df: pd.DataFrame) -> StrategySignal:
         # 1) 优先 V3.3：最近两日 S、S_low、S_high
-        sent_df = _get_sentiment_v2_last_two()
+        sent_df = None
+        if self._backtest_sentiment_df is not None and not self._backtest_sentiment_df.empty and "date" in df.columns:
+            bar_date = pd.Timestamp(df["date"].iloc[-1])
+            subset = self._backtest_sentiment_df[self._backtest_sentiment_df["date"] <= bar_date].tail(2)
+            if len(subset) >= 2:
+                sent_df = subset.reset_index(drop=True)
+        if sent_df is None:
+            from .base import _BACKTEST_ACTIVE
+            if _BACKTEST_ACTIVE:
+                return StrategySignal("HOLD", 0.0, "回测中无预取情绪数据", 0.5, {})
+            sent_df = _get_sentiment_v2_last_two()
         if sent_df is not None and len(sent_df) >= 2:
             prev = sent_df.iloc[-2]
             curr = sent_df.iloc[-1]

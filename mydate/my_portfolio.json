@@ -1,0 +1,57 @@
+{
+  "updated": "2026-03-02",
+  "note": "持仓数据来自券商实盘，成本为持仓均价",
+  "holdings": [
+    {
+      "code": "600118",
+      "name": "中国卫星",
+      "avg_cost": 102.681,
+      "market_value_ref": 0,
+      "shares": 300
+    },
+    {
+      "code": "601099",
+      "name": "太平洋",
+      "avg_cost": 4.143,
+      "market_value_ref": 10250,
+      "shares": 2500
+    },
+    {
+      "code": "002281",
+      "name": "光迅科技",
+      "avg_cost": 75.10,
+      "market_value_ref": 7750,
+      "shares": 100
+    },
+    {
+      "code": "512980",
+      "name": "传媒ETF",
+      "avg_cost": 1.167,
+      "market_value_ref": 0,
+      "shares": 0,
+      "comment": "2026-03-02 清仓, 亏¥348"
+    },
+    {
+      "code": "159770",
+      "name": "机器人ETF",
+      "avg_cost": 1.082,
+      "market_value_ref": 28820,
+      "shares": 26100
+    },
+    {
+      "code": "512480",
+      "name": "半导体ETF",
+      "avg_cost": 1.638,
+      "market_value_ref": 27370,
+      "shares": 16500
+    },
+    {
+      "code": "513399",
+      "name": "纳斯达克ETF",
+      "avg_cost": 1.167,
+      "market_value_ref": 8500,
+      "shares": 0,
+      "comment": "新浪无数据，暂不跟踪"
+    }
+  ]
+}

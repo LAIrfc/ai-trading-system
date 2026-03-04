@@ -1,6 +1,6 @@
 # 情绪策略技术说明（V3.3）
 
-> 配套 [V3.3 设计规格](V33_DESIGN_SPEC.md)、[落地计划](V33_IMPLEMENTATION_PLAN.md)。  
+> 配套 [V3.3 设计规格](V33_DESIGN_SPEC.md)（含落地计划摘要）。  
 > 说明情绪指数 S、S_intra、信号生效时点及首版实现约定。
 
 ---

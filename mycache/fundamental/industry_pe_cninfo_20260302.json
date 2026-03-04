@@ -1,0 +1,2932 @@
+[
+  {
+    "industry_name": "能源",
+    "industry_code": "C01",
+    "industry_level": 1,
+    "company_count": 85,
+    "pe_weighted": 14.83,
+    "pe_median": 27.09,
+    "pe_mean": 56.26,
+    "total_market_cap": 50363.8295
+  },
+  {
+    "industry_name": "能源",
+    "industry_code": "C0101",
+    "industry_level": 2,
+    "company_count": 85,
+    "pe_weighted": 14.83,
+    "pe_median": 27.09,
+    "pe_mean": 56.26,
+    "total_market_cap": 50363.8295
+  },
+  {
+    "industry_name": "能源设备与服务",
+    "industry_code": "C010101",
+    "industry_level": 3,
+    "company_count": 27,
+    "pe_weighted": 31.25,
+    "pe_median": 48.01,
+    "pe_mean": 97.78,
+    "total_market_cap": 3778.9958
+  },
+  {
+    "industry_name": "能源设备",
+    "industry_code": "C01010101",
+    "industry_level": 4,
+    "company_count": 16,
+    "pe_weighted": 53.29,
+    "pe_median": 48.01,
+    "pe_mean": 67.09,
+    "total_market_cap": 1853.8977
+  },
+  {
+    "industry_name": "能源服务",
+    "industry_code": "C01010102",
+    "industry_level": 4,
+    "company_count": 11,
+    "pe_weighted": 22.35,
+    "pe_median": 48.22,
+    "pe_mean": 143.81,
+    "total_market_cap": 1925.0981
+  },
+  {
+    "industry_name": "石油天然气",
+    "industry_code": "C010102",
+    "industry_level": 3,
+    "company_count": 21,
+    "pe_weighted": 14.75,
+    "pe_median": 47.39,
+    "pe_mean": 60.68,
+    "total_market_cap": 29495.6223
+  },
+  {
+    "industry_name": "石油天然气的勘探与生产",
+    "industry_code": "C01010201",
+    "industry_level": 4,
+    "company_count": 6,
+    "pe_weighted": 19.79,
+    "pe_median": 23.27,
+    "pe_mean": 39.96,
+    "total_market_cap": 2535.4389
+  },
+  {
+    "industry_name": "石油天然气的炼制与销售",
+    "industry_code": "C01010202",
+    "industry_level": 4,
+    "company_count": 9,
+    "pe_weighted": 50.46,
+    "pe_median": 56.7,
+    "pe_mean": 104.68,
+    "total_market_cap": 337.797
+  },
+  {
+    "industry_name": "石油天然气的储存与运输",
+    "industry_code": "C01010203",
+    "industry_level": 4,
+    "company_count": 2,
+    "pe_weighted": 49.99,
+    "pe_median": 51.78,
+    "pe_mean": 51.78,
+    "total_market_cap": 110.0613
+  },
+  {
+    "industry_name": "综合性石油天然气企业",
+    "industry_code": "C01010204",
+    "industry_level": 4,
+    "company_count": 4,
+    "pe_weighted": 14.24,
+    "pe_median": 17.12,
+    "pe_mean": 49.37,
+    "total_market_cap": 26512.325
+  },
+  {
+    "industry_name": "煤炭",
+    "industry_code": "C010103",
+    "industry_level": 3,
+    "company_count": 34,
+    "pe_weighted": 13.31,
+    "pe_median": 13.37,
+    "pe_mean": 19.61,
+    "total_market_cap": 16954.8027
+  },
+  {
+    "industry_name": "煤炭开采",
+    "industry_code": "C01010301",
+    "industry_level": 4,
+    "company_count": 25,
+    "pe_weighted": 13.46,
+    "pe_median": 13.44,
+    "pe_mean": 19.17,
+    "total_market_cap": 16348.3145
+  },
+  {
+    "industry_name": "焦炭",
+    "industry_code": "C01010302",
+    "industry_level": 4,
+    "company_count": 9,
+    "pe_weighted": 10.22,
+    "pe_median": 12.61,
+    "pe_mean": 22.89,
+    "total_market_cap": 606.4882
+  },
+  {
+    "industry_name": "可替代能源",
+    "industry_code": "C010104",
+    "industry_level": 3,
+    "company_count": 3,
+    "pe_weighted": 68.04,
+    "pe_median": 66.01,
+    "pe_mean": 66.01,
+    "total_market_cap": 134.4087
+  },
+  {
+    "industry_name": "可替代能源",
+    "industry_code": "C01010401",
+    "industry_level": 4,
+    "company_count": 3,
+    "pe_weighted": 68.04,
+    "pe_median": 66.01,
+    "pe_mean": 66.01,
+    "total_market_cap": 134.4087
+  },
+  {
+    "industry_name": "原材料",
+    "industry_code": "C02",
+    "industry_level": 1,
+    "company_count": 806,
+    "pe_weighted": 39.19,
+    "pe_median": 55.23,
+    "pe_mean": 111.43,
+    "total_market_cap": 143999.2124
+  },
+  {
+    "industry_name": "基础化工",
+    "industry_code": "C0201",
+    "industry_level": 2,
+    "company_count": 441,
+    "pe_weighted": 38.53,
+    "pe_median": 53.89,
+    "pe_mean": 109.83,
+    "total_market_cap": 55289.8305
+  },
+  {
+    "industry_name": "化学原料",
+    "industry_code": "C020101",
+    "industry_level": 3,
+    "company_count": 80,
+    "pe_weighted": 30.29,
+    "pe_median": 43.07,
+    "pe_mean": 122.79,
+    "total_market_cap": 17633.5468
+  },
+  {
+    "industry_name": "化学原料",
+    "industry_code": "C02010101",
+    "industry_level": 4,
+    "company_count": 80,
+    "pe_weighted": 30.29,
+    "pe_median": 43.07,
+    "pe_mean": 122.79,
+    "total_market_cap": 17633.5468
+  },
+  {
+    "industry_name": "化学制品",
+    "industry_code": "C020102",
+    "industry_level": 3,
+    "company_count": 263,
+    "pe_weighted": 47.35,
+    "pe_median": 59.37,
+    "pe_mean": 100.5,
+    "total_market_cap": 21501.4722
+  },
+  {
+    "industry_name": "涂料涂漆",
+    "industry_code": "C02010201",
+    "industry_level": 4,
+    "company_count": 21,
+    "pe_weighted": 67.7,
+    "pe_median": 53.46,
+    "pe_mean": 137.08,
+    "total_market_cap": 1317.0937
+  },
+  {
+    "industry_name": "塑料制品",
+    "industry_code": "C02010202",
+    "industry_level": 4,
+    "company_count": 68,
+    "pe_weighted": 69.32,
+    "pe_median": 59.97,
+    "pe_mean": 127.33,
+    "total_market_cap": 4720.6433
+  },
+  {
+    "industry_name": "印染化学品",
+    "industry_code": "C02010203",
+    "industry_level": 4,
+    "company_count": 16,
+    "pe_weighted": 42.71,
+    "pe_median": 83.67,
+    "pe_mean": 146.8,
+    "total_market_cap": 1271.7412
+  },
+  {
+    "industry_name": "其他化学制品",
+    "industry_code": "C02010204",
+    "industry_level": 4,
+    "company_count": 158,
+    "pe_weighted": 42.14,
+    "pe_median": 55.91,
+    "pe_mean": 79.31,
+    "total_market_cap": 14191.9941
+  },
+  {
+    "industry_name": "农用化工",
+    "industry_code": "C020103",
+    "industry_level": 3,
+    "company_count": 62,
+    "pe_weighted": 35.61,
+    "pe_median": 45.52,
+    "pe_mean": 80.69,
+    "total_market_cap": 10293.4684
+  },
+  {
+    "industry_name": "化肥",
+    "industry_code": "C02010301",
+    "industry_level": 4,
+    "company_count": 27,
+    "pe_weighted": 33.52,
+    "pe_median": 32.7,
+    "pe_mean": 53.13,
+    "total_market_cap": 7656.0566
+  },
+  {
+    "industry_name": "农药",
+    "industry_code": "C02010302",
+    "industry_level": 4,
+    "company_count": 35,
+    "pe_weighted": 43.52,
+    "pe_median": 54.87,
+    "pe_mean": 108.25,
+    "total_market_cap": 2637.4118
+  },
+  {
+    "industry_name": "合成纤维",
+    "industry_code": "C020104",
+    "industry_level": 3,
+    "company_count": 36,
+    "pe_weighted": 53.36,
+    "pe_median": 53.11,
+    "pe_mean": 195.22,
+    "total_market_cap": 5861.3431
+  },
+  {
+    "industry_name": "合成纤维",
+    "industry_code": "C02010401",
+    "industry_level": 4,
+    "company_count": 36,
+    "pe_weighted": 53.36,
+    "pe_median": 53.11,
+    "pe_mean": 195.22,
+    "total_market_cap": 5861.3431
+  },
+  {
+    "industry_name": "基础材料",
+    "industry_code": "C0202",
+    "industry_level": 2,
+    "company_count": 365,
+    "pe_weighted": 39.62,
+    "pe_median": 56.84,
+    "pe_mean": 113.44,
+    "total_market_cap": 88709.3819
+  },
+  {
+    "industry_name": "建筑材料",
+    "industry_code": "C020201",
+    "industry_level": 3,
+    "company_count": 38,
+    "pe_weighted": 24.82,
+    "pe_median": 39.02,
+    "pe_mean": 86.55,
+    "total_market_cap": 3649.9796
+  },
+  {
+    "industry_name": "建筑材料",
+    "industry_code": "C02020101",
+    "industry_level": 4,
+    "company_count": 38,
+    "pe_weighted": 24.82,
+    "pe_median": 39.02,
+    "pe_mean": 86.55,
+    "total_market_cap": 3649.9796
+  },
+  {
+    "industry_name": "容器与包装",
+    "industry_code": "C020202",
+    "industry_level": 3,
+    "company_count": 41,
+    "pe_weighted": 31.74,
+    "pe_median": 44.33,
+    "pe_mean": 73.48,
+    "total_market_cap": 2139.6735
+  },
+  {
+    "industry_name": "金属与玻璃容器",
+    "industry_code": "C02020201",
+    "industry_level": 4,
+    "company_count": 18,
+    "pe_weighted": 29.46,
+    "pe_median": 44.32,
+    "pe_mean": 88.3,
+    "total_market_cap": 975.2177
+  },
+  {
+    "industry_name": "纸材料包装",
+    "industry_code": "C02020202",
+    "industry_level": 4,
+    "company_count": 23,
+    "pe_weighted": 33.95,
+    "pe_median": 44.82,
+    "pe_mean": 64.11,
+    "total_market_cap": 1164.4558
+  },
+  {
+    "industry_name": "黑色金属",
+    "industry_code": "C020203",
+    "industry_level": 3,
+    "company_count": 55,
+    "pe_weighted": 33.86,
+    "pe_median": 38.93,
+    "pe_mean": 121.64,
+    "total_market_cap": 9621.7077
+  },
+  {
+    "industry_name": "钢铁",
+    "industry_code": "C02020301",
+    "industry_level": 4,
+    "company_count": 36,
+    "pe_weighted": 33.2,
+    "pe_median": 39.01,
+    "pe_mean": 140.39,
+    "total_market_cap": 8065.4604
+  },
+  {
+    "industry_name": "钢铁制品",
+    "industry_code": "C02020302",
+    "industry_level": 4,
+    "company_count": 19,
+    "pe_weighted": 37.73,
+    "pe_median": 38.84,
+    "pe_mean": 91.34,
+    "total_market_cap": 1556.2474
+  },
+  {
+    "industry_name": "有色金属",
+    "industry_code": "C020204",
+    "industry_level": 3,
+    "company_count": 131,
+    "pe_weighted": 41.06,
+    "pe_median": 64.86,
+    "pe_mean": 123.7,
+    "total_market_cap": 63477.0883
+  },
+  {
+    "industry_name": "基本金属",
+    "industry_code": "C02020401",
+    "industry_level": 4,
+    "company_count": 69,
+    "pe_weighted": 31.28,
+    "pe_median": 44.55,
+    "pe_mean": 92.38,
+    "total_market_cap": 30603.0552
+  },
+  {
+    "industry_name": "贵金属",
+    "industry_code": "C02020402",
+    "industry_level": 4,
+    "company_count": 15,
+    "pe_weighted": 43.22,
+    "pe_median": 54.59,
+    "pe_mean": 110.81,
+    "total_market_cap": 16151.903
+  },
+  {
+    "industry_name": "稀有金属",
+    "industry_code": "C02020403",
+    "industry_level": 4,
+    "company_count": 47,
+    "pe_weighted": 86.32,
+    "pe_median": 120.9,
+    "pe_mean": 177.79,
+    "total_market_cap": 16722.1301
+  },
+  {
+    "industry_name": "非金属材料与制品",
+    "industry_code": "C020205",
+    "industry_level": 3,
+    "company_count": 54,
+    "pe_weighted": 64.22,
+    "pe_median": 67.06,
+    "pe_mean": 125.3,
+    "total_market_cap": 5737.0041
+  },
+  {
+    "industry_name": "非金属材料与制品",
+    "industry_code": "C02020501",
+    "industry_level": 4,
+    "company_count": 54,
+    "pe_weighted": 64.22,
+    "pe_median": 67.06,
+    "pe_mean": 125.3,
+    "total_market_cap": 5737.0041
+  },
+  {
+    "industry_name": "纸类与林业产品",
+    "industry_code": "C020206",
+    "industry_level": 3,
+    "company_count": 30,
+    "pe_weighted": 25.62,
+    "pe_median": 40.29,
+    "pe_mean": 96.03,
+    "total_market_cap": 1748.0673
+  },
+  {
+    "industry_name": "林业产品",
+    "industry_code": "C02020601",
+    "industry_level": 4,
+    "company_count": 10,
+    "pe_weighted": 28.64,
+    "pe_median": 29.37,
+    "pe_mean": 107.9,
+    "total_market_cap": 210.4347
+  },
+  {
+    "industry_name": "纸制品",
+    "industry_code": "C02020602",
+    "industry_level": 4,
+    "company_count": 20,
+    "pe_weighted": 25.26,
+    "pe_median": 41.19,
+    "pe_mean": 93.93,
+    "total_market_cap": 1537.6326
+  },
+  {
+    "industry_name": "合成金属",
+    "industry_code": "C020207",
+    "industry_level": 3,
+    "company_count": 16,
+    "pe_weighted": 63.21,
+    "pe_median": 102.9,
+    "pe_mean": 129.05,
+    "total_market_cap": 2335.8614
+  },
+  {
+    "industry_name": "合成金属",
+    "industry_code": "C02020701",
+    "industry_level": 4,
+    "company_count": 16,
+    "pe_weighted": 63.21,
+    "pe_median": 102.9,
+    "pe_mean": 129.05,
+    "total_market_cap": 2335.8614
+  },
+  {
+    "industry_name": "工业",
+    "industry_code": "C03",
+    "industry_level": 1,
+    "company_count": 1538,
+    "pe_weighted": 28.05,
+    "pe_median": 53.31,
+    "pe_mean": 130.42,
+    "total_market_cap": 211603.4231
+  },
+  {
+    "industry_name": "工业品",
+    "industry_code": "C0301",
+    "industry_level": 2,
+    "company_count": 1087,
+    "pe_weighted": 44.41,
+    "pe_median": 62.35,
+    "pe_mean": 154.79,
+    "total_market_cap": 152789.3606
+  },
+  {
+    "industry_name": "航天航空",
+    "industry_code": "C030101",
+    "industry_level": 3,
+    "company_count": 103,
+    "pe_weighted": 112.78,
+    "pe_median": 147.27,
+    "pe_mean": 328.15,
+    "total_market_cap": 20845.9899
+  },
+  {
+    "industry_name": "航天航空",
+    "industry_code": "C03010101",
+    "industry_level": 4,
+    "company_count": 103,
+    "pe_weighted": 112.78,
+    "pe_median": 147.27,
+    "pe_mean": 328.15,
+    "total_market_cap": 20845.9899
+  },
+  {
+    "industry_name": "建筑产品",
+    "industry_code": "C030102",
+    "industry_level": 3,
+    "company_count": 39,
+    "pe_weighted": 29.49,
+    "pe_median": 43.02,
+    "pe_mean": 71.71,
+    "total_market_cap": 1659.3709
+  },
+  {
+    "industry_name": "建筑产品",
+    "industry_code": "C03010201",
+    "industry_level": 4,
+    "company_count": 39,
+    "pe_weighted": 29.49,
+    "pe_median": 43.02,
+    "pe_mean": 71.71,
+    "total_market_cap": 1659.3709
+  },
+  {
+    "industry_name": "电气部件与设备",
+    "industry_code": "C030103",
+    "industry_level": 3,
+    "company_count": 367,
+    "pe_weighted": 40.28,
+    "pe_median": 60.29,
+    "pe_mean": 104.7,
+    "total_market_cap": 60902.3369
+  },
+  {
+    "industry_name": "电气部件与设备",
+    "industry_code": "C03010301",
+    "industry_level": 4,
+    "company_count": 367,
+    "pe_weighted": 40.28,
+    "pe_median": 60.29,
+    "pe_mean": 104.7,
+    "total_market_cap": 60902.3369
+  },
+  {
+    "industry_name": "重型电气设备",
+    "industry_code": "C030104",
+    "industry_level": 3,
+    "company_count": 46,
+    "pe_weighted": 45.06,
+    "pe_median": 53.08,
+    "pe_mean": 85.33,
+    "total_market_cap": 12723.3158
+  },
+  {
+    "industry_name": "重型电气设备",
+    "industry_code": "C03010401",
+    "industry_level": 4,
+    "company_count": 46,
+    "pe_weighted": 45.06,
+    "pe_median": 53.08,
+    "pe_mean": 85.33,
+    "total_market_cap": 12723.3158
+  },
+  {
+    "industry_name": "通用机械",
+    "industry_code": "C030105",
+    "industry_level": 3,
+    "company_count": 233,
+    "pe_weighted": 55.69,
+    "pe_median": 62.95,
+    "pe_mean": 214.33,
+    "total_market_cap": 22381.5064
+  },
+  {
+    "industry_name": "机床",
+    "industry_code": "C03010501",
+    "industry_level": 4,
+    "company_count": 22,
+    "pe_weighted": 63.28,
+    "pe_median": 75.21,
+    "pe_mean": 303.83,
+    "total_market_cap": 1385.4232
+  },
+  {
+    "industry_name": "制冷设备",
+    "industry_code": "C03010502",
+    "industry_level": 4,
+    "company_count": 22,
+    "pe_weighted": 39.05,
+    "pe_median": 47.98,
+    "pe_mean": 106.79,
+    "total_market_cap": 1990.7282
+  },
+  {
+    "industry_name": "发动机与涡轮机",
+    "industry_code": "C03010503",
+    "industry_level": 4,
+    "company_count": 8,
+    "pe_weighted": 66.55,
+    "pe_median": 71.16,
+    "pe_mean": 93.63,
+    "total_market_cap": 596.8815
+  },
+  {
+    "industry_name": "基础件",
+    "industry_code": "C03010504",
+    "industry_level": 4,
+    "company_count": 65,
+    "pe_weighted": 71.44,
+    "pe_median": 76.15,
+    "pe_mean": 347.98,
+    "total_market_cap": 5388.8928
+  },
+  {
+    "industry_name": "锅炉",
+    "industry_code": "C03010505",
+    "industry_level": 4,
+    "company_count": 4,
+    "pe_weighted": 31.5,
+    "pe_median": 28.9,
+    "pe_mean": 30.4,
+    "total_market_cap": 349.1034
+  },
+  {
+    "industry_name": "其他通用机械",
+    "industry_code": "C03010506",
+    "industry_level": 4,
+    "company_count": 112,
+    "pe_weighted": 54.25,
+    "pe_median": 59.64,
+    "pe_mean": 153.4,
+    "total_market_cap": 12670.4773
+  },
+  {
+    "industry_name": "专用设备",
+    "industry_code": "C030106",
+    "industry_level": 3,
+    "company_count": 296,
+    "pe_weighted": 34.09,
+    "pe_median": 56.52,
+    "pe_mean": 130.67,
+    "total_market_cap": 33980.4786
+  },
+  {
+    "industry_name": "农业与林业机械",
+    "industry_code": "C03010601",
+    "industry_level": 4,
+    "company_count": 13,
+    "pe_weighted": 65.48,
+    "pe_median": 90.9,
+    "pe_mean": 511.2,
+    "total_market_cap": 738.9901
+  },
+  {
+    "industry_name": "建筑工程与运输机械",
+    "industry_code": "C03010602",
+    "industry_level": 4,
+    "company_count": 55,
+    "pe_weighted": 25.89,
+    "pe_median": 42.91,
+    "pe_mean": 80.39,
+    "total_market_cap": 16387.7086
+  },
+  {
+    "industry_name": "纺织服装设备",
+    "industry_code": "C03010603",
+    "industry_level": 4,
+    "company_count": 10,
+    "pe_weighted": 33.05,
+    "pe_median": 42.64,
+    "pe_mean": 68.31,
+    "total_market_cap": 582.9928
+  },
+  {
+    "industry_name": "采矿采石冶金机械",
+    "industry_code": "C03010604",
+    "industry_level": 4,
+    "company_count": 22,
+    "pe_weighted": 22.56,
+    "pe_median": 56.27,
+    "pe_mean": 55.54,
+    "total_market_cap": 1867.8023
+  },
+  {
+    "industry_name": "其他专用设备",
+    "industry_code": "C03010605",
+    "industry_level": 4,
+    "company_count": 162,
+    "pe_weighted": 60.12,
+    "pe_median": 76.51,
+    "pe_mean": 145.6,
+    "total_market_cap": 13106.2908
+  },
+  {
+    "industry_name": "环保设备",
+    "industry_code": "C03010606",
+    "industry_level": 4,
+    "company_count": 34,
+    "pe_weighted": 37.92,
+    "pe_median": 48.44,
+    "pe_mean": 57.56,
+    "total_market_cap": 1296.6941
+  },
+  {
+    "industry_name": "工业集团企业",
+    "industry_code": "C030107",
+    "industry_level": 3,
+    "company_count": 3,
+    "pe_weighted": 48.81,
+    "pe_median": 71.41,
+    "pe_mean": 87.59,
+    "total_market_cap": 296.3621
+  },
+  {
+    "industry_name": "工业集团企业",
+    "industry_code": "C03010701",
+    "industry_level": 4,
+    "company_count": 3,
+    "pe_weighted": 48.81,
+    "pe_median": 71.41,
+    "pe_mean": 87.59,
+    "total_market_cap": 296.3621
+  },
+  {
+    "industry_name": "工业服务",
+    "industry_code": "C0302",
+    "industry_level": 2,
+    "company_count": 321,
+    "pe_weighted": 13.55,
+    "pe_median": 38.46,
+    "pe_mean": 83.58,
+    "total_market_cap": 29317.1021
+  },
+  {
+    "industry_name": "建筑与工程",
+    "industry_code": "C030201",
+    "industry_level": 3,
+    "company_count": 120,
+    "pe_weighted": 9.25,
+    "pe_median": 34.04,
+    "pe_mean": 78.87,
+    "total_market_cap": 16325.5596
+  },
+  {
+    "industry_name": "建筑施工",
+    "industry_code": "C03020101",
+    "industry_level": 4,
+    "company_count": 45,
+    "pe_weighted": 7.38,
+    "pe_median": 16.85,
+    "pe_mean": 65.98,
+    "total_market_cap": 11499.633
+  },
+  {
+    "industry_name": "装饰工程",
+    "industry_code": "C03020102",
+    "industry_level": 4,
+    "company_count": 23,
+    "pe_weighted": 28.06,
+    "pe_median": 63.17,
+    "pe_mean": 114.74,
+    "total_market_cap": 506.2112
+  },
+  {
+    "industry_name": "园林工程",
+    "industry_code": "C03020103",
+    "industry_level": 4,
+    "company_count": 15,
+    "pe_weighted": 247.5,
+    "pe_median": 136.74,
+    "pe_mean": 203.51,
+    "total_market_cap": 406.2483
+  },
+  {
+    "industry_name": "其他专业工程",
+    "industry_code": "C03020104",
+    "industry_level": 4,
+    "company_count": 37,
+    "pe_weighted": 20.88,
+    "pe_median": 35.74,
+    "pe_mean": 61.6,
+    "total_market_cap": 3913.467
+  },
+  {
+    "industry_name": "工业贸易经销商",
+    "industry_code": "C030202",
+    "industry_level": 3,
+    "company_count": 24,
+    "pe_weighted": 28.48,
+    "pe_median": 35.06,
+    "pe_mean": 45.31,
+    "total_market_cap": 1938.5404
+  },
+  {
+    "industry_name": "工业贸易经销商",
+    "industry_code": "C03020201",
+    "industry_level": 4,
+    "company_count": 24,
+    "pe_weighted": 28.48,
+    "pe_median": 35.06,
+    "pe_mean": 45.31,
+    "total_market_cap": 1938.5404
+  },
+  {
+    "industry_name": "商业用品与服务",
+    "industry_code": "C030203",
+    "industry_level": 3,
+    "company_count": 177,
+    "pe_weighted": 33.56,
+    "pe_median": 42.8,
+    "pe_mean": 91.23,
+    "total_market_cap": 11053.0022
+  },
+  {
+    "industry_name": "商业印刷",
+    "industry_code": "C03020301",
+    "industry_level": 4,
+    "company_count": 7,
+    "pe_weighted": 40.5,
+    "pe_median": 37.8,
+    "pe_mean": 43.5,
+    "total_market_cap": 228.6056
+  },
+  {
+    "industry_name": "环境与设施服务",
+    "industry_code": "C03020302",
+    "industry_level": 4,
+    "company_count": 92,
+    "pe_weighted": 33.99,
+    "pe_median": 42.68,
+    "pe_mean": 114.59,
+    "total_market_cap": 5966.91
+  },
+  {
+    "industry_name": "各种商业与专业服务",
+    "industry_code": "C03020303",
+    "industry_level": 4,
+    "company_count": 78,
+    "pe_weighted": 32.77,
+    "pe_median": 43.16,
+    "pe_mean": 71.66,
+    "total_market_cap": 4857.4866
+  },
+  {
+    "industry_name": "运输",
+    "industry_code": "C0303",
+    "industry_level": 2,
+    "company_count": 130,
+    "pe_weighted": 15.2,
+    "pe_median": 22.77,
+    "pe_mean": 46.27,
+    "total_market_cap": 29496.9603
+  },
+  {
+    "industry_name": "物流",
+    "industry_code": "C030301",
+    "industry_level": 3,
+    "company_count": 46,
+    "pe_weighted": 17.36,
+    "pe_median": 23.16,
+    "pe_mean": 65.08,
+    "total_market_cap": 6634.002
+  },
+  {
+    "industry_name": "物流",
+    "industry_code": "C03030101",
+    "industry_level": 4,
+    "company_count": 46,
+    "pe_weighted": 17.36,
+    "pe_median": 23.16,
+    "pe_mean": 65.08,
+    "total_market_cap": 6634.002
+  },
+  {
+    "industry_name": "航空运输",
+    "industry_code": "C030302",
+    "industry_level": 3,
+    "company_count": 10,
+    "pe_weighted": 25.1,
+    "pe_median": 34.19,
+    "pe_mean": 34.04,
+    "total_market_cap": 2108.6095
+  },
+  {
+    "industry_name": "航空运输",
+    "industry_code": "C03030201",
+    "industry_level": 4,
+    "company_count": 10,
+    "pe_weighted": 25.1,
+    "pe_median": 34.19,
+    "pe_mean": 34.04,
+    "total_market_cap": 2108.6095
+  },
+  {
+    "industry_name": "水上运输",
+    "industry_code": "C030303",
+    "industry_level": 3,
+    "company_count": 18,
+    "pe_weighted": 11.28,
+    "pe_median": 24.15,
+    "pe_mean": 58.62,
+    "total_market_cap": 6305.0358
+  },
+  {
+    "industry_name": "水上运输",
+    "industry_code": "C03030301",
+    "industry_level": 4,
+    "company_count": 18,
+    "pe_weighted": 11.28,
+    "pe_median": 24.15,
+    "pe_mean": 58.62,
+    "total_market_cap": 6305.0358
+  },
+  {
+    "industry_name": "陆运",
+    "industry_code": "C030304",
+    "industry_level": 3,
+    "company_count": 16,
+    "pe_weighted": 17.64,
+    "pe_median": 28.26,
+    "pe_mean": 44.5,
+    "total_market_cap": 4514.0258
+  },
+  {
+    "industry_name": "铁路运输",
+    "industry_code": "C03030401",
+    "industry_level": 4,
+    "company_count": 8,
+    "pe_weighted": 17.31,
+    "pe_median": 25.29,
+    "pe_mean": 30.92,
+    "total_market_cap": 4236.7728
+  },
+  {
+    "industry_name": "公路运输",
+    "industry_code": "C03030402",
+    "industry_level": 4,
+    "company_count": 8,
+    "pe_weighted": 24.96,
+    "pe_median": 41.35,
+    "pe_mean": 66.23,
+    "total_market_cap": 277.253
+  },
+  {
+    "industry_name": "交通基本设施",
+    "industry_code": "C030305",
+    "industry_level": 3,
+    "company_count": 40,
+    "pe_weighted": 15.05,
+    "pe_median": 16.54,
+    "pe_mean": 24.63,
+    "total_market_cap": 9935.2872
+  },
+  {
+    "industry_name": "机场服务",
+    "industry_code": "C03030501",
+    "industry_level": 4,
+    "company_count": 5,
+    "pe_weighted": 39.88,
+    "pe_median": 33.14,
+    "pe_mean": 43.3,
+    "total_market_cap": 1672.0217
+  },
+  {
+    "industry_name": "公路与铁路",
+    "industry_code": "C03030502",
+    "industry_level": 4,
+    "company_count": 19,
+    "pe_weighted": 13.86,
+    "pe_median": 14.42,
+    "pe_mean": 22.28,
+    "total_market_cap": 3185.3875
+  },
+  {
+    "industry_name": "港口服务",
+    "industry_code": "C03030503",
+    "industry_level": 4,
+    "company_count": 16,
+    "pe_weighted": 13.07,
+    "pe_median": 16.09,
+    "pe_mean": 21.59,
+    "total_market_cap": 5077.878
+  },
+  {
+    "industry_name": "可选消费",
+    "industry_code": "C04",
+    "industry_level": 1,
+    "company_count": 795,
+    "pe_weighted": 25.37,
+    "pe_median": 41.8,
+    "pe_mean": 93.31,
+    "total_market_cap": 87646.1592
+  },
+  {
+    "industry_name": "汽车与汽车零配件",
+    "industry_code": "C0401",
+    "industry_level": 2,
+    "company_count": 293,
+    "pe_weighted": 29.13,
+    "pe_median": 41.63,
+    "pe_mean": 107.38,
+    "total_market_cap": 41123.7633
+  },
+  {
+    "industry_name": "汽车零配件与设备",
+    "industry_code": "C040101",
+    "industry_level": 3,
+    "company_count": 263,
+    "pe_weighted": 32.62,
+    "pe_median": 42.67,
+    "pe_mean": 104.11,
+    "total_market_cap": 25898.5199
+  },
+  {
+    "industry_name": "汽车零配件",
+    "industry_code": "C04010101",
+    "industry_level": 4,
+    "company_count": 250,
+    "pe_weighted": 37.26,
+    "pe_median": 46.38,
+    "pe_mean": 108.54,
+    "total_market_cap": 23923.8524
+  },
+  {
+    "industry_name": "轮胎",
+    "industry_code": "C04010102",
+    "industry_level": 4,
+    "company_count": 13,
+    "pe_weighted": 13.02,
+    "pe_median": 13.08,
+    "pe_mean": 16.98,
+    "total_market_cap": 1974.6674
+  },
+  {
+    "industry_name": "汽车",
+    "industry_code": "C040102",
+    "industry_level": 3,
+    "company_count": 30,
+    "pe_weighted": 24.64,
+    "pe_median": 31.92,
+    "pe_mean": 135.97,
+    "total_market_cap": 15225.2435
+  },
+  {
+    "industry_name": "轿车",
+    "industry_code": "C04010201",
+    "industry_level": 4,
+    "company_count": 9,
+    "pe_weighted": 24.45,
+    "pe_median": 29.17,
+    "pe_mean": 219.01,
+    "total_market_cap": 11899.8003
+  },
+  {
+    "industry_name": "商用车",
+    "industry_code": "C04010202",
+    "industry_level": 4,
+    "company_count": 11,
+    "pe_weighted": 27.08,
+    "pe_median": 54.4,
+    "pe_mean": 168.63,
+    "total_market_cap": 1921.3192
+  },
+  {
+    "industry_name": "摩托车",
+    "industry_code": "C04010203",
+    "industry_level": 4,
+    "company_count": 10,
+    "pe_weighted": 23.24,
+    "pe_median": 31.92,
+    "pe_mean": 48.46,
+    "total_market_cap": 1404.124
+  },
+  {
+    "industry_name": "耐用消费品",
+    "industry_code": "C0402",
+    "industry_level": 2,
+    "company_count": 176,
+    "pe_weighted": 18.44,
+    "pe_median": 35.17,
+    "pe_mean": 74.93,
+    "total_market_cap": 24454.0528
+  },
+  {
+    "industry_name": "家用电器",
+    "industry_code": "C040201",
+    "industry_level": 3,
+    "company_count": 91,
+    "pe_weighted": 16.52,
+    "pe_median": 36.03,
+    "pe_mean": 79.16,
+    "total_market_cap": 19071.0529
+  },
+  {
+    "industry_name": "视听器材",
+    "industry_code": "C04020101",
+    "industry_level": 4,
+    "company_count": 15,
+    "pe_weighted": 33.36,
+    "pe_median": 52.24,
+    "pe_mean": 87.0,
+    "total_market_cap": 2101.236
+  },
+  {
+    "industry_name": "白色家电",
+    "industry_code": "C04020102",
+    "industry_level": 4,
+    "company_count": 25,
+    "pe_weighted": 13.96,
+    "pe_median": 36.23,
+    "pe_mean": 77.39,
+    "total_market_cap": 12349.756
+  },
+  {
+    "industry_name": "小家电",
+    "industry_code": "C04020103",
+    "industry_level": 4,
+    "company_count": 38,
+    "pe_weighted": 23.02,
+    "pe_median": 36.03,
+    "pe_mean": 72.04,
+    "total_market_cap": 3189.135
+  },
+  {
+    "industry_name": "照明电器及其他",
+    "industry_code": "C04020104",
+    "industry_level": 4,
+    "company_count": 13,
+    "pe_weighted": 21.07,
+    "pe_median": 24.18,
+    "pe_mean": 99.87,
+    "total_market_cap": 1430.9259
+  },
+  {
+    "industry_name": "耐用家居用品",
+    "industry_code": "C040202",
+    "industry_level": 3,
+    "company_count": 56,
+    "pe_weighted": 30.61,
+    "pe_median": 30.22,
+    "pe_mean": 68.86,
+    "total_market_cap": 4451.0436
+  },
+  {
+    "industry_name": "家用器具与特殊消费品",
+    "industry_code": "C04020201",
+    "industry_level": 4,
+    "company_count": 28,
+    "pe_weighted": 44.48,
+    "pe_median": 34.09,
+    "pe_mean": 71.66,
+    "total_market_cap": 2981.0874
+  },
+  {
+    "industry_name": "家庭装饰品",
+    "industry_code": "C04020202",
+    "industry_level": 4,
+    "company_count": 28,
+    "pe_weighted": 18.75,
+    "pe_median": 25.49,
+    "pe_mean": 65.53,
+    "total_market_cap": 1469.9562
+  },
+  {
+    "industry_name": "休闲设备与用品",
+    "industry_code": "C040203",
+    "industry_level": 3,
+    "company_count": 29,
+    "pe_weighted": 35.27,
+    "pe_median": 39.23,
+    "pe_mean": 72.29,
+    "total_market_cap": 931.9564
+  },
+  {
+    "industry_name": "休闲设备与用品",
+    "industry_code": "C04020301",
+    "industry_level": 4,
+    "company_count": 29,
+    "pe_weighted": 35.27,
+    "pe_median": 39.23,
+    "pe_mean": 72.29,
+    "total_market_cap": 931.9564
+  },
+  {
+    "industry_name": "纺织服装与奢侈品",
+    "industry_code": "C0403",
+    "industry_level": 2,
+    "company_count": 106,
+    "pe_weighted": 22.69,
+    "pe_median": 32.3,
+    "pe_mean": 63.15,
+    "total_market_cap": 6086.2469
+  },
+  {
+    "industry_name": "服装与配饰",
+    "industry_code": "C040301",
+    "industry_level": 3,
+    "company_count": 55,
+    "pe_weighted": 17.92,
+    "pe_median": 28.99,
+    "pe_mean": 41.78,
+    "total_market_cap": 2844.2736
+  },
+  {
+    "industry_name": "服装",
+    "industry_code": "C04030101",
+    "industry_level": 4,
+    "company_count": 47,
+    "pe_weighted": 18.9,
+    "pe_median": 29.79,
+    "pe_mean": 43.03,
+    "total_market_cap": 2246.9392
+  },
+  {
+    "industry_name": "鞋类",
+    "industry_code": "C04030102",
+    "industry_level": 4,
+    "company_count": 8,
+    "pe_weighted": 15.0,
+    "pe_median": 21.8,
+    "pe_mean": 21.8,
+    "total_market_cap": 597.3344
+  },
+  {
+    "industry_name": "纺织品",
+    "industry_code": "C040302",
+    "industry_level": 3,
+    "company_count": 35,
+    "pe_weighted": 30.65,
+    "pe_median": 40.09,
+    "pe_mean": 58.07,
+    "total_market_cap": 1669.784
+  },
+  {
+    "industry_name": "棉纺",
+    "industry_code": "C04030201",
+    "industry_level": 4,
+    "company_count": 13,
+    "pe_weighted": 22.4,
+    "pe_median": 25.05,
+    "pe_mean": 32.25,
+    "total_market_cap": 819.8774
+  },
+  {
+    "industry_name": "毛纺",
+    "industry_code": "C04030202",
+    "industry_level": 4,
+    "company_count": 5,
+    "pe_weighted": 32.65,
+    "pe_median": 40.09,
+    "pe_mean": 68.71,
+    "total_market_cap": 263.3271
+  },
+  {
+    "industry_name": "其他纺织品",
+    "industry_code": "C04030203",
+    "industry_level": 4,
+    "company_count": 17,
+    "pe_weighted": 59.75,
+    "pe_median": 61.64,
+    "pe_mean": 75.82,
+    "total_market_cap": 586.5795
+  },
+  {
+    "industry_name": "珠宝与奢侈品",
+    "industry_code": "C040303",
+    "industry_level": 3,
+    "company_count": 16,
+    "pe_weighted": 28.59,
+    "pe_median": 52.35,
+    "pe_mean": 121.44,
+    "total_market_cap": 1572.1893
+  },
+  {
+    "industry_name": "珠宝与奢侈品",
+    "industry_code": "C04030301",
+    "industry_level": 4,
+    "company_count": 16,
+    "pe_weighted": 28.59,
+    "pe_median": 52.35,
+    "pe_mean": 121.44,
+    "total_market_cap": 1572.1893
+  },
+  {
+    "industry_name": "消费者服务",
+    "industry_code": "C0404",
+    "industry_level": 2,
+    "company_count": 54,
+    "pe_weighted": 40.19,
+    "pe_median": 53.36,
+    "pe_mean": 78.02,
+    "total_market_cap": 4315.3691
+  },
+  {
+    "industry_name": "酒店餐饮与休闲",
+    "industry_code": "C040401",
+    "industry_level": 3,
+    "company_count": 35,
+    "pe_weighted": 35.33,
+    "pe_median": 44.52,
+    "pe_mean": 60.55,
+    "total_market_cap": 3334.1406
+  },
+  {
+    "industry_name": "旅游",
+    "industry_code": "C04040101",
+    "industry_level": 4,
+    "company_count": 25,
+    "pe_weighted": 37.92,
+    "pe_median": 43.35,
+    "pe_mean": 53.66,
+    "total_market_cap": 2507.261
+  },
+  {
+    "industry_name": "酒店",
+    "industry_code": "C04040102",
+    "industry_level": 4,
+    "company_count": 5,
+    "pe_weighted": 32.43,
+    "pe_median": 62.81,
+    "pe_mean": 92.91,
+    "total_market_cap": 532.749
+  },
+  {
+    "industry_name": "餐饮",
+    "industry_code": "C04040103",
+    "industry_level": 4,
+    "company_count": 3,
+    "pe_weighted": 61.72,
+    "pe_median": 74.6,
+    "pe_mean": 74.6,
+    "total_market_cap": 82.8439
+  },
+  {
+    "industry_name": "休闲设施",
+    "industry_code": "C04040104",
+    "industry_level": 4,
+    "company_count": 2,
+    "pe_weighted": 20.15,
+    "pe_median": 20.15,
+    "pe_mean": 20.15,
+    "total_market_cap": 211.2868
+  },
+  {
+    "industry_name": "其他消费者服务",
+    "industry_code": "C040402",
+    "industry_level": 3,
+    "company_count": 19,
+    "pe_weighted": 75.53,
+    "pe_median": 97.37,
+    "pe_mean": 116.13,
+    "total_market_cap": 981.2285
+  },
+  {
+    "industry_name": "教育服务",
+    "industry_code": "C04040201",
+    "industry_level": 4,
+    "company_count": 17,
+    "pe_weighted": 71.18,
+    "pe_median": 81.7,
+    "pe_mean": 111.62,
+    "total_market_cap": 879.9999
+  },
+  {
+    "industry_name": "特殊消费者服务",
+    "industry_code": "C04040202",
+    "industry_level": 4,
+    "company_count": 2,
+    "pe_weighted": 161.22,
+    "pe_median": 161.22,
+    "pe_mean": 161.22,
+    "total_market_cap": 101.2286
+  },
+  {
+    "industry_name": "传媒",
+    "industry_code": "C0405",
+    "industry_level": 2,
+    "company_count": 101,
+    "pe_weighted": 32.75,
+    "pe_median": 63.66,
+    "pe_mean": 95.82,
+    "total_market_cap": 8322.333
+  },
+  {
+    "industry_name": "传媒",
+    "industry_code": "C040501",
+    "industry_level": 3,
+    "company_count": 101,
+    "pe_weighted": 32.75,
+    "pe_median": 63.66,
+    "pe_mean": 95.82,
+    "total_market_cap": 8322.333
+  },
+  {
+    "industry_name": "广告",
+    "industry_code": "C04050101",
+    "industry_level": 4,
+    "company_count": 33,
+    "pe_weighted": 37.76,
+    "pe_median": 153.29,
+    "pe_mean": 141.6,
+    "total_market_cap": 2505.0502
+  },
+  {
+    "industry_name": "广播与有线电视",
+    "industry_code": "C04050102",
+    "industry_level": 4,
+    "company_count": 15,
+    "pe_weighted": 37.75,
+    "pe_median": 50.96,
+    "pe_mean": 52.74,
+    "total_market_cap": 1098.9643
+  },
+  {
+    "industry_name": "电影与娱乐",
+    "industry_code": "C04050103",
+    "industry_level": 4,
+    "company_count": 24,
+    "pe_weighted": 80.71,
+    "pe_median": 141.69,
+    "pe_mean": 133.42,
+    "total_market_cap": 2107.1737
+  },
+  {
+    "industry_name": "出版",
+    "industry_code": "C04050104",
+    "industry_level": 4,
+    "company_count": 29,
+    "pe_weighted": 19.69,
+    "pe_median": 21.23,
+    "pe_mean": 66.53,
+    "total_market_cap": 2611.1448
+  },
+  {
+    "industry_name": "零售业",
+    "industry_code": "C0406",
+    "industry_level": 2,
+    "company_count": 65,
+    "pe_weighted": 38.61,
+    "pe_median": 76.75,
+    "pe_mean": 131.4,
+    "total_market_cap": 3344.394
+  },
+  {
+    "industry_name": "消费品经销商",
+    "industry_code": "C040601",
+    "industry_level": 3,
+    "company_count": 4,
+    "pe_weighted": 125.02,
+    "pe_median": 149.37,
+    "pe_mean": 149.37,
+    "total_market_cap": 97.8521
+  },
+  {
+    "industry_name": "消费品经销商",
+    "industry_code": "C04060101",
+    "industry_level": 4,
+    "company_count": 4,
+    "pe_weighted": 125.02,
+    "pe_median": 149.37,
+    "pe_mean": 149.37,
+    "total_market_cap": 97.8521
+  },
+  {
+    "industry_name": "网络零售",
+    "industry_code": "C040602",
+    "industry_level": 3,
+    "company_count": 15,
+    "pe_weighted": 68.21,
+    "pe_median": 87.01,
+    "pe_mean": 132.11,
+    "total_market_cap": 629.497
+  },
+  {
+    "industry_name": "网络零售",
+    "industry_code": "C04060201",
+    "industry_level": 4,
+    "company_count": 15,
+    "pe_weighted": 68.21,
+    "pe_median": 87.01,
+    "pe_mean": 132.11,
+    "total_market_cap": 629.497
+  },
+  {
+    "industry_name": "百货商店",
+    "industry_code": "C040603",
+    "industry_level": 3,
+    "company_count": 31,
+    "pe_weighted": 29.55,
+    "pe_median": 56.12,
+    "pe_mean": 141.81,
+    "total_market_cap": 1607.3099
+  },
+  {
+    "industry_name": "百货商店",
+    "industry_code": "C04060301",
+    "industry_level": 4,
+    "company_count": 31,
+    "pe_weighted": 29.55,
+    "pe_median": 56.12,
+    "pe_mean": 141.81,
+    "total_market_cap": 1607.3099
+  },
+  {
+    "industry_name": "专营零售",
+    "industry_code": "C040604",
+    "industry_level": 3,
+    "company_count": 15,
+    "pe_weighted": 45.44,
+    "pe_median": 82.89,
+    "pe_mean": 108.12,
+    "total_market_cap": 1009.735
+  },
+  {
+    "industry_name": "电脑与电子产品零售",
+    "industry_code": "C04060401",
+    "industry_level": 4,
+    "company_count": 3,
+    "pe_weighted": 35.14,
+    "pe_median": 29.79,
+    "pe_mean": 139.46,
+    "total_market_cap": 429.8177
+  },
+  {
+    "industry_name": "汽车零售",
+    "industry_code": "C04060402",
+    "industry_level": 4,
+    "company_count": 8,
+    "pe_weighted": 56.75,
+    "pe_median": 105.01,
+    "pe_mean": 116.92,
+    "total_market_cap": 344.8345
+  },
+  {
+    "industry_name": "其他专营零售",
+    "industry_code": "C04060403",
+    "industry_level": 4,
+    "company_count": 4,
+    "pe_weighted": 60.08,
+    "pe_median": 67.61,
+    "pe_mean": 56.24,
+    "total_market_cap": 235.0828
+  },
+  {
+    "industry_name": "主要消费",
+    "industry_code": "C05",
+    "industry_level": 1,
+    "company_count": 288,
+    "pe_weighted": 20.98,
+    "pe_median": 36.26,
+    "pe_mean": 101.25,
+    "total_market_cap": 60139.5653
+  },
+  {
+    "industry_name": "食品与主要用品零售",
+    "industry_code": "C0501",
+    "industry_level": 2,
+    "company_count": 11,
+    "pe_weighted": 36.96,
+    "pe_median": 58.98,
+    "pe_mean": 417.23,
+    "total_market_cap": 986.5115
+  },
+  {
+    "industry_name": "食品与主要用品零售",
+    "industry_code": "C050101",
+    "industry_level": 3,
+    "company_count": 11,
+    "pe_weighted": 36.96,
+    "pe_median": 58.98,
+    "pe_mean": 417.23,
+    "total_market_cap": 986.5115
+  },
+  {
+    "industry_name": "食品与日用品零售",
+    "industry_code": "C05010102",
+    "industry_level": 4,
+    "company_count": 8,
+    "pe_weighted": 36.41,
+    "pe_median": 58.59,
+    "pe_mean": 587.89,
+    "total_market_cap": 838.8086
+  },
+  {
+    "industry_name": "食品分销商",
+    "industry_code": "C05010103",
+    "industry_level": 4,
+    "company_count": 3,
+    "pe_weighted": 40.38,
+    "pe_median": 67.53,
+    "pe_mean": 75.89,
+    "total_market_cap": 147.703
+  },
+  {
+    "industry_name": "农牧渔产品",
+    "industry_code": "C0502",
+    "industry_level": 2,
+    "company_count": 86,
+    "pe_weighted": 20.87,
+    "pe_median": 46.82,
+    "pe_mean": 111.67,
+    "total_market_cap": 10702.0117
+  },
+  {
+    "industry_name": "农牧渔产品",
+    "industry_code": "C050201",
+    "industry_level": 3,
+    "company_count": 86,
+    "pe_weighted": 20.87,
+    "pe_median": 46.82,
+    "pe_mean": 111.67,
+    "total_market_cap": 10702.0117
+  },
+  {
+    "industry_name": "农业产品",
+    "industry_code": "C05020101",
+    "industry_level": 4,
+    "company_count": 30,
+    "pe_weighted": 56.27,
+    "pe_median": 62.13,
+    "pe_mean": 191.49,
+    "total_market_cap": 2112.1833
+  },
+  {
+    "industry_name": "畜牧产品",
+    "industry_code": "C05020102",
+    "industry_level": 4,
+    "company_count": 45,
+    "pe_weighted": 17.83,
+    "pe_median": 29.82,
+    "pe_mean": 55.56,
+    "total_market_cap": 8450.017
+  },
+  {
+    "industry_name": "渔业产品",
+    "industry_code": "C05020103",
+    "industry_level": 4,
+    "company_count": 11,
+    "pe_weighted": 107.01,
+    "pe_median": 87.47,
+    "pe_mean": 138.46,
+    "total_market_cap": 139.8114
+  },
+  {
+    "industry_name": "食品饮料与烟草",
+    "industry_code": "C0503",
+    "industry_level": 2,
+    "company_count": 162,
+    "pe_weighted": 20.5,
+    "pe_median": 33.27,
+    "pe_mean": 81.3,
+    "total_market_cap": 46424.9665
+  },
+  {
+    "industry_name": "食品",
+    "industry_code": "C050301",
+    "industry_level": 3,
+    "company_count": 115,
+    "pe_weighted": 29.05,
+    "pe_median": 34.49,
+    "pe_mean": 62.92,
+    "total_market_cap": 13636.358
+  },
+  {
+    "industry_name": "包装食品与肉类",
+    "industry_code": "C05030101",
+    "industry_level": 4,
+    "company_count": 56,
+    "pe_weighted": 25.05,
+    "pe_median": 29.53,
+    "pe_mean": 45.9,
+    "total_market_cap": 4463.4859
+  },
+  {
+    "industry_name": "调味品与食品添加剂",
+    "industry_code": "C05030102",
+    "industry_level": 4,
+    "company_count": 42,
+    "pe_weighted": 36.15,
+    "pe_median": 41.26,
+    "pe_mean": 72.89,
+    "total_market_cap": 6744.4155
+  },
+  {
+    "industry_name": "乳制品",
+    "industry_code": "C05030103",
+    "industry_level": 4,
+    "company_count": 17,
+    "pe_weighted": 23.19,
+    "pe_median": 35.95,
+    "pe_mean": 96.1,
+    "total_market_cap": 2428.4566
+  },
+  {
+    "industry_name": "饮料",
+    "industry_code": "C050302",
+    "industry_level": 3,
+    "company_count": 47,
+    "pe_weighted": 18.26,
+    "pe_median": 27.19,
+    "pe_mean": 123.73,
+    "total_market_cap": 32788.6085
+  },
+  {
+    "industry_name": "白酒",
+    "industry_code": "C05030201",
+    "industry_level": 4,
+    "company_count": 20,
+    "pe_weighted": 17.27,
+    "pe_median": 16.7,
+    "pe_mean": 97.62,
+    "total_market_cap": 28648.8412
+  },
+  {
+    "industry_name": "啤酒",
+    "industry_code": "C05030202",
+    "industry_level": 4,
+    "company_count": 7,
+    "pe_weighted": 25.05,
+    "pe_median": 29.89,
+    "pe_mean": 42.29,
+    "total_market_cap": 1335.2104
+  },
+  {
+    "industry_name": "其他酿酒商",
+    "industry_code": "C05030203",
+    "industry_level": 4,
+    "company_count": 8,
+    "pe_weighted": 44.15,
+    "pe_median": 44.99,
+    "pe_mean": 230.86,
+    "total_market_cap": 599.5235
+  },
+  {
+    "industry_name": "软饮料",
+    "industry_code": "C05030204",
+    "industry_level": 4,
+    "company_count": 12,
+    "pe_weighted": 31.51,
+    "pe_median": 37.09,
+    "pe_mean": 142.71,
+    "total_market_cap": 2205.0334
+  },
+  {
+    "industry_name": "烟草",
+    "industry_code": "C050303",
+    "industry_level": 3,
+    "company_count": 0,
+    "pe_weighted": null,
+    "pe_median": null,
+    "pe_mean": null,
+    "total_market_cap": null
+  },
+  {
+    "industry_name": "烟草",
+    "industry_code": "C05030301",
+    "industry_level": 4,
+    "company_count": 0,
+    "pe_weighted": null,
+    "pe_median": null,
+    "pe_mean": null,
+    "total_market_cap": null
+  },
+  {
+    "industry_name": "家庭与个人用品",
+    "industry_code": "C0504",
+    "industry_level": 2,
+    "company_count": 29,
+    "pe_weighted": 32.95,
+    "pe_median": 38.48,
+    "pe_mean": 68.75,
+    "total_market_cap": 2026.0756
+  },
+  {
+    "industry_name": "家常用品",
+    "industry_code": "C050401",
+    "industry_level": 3,
+    "company_count": 6,
+    "pe_weighted": 52.44,
+    "pe_median": 39.27,
+    "pe_mean": 84.83,
+    "total_market_cap": 255.9313
+  },
+  {
+    "industry_name": "家常用品",
+    "industry_code": "C05040101",
+    "industry_level": 4,
+    "company_count": 6,
+    "pe_weighted": 52.44,
+    "pe_median": 39.27,
+    "pe_mean": 84.83,
+    "total_market_cap": 255.9313
+  },
+  {
+    "industry_name": "个人用品",
+    "industry_code": "C050402",
+    "industry_level": 3,
+    "company_count": 23,
+    "pe_weighted": 31.27,
+    "pe_median": 36.81,
+    "pe_mean": 64.28,
+    "total_market_cap": 1770.1443
+  },
+  {
+    "industry_name": "个人用品",
+    "industry_code": "C05040201",
+    "industry_level": 4,
+    "company_count": 23,
+    "pe_weighted": 31.27,
+    "pe_median": 36.81,
+    "pe_mean": 64.28,
+    "total_market_cap": 1770.1443
+  },
+  {
+    "industry_name": "医药卫生",
+    "industry_code": "C06",
+    "industry_level": 1,
+    "company_count": 506,
+    "pe_weighted": 29.55,
+    "pe_median": 39.57,
+    "pe_mean": 105.95,
+    "total_market_cap": 53902.0842
+  },
+  {
+    "industry_name": "医疗设备与服务",
+    "industry_code": "C0601",
+    "industry_level": 2,
+    "company_count": 119,
+    "pe_weighted": 33.72,
+    "pe_median": 52.02,
+    "pe_mean": 143.12,
+    "total_market_cap": 13120.1138
+  },
+  {
+    "industry_name": "医疗设备与用品",
+    "industry_code": "C060101",
+    "industry_level": 3,
+    "company_count": 98,
+    "pe_weighted": 32.73,
+    "pe_median": 51.91,
+    "pe_mean": 153.17,
+    "total_market_cap": 10887.5241
+  },
+  {
+    "industry_name": "医疗设备",
+    "industry_code": "C06010101",
+    "industry_level": 4,
+    "company_count": 47,
+    "pe_weighted": 31.87,
+    "pe_median": 62.91,
+    "pe_mean": 244.32,
+    "total_market_cap": 6287.6763
+  },
+  {
+    "industry_name": "医疗用品",
+    "industry_code": "C06010102",
+    "industry_level": 4,
+    "company_count": 51,
+    "pe_weighted": 33.97,
+    "pe_median": 36.55,
+    "pe_mean": 68.53,
+    "total_market_cap": 4599.8478
+  },
+  {
+    "industry_name": "医疗保健提供商与服务",
+    "industry_code": "C060102",
+    "industry_level": 3,
+    "company_count": 21,
+    "pe_weighted": 39.54,
+    "pe_median": 71.68,
+    "pe_mean": 69.12,
+    "total_market_cap": 2232.5896
+  },
+  {
+    "industry_name": "医疗保健机构与服务",
+    "industry_code": "C06010201",
+    "industry_level": 4,
+    "company_count": 20,
+    "pe_weighted": 39.03,
+    "pe_median": 72.29,
+    "pe_mean": 70.85,
+    "total_market_cap": 2114.334
+  },
+  {
+    "industry_name": "保健护理产品经销商",
+    "industry_code": "C06010202",
+    "industry_level": 4,
+    "company_count": 1,
+    "pe_weighted": 51.8,
+    "pe_median": 51.8,
+    "pe_mean": 51.8,
+    "total_market_cap": 118.2557
+  },
+  {
+    "industry_name": "制药",
+    "industry_code": "C0602",
+    "industry_level": 2,
+    "company_count": 252,
+    "pe_weighted": 26.2,
+    "pe_median": 30.09,
+    "pe_mean": 90.35,
+    "total_market_cap": 26405.6896
+  },
+  {
+    "industry_name": "化学原料药",
+    "industry_code": "C060201",
+    "industry_level": 3,
+    "company_count": 47,
+    "pe_weighted": 31.98,
+    "pe_median": 37.31,
+    "pe_mean": 79.86,
+    "total_market_cap": 2877.1255
+  },
+  {
+    "industry_name": "化学原料药",
+    "industry_code": "C06020101",
+    "industry_level": 4,
+    "company_count": 47,
+    "pe_weighted": 31.98,
+    "pe_median": 37.31,
+    "pe_mean": 79.86,
+    "total_market_cap": 2877.1255
+  },
+  {
+    "industry_name": "化学制剂",
+    "industry_code": "C060202",
+    "industry_level": 3,
+    "company_count": 104,
+    "pe_weighted": 31.8,
+    "pe_median": 30.68,
+    "pe_mean": 79.62,
+    "total_market_cap": 12551.6687
+  },
+  {
+    "industry_name": "化学制剂",
+    "industry_code": "C06020201",
+    "industry_level": 4,
+    "company_count": 104,
+    "pe_weighted": 31.8,
+    "pe_median": 30.68,
+    "pe_mean": 79.62,
+    "total_market_cap": 12551.6687
+  },
+  {
+    "industry_name": "中药",
+    "industry_code": "C060203",
+    "industry_level": 3,
+    "company_count": 67,
+    "pe_weighted": 22.45,
+    "pe_median": 23.85,
+    "pe_mean": 131.91,
+    "total_market_cap": 7464.7747
+  },
+  {
+    "industry_name": "中药",
+    "industry_code": "C06020301",
+    "industry_level": 4,
+    "company_count": 67,
+    "pe_weighted": 22.45,
+    "pe_median": 23.85,
+    "pe_mean": 131.91,
+    "total_market_cap": 7464.7747
+  },
+  {
+    "industry_name": "药品流通",
+    "industry_code": "C060204",
+    "industry_level": 3,
+    "company_count": 34,
+    "pe_weighted": 18.43,
+    "pe_median": 26.14,
+    "pe_mean": 56.34,
+    "total_market_cap": 3512.1207
+  },
+  {
+    "industry_name": "药品流通",
+    "industry_code": "C06020401",
+    "industry_level": 4,
+    "company_count": 34,
+    "pe_weighted": 18.43,
+    "pe_median": 26.14,
+    "pe_mean": 56.34,
+    "total_market_cap": 3512.1207
+  },
+  {
+    "industry_name": "生物科技",
+    "industry_code": "C0603",
+    "industry_level": 2,
+    "company_count": 135,
+    "pe_weighted": 33.64,
+    "pe_median": 47.64,
+    "pe_mean": 101.61,
+    "total_market_cap": 14376.2809
+  },
+  {
+    "industry_name": "生物科技",
+    "industry_code": "C060301",
+    "industry_level": 3,
+    "company_count": 135,
+    "pe_weighted": 33.64,
+    "pe_median": 47.64,
+    "pe_mean": 101.61,
+    "total_market_cap": 14376.2809
+  },
+  {
+    "industry_name": "生物制品",
+    "industry_code": "C06030101",
+    "industry_level": 4,
+    "company_count": 89,
+    "pe_weighted": 31.66,
+    "pe_median": 49.23,
+    "pe_mean": 88.5,
+    "total_market_cap": 9012.7011
+  },
+  {
+    "industry_name": "生命科学工具和服务",
+    "industry_code": "C06030102",
+    "industry_level": 4,
+    "company_count": 46,
+    "pe_weighted": 37.59,
+    "pe_median": 42.57,
+    "pe_mean": 126.98,
+    "total_market_cap": 5363.5797
+  },
+  {
+    "industry_name": "金融",
+    "industry_code": "C07",
+    "industry_level": 1,
+    "company_count": 119,
+    "pe_weighted": 8.61,
+    "pe_median": 17.54,
+    "pe_mean": 37.54,
+    "total_market_cap": 163965.5789
+  },
+  {
+    "industry_name": "银行",
+    "industry_code": "C0701",
+    "industry_level": 2,
+    "company_count": 42,
+    "pe_weighted": 6.76,
+    "pe_median": 6.39,
+    "pe_mean": 6.46,
+    "total_market_cap": 101906.4443
+  },
+  {
+    "industry_name": "银行",
+    "industry_code": "C070101",
+    "industry_level": 3,
+    "company_count": 42,
+    "pe_weighted": 6.76,
+    "pe_median": 6.39,
+    "pe_mean": 6.46,
+    "total_market_cap": 101906.4443
+  },
+  {
+    "industry_name": "综合性银行",
+    "industry_code": "C07010101",
+    "industry_level": 4,
+    "company_count": 15,
+    "pe_weighted": 6.86,
+    "pe_median": 6.57,
+    "pe_mean": 6.66,
+    "total_market_cap": 87214.933
+  },
+  {
+    "industry_name": "区域性银行",
+    "industry_code": "C07010102",
+    "industry_level": 4,
+    "company_count": 27,
+    "pe_weighted": 6.25,
+    "pe_median": 6.36,
+    "pe_mean": 6.36,
+    "total_market_cap": 14691.5113
+  },
+  {
+    "industry_name": "其他商业银行",
+    "industry_code": "C07010103",
+    "industry_level": 4,
+    "company_count": 0,
+    "pe_weighted": null,
+    "pe_median": null,
+    "pe_mean": null,
+    "total_market_cap": null
+  },
+  {
+    "industry_name": "综合金融",
+    "industry_code": "C0702",
+    "industry_level": 2,
+    "company_count": 71,
+    "pe_weighted": 15.47,
+    "pe_median": 27.33,
+    "pe_mean": 53.2,
+    "total_market_cap": 61031.3609
+  },
+  {
+    "industry_name": "证券",
+    "industry_code": "C070201",
+    "industry_level": 3,
+    "company_count": 49,
+    "pe_weighted": 23.69,
+    "pe_median": 28.16,
+    "pe_mean": 50.02,
+    "total_market_cap": 33188.1578
+  },
+  {
+    "industry_name": "证券",
+    "industry_code": "C07020101",
+    "industry_level": 4,
+    "company_count": 49,
+    "pe_weighted": 23.69,
+    "pe_median": 28.16,
+    "pe_mean": 50.02,
+    "total_market_cap": 33188.1578
+  },
+  {
+    "industry_name": "保险",
+    "industry_code": "C070202",
+    "industry_level": 3,
+    "company_count": 5,
+    "pe_weighted": 9.72,
+    "pe_median": 8.88,
+    "pe_mean": 9.36,
+    "total_market_cap": 23078.3535
+  },
+  {
+    "industry_name": "人身保险",
+    "industry_code": "C07020201",
+    "industry_level": 4,
+    "company_count": 2,
+    "pe_weighted": 11.06,
+    "pe_median": 10.26,
+    "pe_mean": 10.26,
+    "total_market_cap": 10655.8629
+  },
+  {
+    "industry_name": "财产保险",
+    "industry_code": "C07020202",
+    "industry_level": 4,
+    "company_count": 1,
+    "pe_weighted": 8.83,
+    "pe_median": 8.83,
+    "pe_mean": 8.83,
+    "total_market_cap": 3038.608
+  },
+  {
+    "industry_name": "多元化保险",
+    "industry_code": "C07020203",
+    "industry_level": 4,
+    "company_count": 2,
+    "pe_weighted": 8.78,
+    "pe_median": 8.72,
+    "pe_mean": 8.72,
+    "total_market_cap": 9383.8827
+  },
+  {
+    "industry_name": "再保险",
+    "industry_code": "C07020204",
+    "industry_level": 4,
+    "company_count": 0,
+    "pe_weighted": null,
+    "pe_median": null,
+    "pe_mean": null,
+    "total_market_cap": null
+  },
+  {
+    "industry_name": "投资信托",
+    "industry_code": "C070203",
+    "industry_level": 3,
+    "company_count": 7,
+    "pe_weighted": 20.73,
+    "pe_median": 33.51,
+    "pe_mean": 125.0,
+    "total_market_cap": 1003.8589
+  },
+  {
+    "industry_name": "投资信托",
+    "industry_code": "C07020301",
+    "industry_level": 4,
+    "company_count": 7,
+    "pe_weighted": 20.73,
+    "pe_median": 33.51,
+    "pe_mean": 125.0,
+    "total_market_cap": 1003.8589
+  },
+  {
+    "industry_name": "其他金融服务",
+    "industry_code": "C070204",
+    "industry_level": 3,
+    "company_count": 9,
+    "pe_weighted": 30.82,
+    "pe_median": 35.45,
+    "pe_mean": 42.0,
+    "total_market_cap": 3713.5122
+  },
+  {
+    "industry_name": "其他金融服务",
+    "industry_code": "C07020401",
+    "industry_level": 4,
+    "company_count": 9,
+    "pe_weighted": 30.82,
+    "pe_median": 35.45,
+    "pe_mean": 42.0,
+    "total_market_cap": 3713.5122
+  },
+  {
+    "industry_name": "消费金融",
+    "industry_code": "C070205",
+    "industry_level": 3,
+    "company_count": 1,
+    "pe_weighted": 152.35,
+    "pe_median": 152.35,
+    "pe_mean": 152.35,
+    "total_market_cap": 47.4786
+  },
+  {
+    "industry_name": "消费金融",
+    "industry_code": "C07020501",
+    "industry_level": 4,
+    "company_count": 1,
+    "pe_weighted": 152.35,
+    "pe_median": 152.35,
+    "pe_mean": 152.35,
+    "total_market_cap": 47.4786
+  },
+  {
+    "industry_name": "资本市场服务",
+    "industry_code": "C0703",
+    "industry_level": 2,
+    "company_count": 6,
+    "pe_weighted": 27.54,
+    "pe_median": 32.15,
+    "pe_mean": 91.9,
+    "total_market_cap": 1027.7737
+  },
+  {
+    "industry_name": "资本市场服务",
+    "industry_code": "C070301",
+    "industry_level": 3,
+    "company_count": 6,
+    "pe_weighted": 27.54,
+    "pe_median": 32.15,
+    "pe_mean": 91.9,
+    "total_market_cap": 1027.7737
+  },
+  {
+    "industry_name": "证券市场服务",
+    "industry_code": "C07030101",
+    "industry_level": 4,
+    "company_count": 0,
+    "pe_weighted": null,
+    "pe_median": null,
+    "pe_mean": null,
+    "total_market_cap": null
+  },
+  {
+    "industry_name": "基金管理服务",
+    "industry_code": "C07030102",
+    "industry_level": 4,
+    "company_count": 0,
+    "pe_weighted": null,
+    "pe_median": null,
+    "pe_mean": null,
+    "total_market_cap": null
+  },
+  {
+    "industry_name": "期货市场服务",
+    "industry_code": "C07030103",
+    "industry_level": 4,
+    "company_count": 5,
+    "pe_weighted": 27.54,
+    "pe_median": 32.15,
+    "pe_mean": 91.9,
+    "total_market_cap": 1027.7737
+  },
+  {
+    "industry_name": "金融数据服务",
+    "industry_code": "C07030104",
+    "industry_level": 4,
+    "company_count": 1,
+    "pe_weighted": null,
+    "pe_median": null,
+    "pe_mean": null,
+    "total_market_cap": null
+  },
+  {
+    "industry_name": "信息技术",
+    "industry_code": "C08",
+    "industry_level": 1,
+    "company_count": 957,
+    "pe_weighted": 68.56,
+    "pe_median": 92.37,
+    "pe_mean": 185.24,
+    "total_market_cap": 167991.9408
+  },
+  {
+    "industry_name": "软件与互联网",
+    "industry_code": "C0801",
+    "industry_level": 2,
+    "company_count": 323,
+    "pe_weighted": 77.41,
+    "pe_median": 114.09,
+    "pe_mean": 281.1,
+    "total_market_cap": 31949.512
+  },
+  {
+    "industry_name": "互联网软件与服务",
+    "industry_code": "C080101",
+    "industry_level": 3,
+    "company_count": 83,
+    "pe_weighted": 58.9,
+    "pe_median": 107.49,
+    "pe_mean": 268.7,
+    "total_market_cap": 11087.6258
+  },
+  {
+    "industry_name": "互联网软件与服务",
+    "industry_code": "C08010101",
+    "industry_level": 4,
+    "company_count": 83,
+    "pe_weighted": 58.9,
+    "pe_median": 107.49,
+    "pe_mean": 268.7,
+    "total_market_cap": 11087.6258
+  },
+  {
+    "industry_name": "信息技术服务",
+    "industry_code": "C080102",
+    "industry_level": 3,
+    "company_count": 126,
+    "pe_weighted": 89.18,
+    "pe_median": 127.12,
+    "pe_mean": 369.58,
+    "total_market_cap": 7418.246
+  },
+  {
+    "industry_name": "数据处理与外包服务",
+    "industry_code": "C08010201",
+    "industry_level": 4,
+    "company_count": 8,
+    "pe_weighted": 103.68,
+    "pe_median": 187.82,
+    "pe_mean": 180.0,
+    "total_market_cap": 450.7045
+  },
+  {
+    "industry_name": "信息科技咨询与其他服务",
+    "industry_code": "C08010202",
+    "industry_level": 4,
+    "company_count": 118,
+    "pe_weighted": 88.38,
+    "pe_median": 127.12,
+    "pe_mean": 382.01,
+    "total_market_cap": 6967.5414
+  },
+  {
+    "industry_name": "计算机软件",
+    "industry_code": "C080103",
+    "industry_level": 3,
+    "company_count": 114,
+    "pe_weighted": 95.12,
+    "pe_median": 110.39,
+    "pe_mean": 211.08,
+    "total_market_cap": 13443.6403
+  },
+  {
+    "industry_name": "应用软件",
+    "industry_code": "C08010301",
+    "industry_level": 4,
+    "company_count": 108,
+    "pe_weighted": 95.69,
+    "pe_median": 121.16,
+    "pe_mean": 216.85,
+    "total_market_cap": 12701.385
+  },
+  {
+    "industry_name": "系统软件",
+    "industry_code": "C08010302",
+    "industry_level": 4,
+    "company_count": 6,
+    "pe_weighted": 86.37,
+    "pe_median": 78.55,
+    "pe_mean": 110.07,
+    "total_market_cap": 742.2553
+  },
+  {
+    "industry_name": "技术硬件与设备",
+    "industry_code": "C0802",
+    "industry_level": 2,
+    "company_count": 468,
+    "pe_weighted": 54.12,
+    "pe_median": 77.16,
+    "pe_mean": 130.46,
+    "total_market_cap": 88605.9716
+  },
+  {
+    "industry_name": "电脑与外围设备",
+    "industry_code": "C080201",
+    "industry_level": 3,
+    "company_count": 31,
+    "pe_weighted": 63.28,
+    "pe_median": 90.62,
+    "pe_mean": 136.39,
+    "total_market_cap": 6143.9716
+  },
+  {
+    "industry_name": "电脑硬件",
+    "industry_code": "C08020101",
+    "industry_level": 4,
+    "company_count": 15,
+    "pe_weighted": 53.27,
+    "pe_median": 117.96,
+    "pe_mean": 167.68,
+    "total_market_cap": 3547.656
+  },
+  {
+    "industry_name": "电脑存储与外围设备",
+    "industry_code": "C08020102",
+    "industry_level": 4,
+    "company_count": 16,
+    "pe_weighted": 85.13,
+    "pe_median": 82.07,
+    "pe_mean": 107.5,
+    "total_market_cap": 2596.3155
+  },
+  {
+    "industry_name": "电子设备及服务",
+    "industry_code": "C080202",
+    "industry_level": 3,
+    "company_count": 206,
+    "pe_weighted": 48.96,
+    "pe_median": 71.17,
+    "pe_mean": 126.97,
+    "total_market_cap": 41652.6799
+  },
+  {
+    "industry_name": "电子设备与仪器",
+    "industry_code": "C08020201",
+    "industry_level": 4,
+    "company_count": 180,
+    "pe_weighted": 47.42,
+    "pe_median": 67.07,
+    "pe_mean": 116.76,
+    "total_market_cap": 25731.0284
+  },
+  {
+    "industry_name": "电子制造服务",
+    "industry_code": "C08020202",
+    "industry_level": 4,
+    "company_count": 11,
+    "pe_weighted": 48.13,
+    "pe_median": 70.92,
+    "pe_mean": 231.41,
+    "total_market_cap": 13936.5903
+  },
+  {
+    "industry_name": "技术产品经销商",
+    "industry_code": "C08020203",
+    "industry_level": 4,
+    "company_count": 15,
+    "pe_weighted": 107.29,
+    "pe_median": 127.61,
+    "pe_mean": 155.66,
+    "total_market_cap": 1985.0612
+  },
+  {
+    "industry_name": "电子元器件",
+    "industry_code": "C080203",
+    "industry_level": 3,
+    "company_count": 118,
+    "pe_weighted": 60.54,
+    "pe_median": 86.88,
+    "pe_mean": 129.45,
+    "total_market_cap": 29394.4438
+  },
+  {
+    "industry_name": "电子元器件",
+    "industry_code": "C08020301",
+    "industry_level": 4,
+    "company_count": 118,
+    "pe_weighted": 60.54,
+    "pe_median": 86.88,
+    "pe_mean": 129.45,
+    "total_market_cap": 29394.4438
+  },
+  {
+    "industry_name": "光电子器件",
+    "industry_code": "C080204",
+    "industry_level": 3,
+    "company_count": 113,
+    "pe_weighted": 56.02,
+    "pe_median": 72.94,
+    "pe_mean": 136.8,
+    "total_market_cap": 11414.8763
+  },
+  {
+    "industry_name": "光电子器件",
+    "industry_code": "C08020401",
+    "industry_level": 4,
+    "company_count": 113,
+    "pe_weighted": 56.02,
+    "pe_median": 72.94,
+    "pe_mean": 136.8,
+    "total_market_cap": 11414.8763
+  },
+  {
+    "industry_name": "半导体",
+    "industry_code": "C0803",
+    "industry_level": 2,
+    "company_count": 166,
+    "pe_weighted": 118.43,
+    "pe_median": 124.26,
+    "pe_mean": 201.86,
+    "total_market_cap": 47436.4572
+  },
+  {
+    "industry_name": "半导体",
+    "industry_code": "C080301",
+    "industry_level": 3,
+    "company_count": 166,
+    "pe_weighted": 118.43,
+    "pe_median": 124.26,
+    "pe_mean": 201.86,
+    "total_market_cap": 47436.4572
+  },
+  {
+    "industry_name": "集成电路",
+    "industry_code": "C08030101",
+    "industry_level": 4,
+    "company_count": 146,
+    "pe_weighted": 122.53,
+    "pe_median": 127.38,
+    "pe_mean": 210.72,
+    "total_market_cap": 44863.4665
+  },
+  {
+    "industry_name": "分立器件",
+    "industry_code": "C08030102",
+    "industry_level": 4,
+    "company_count": 20,
+    "pe_weighted": 74.8,
+    "pe_median": 72.37,
+    "pe_mean": 144.0,
+    "total_market_cap": 2572.9907
+  },
+  {
+    "industry_name": "电信业务",
+    "industry_code": "C09",
+    "industry_level": 1,
+    "company_count": 133,
+    "pe_weighted": 47.44,
+    "pe_median": 126.16,
+    "pe_mean": 225.73,
+    "total_market_cap": 40060.8406
+  },
+  {
+    "industry_name": "电信服务",
+    "industry_code": "C0901",
+    "industry_level": 2,
+    "company_count": 17,
+    "pe_weighted": 17.51,
+    "pe_median": 76.35,
+    "pe_mean": 116.69,
+    "total_market_cap": 7598.6248
+  },
+  {
+    "industry_name": "电信运营",
+    "industry_code": "C090101",
+    "industry_level": 3,
+    "company_count": 3,
+    "pe_weighted": 16.25,
+    "pe_median": 16.27,
+    "pe_mean": 16.07,
+    "total_market_cap": 6961.0668
+  },
+  {
+    "industry_name": "电信运营",
+    "industry_code": "C09010101",
+    "industry_level": 4,
+    "company_count": 3,
+    "pe_weighted": 16.25,
+    "pe_median": 16.27,
+    "pe_mean": 16.07,
+    "total_market_cap": 6961.0668
+  },
+  {
+    "industry_name": "电信增值服务",
+    "industry_code": "C090102",
+    "industry_level": 3,
+    "company_count": 14,
+    "pe_weighted": 112.75,
+    "pe_median": 151.5,
+    "pe_mean": 146.88,
+    "total_market_cap": 637.558
+  },
+  {
+    "industry_name": "电信增值服务",
+    "industry_code": "C09010201",
+    "industry_level": 4,
+    "company_count": 14,
+    "pe_weighted": 112.75,
+    "pe_median": 151.5,
+    "pe_mean": 146.88,
+    "total_market_cap": 637.558
+  },
+  {
+    "industry_name": "通信设备及技术服务",
+    "industry_code": "C0902",
+    "industry_level": 2,
+    "company_count": 116,
+    "pe_weighted": 79.09,
+    "pe_median": 128.97,
+    "pe_mean": 245.42,
+    "total_market_cap": 32462.2158
+  },
+  {
+    "industry_name": "通信设备",
+    "industry_code": "C090201",
+    "industry_level": 3,
+    "company_count": 98,
+    "pe_weighted": 75.27,
+    "pe_median": 128.97,
+    "pe_mean": 224.34,
+    "total_market_cap": 30143.1126
+  },
+  {
+    "industry_name": "通信设备",
+    "industry_code": "C09020101",
+    "industry_level": 4,
+    "company_count": 98,
+    "pe_weighted": 75.27,
+    "pe_median": 128.97,
+    "pe_mean": 224.34,
+    "total_market_cap": 30143.1126
+  },
+  {
+    "industry_name": "通信技术服务",
+    "industry_code": "C090202",
+    "industry_level": 3,
+    "company_count": 18,
+    "pe_weighted": 232.01,
+    "pe_median": 145.43,
+    "pe_mean": 414.08,
+    "total_market_cap": 2319.1032
+  },
+  {
+    "industry_name": "通信技术服务",
+    "industry_code": "C09020201",
+    "industry_level": 4,
+    "company_count": 18,
+    "pe_weighted": 232.01,
+    "pe_median": 145.43,
+    "pe_mean": 414.08,
+    "total_market_cap": 2319.1032
+  },
+  {
+    "industry_name": "公用事业",
+    "industry_code": "C10",
+    "industry_level": 1,
+    "company_count": 153,
+    "pe_weighted": 19.09,
+    "pe_median": 25.69,
+    "pe_mean": 53.73,
+    "total_market_cap": 39079.5291
+  },
+  {
+    "industry_name": "公用事业",
+    "industry_code": "C1001",
+    "industry_level": 2,
+    "company_count": 153,
+    "pe_weighted": 19.09,
+    "pe_median": 25.69,
+    "pe_mean": 53.73,
+    "total_market_cap": 39079.5291
+  },
+  {
+    "industry_name": "电力公用事业",
+    "industry_code": "C100101",
+    "industry_level": 3,
+    "company_count": 79,
+    "pe_weighted": 19.1,
+    "pe_median": 23.4,
+    "pe_mean": 55.59,
+    "total_market_cap": 32833.952
+  },
+  {
+    "industry_name": "电力公用事业",
+    "industry_code": "C10010101",
+    "industry_level": 4,
+    "company_count": 79,
+    "pe_weighted": 19.1,
+    "pe_median": 23.4,
+    "pe_mean": 55.59,
+    "total_market_cap": 32833.952
+  },
+  {
+    "industry_name": "燃气公用事业",
+    "industry_code": "C100102",
+    "industry_level": 3,
+    "company_count": 31,
+    "pe_weighted": 19.93,
+    "pe_median": 23.32,
+    "pe_mean": 57.25,
+    "total_market_cap": 2948.7522
+  },
+  {
+    "industry_name": "燃气公用事业",
+    "industry_code": "C10010201",
+    "industry_level": 4,
+    "company_count": 31,
+    "pe_weighted": 19.93,
+    "pe_median": 23.32,
+    "pe_mean": 57.25,
+    "total_market_cap": 2948.7522
+  },
+  {
+    "industry_name": "水公用事业",
+    "industry_code": "C100103",
+    "industry_level": 3,
+    "company_count": 26,
+    "pe_weighted": 15.34,
+    "pe_median": 25.45,
+    "pe_mean": 51.05,
+    "total_market_cap": 2009.0856
+  },
+  {
+    "industry_name": "水公用事业",
+    "industry_code": "C10010301",
+    "industry_level": 4,
+    "company_count": 26,
+    "pe_weighted": 15.34,
+    "pe_median": 25.45,
+    "pe_mean": 51.05,
+    "total_market_cap": 2009.0856
+  },
+  {
+    "industry_name": "复合型公用事业",
+    "industry_code": "C100104",
+    "industry_level": 3,
+    "company_count": 17,
+    "pe_weighted": 25.91,
+    "pe_median": 29.02,
+    "pe_mean": 42.85,
+    "total_market_cap": 1287.7392
+  },
+  {
+    "industry_name": "复合型公用事业",
+    "industry_code": "C10010401",
+    "industry_level": 4,
+    "company_count": 17,
+    "pe_weighted": 25.91,
+    "pe_median": 29.02,
+    "pe_mean": 42.85,
+    "total_market_cap": 1287.7392
+  },
+  {
+    "industry_name": "房地产",
+    "industry_code": "C11",
+    "industry_level": 1,
+    "company_count": 104,
+    "pe_weighted": 27.18,
+    "pe_median": 61.09,
+    "pe_mean": 132.43,
+    "total_market_cap": 8203.8209
+  },
+  {
+    "industry_name": "房地产开发和管理",
+    "industry_code": "C1101",
+    "industry_level": 2,
+    "company_count": 82,
+    "pe_weighted": 25.8,
+    "pe_median": 60.03,
+    "pe_mean": 135.16,
+    "total_market_cap": 6013.0576
+  },
+  {
+    "industry_name": "住宅地产开发和管理",
+    "industry_code": "C110101",
+    "industry_level": 3,
+    "company_count": 62,
+    "pe_weighted": 27.05,
+    "pe_median": 91.35,
+    "pe_mean": 158.36,
+    "total_market_cap": 3273.2575
+  },
+  {
+    "industry_name": "住宅地产开发和管理",
+    "industry_code": "C11010101",
+    "industry_level": 4,
+    "company_count": 62,
+    "pe_weighted": 27.05,
+    "pe_median": 91.35,
+    "pe_mean": 158.36,
+    "total_market_cap": 3273.2575
+  },
+  {
+    "industry_name": "商业地产开发和管理",
+    "industry_code": "C110102",
+    "industry_level": 3,
+    "company_count": 9,
+    "pe_weighted": 23.92,
+    "pe_median": 27.4,
+    "pe_mean": 62.92,
+    "total_market_cap": 1255.7975
+  },
+  {
+    "industry_name": "商业地产开发和管理",
+    "industry_code": "C11010201",
+    "industry_level": 4,
+    "company_count": 9,
+    "pe_weighted": 23.92,
+    "pe_median": 27.4,
+    "pe_mean": 62.92,
+    "total_market_cap": 1255.7975
+  },
+  {
+    "industry_name": "工业地产开发和管理",
+    "industry_code": "C110103",
+    "industry_level": 3,
+    "company_count": 11,
+    "pe_weighted": 24.9,
+    "pe_median": 24.0,
+    "pe_mean": 92.68,
+    "total_market_cap": 1484.0025
+  },
+  {
+    "industry_name": "工业地产开发和管理",
+    "industry_code": "C11010301",
+    "industry_level": 4,
+    "company_count": 11,
+    "pe_weighted": 24.9,
+    "pe_median": 24.0,
+    "pe_mean": 92.68,
+    "total_market_cap": 1484.0025
+  },
+  {
+    "industry_name": "房地产服务",
+    "industry_code": "C1102",
+    "industry_level": 2,
+    "company_count": 22,
+    "pe_weighted": 31.89,
+    "pe_median": 68.58,
+    "pe_mean": 127.39,
+    "total_market_cap": 2190.7633
+  },
+  {
+    "industry_name": "房地产信托",
+    "industry_code": "C110201",
+    "industry_level": 3,
+    "company_count": 0,
+    "pe_weighted": null,
+    "pe_median": null,
+    "pe_mean": null,
+    "total_market_cap": null
+  },
+  {
+    "industry_name": "房地产信托",
+    "industry_code": "C11020101",
+    "industry_level": 4,
+    "company_count": 0,
+    "pe_weighted": null,
+    "pe_median": null,
+    "pe_mean": null,
+    "total_market_cap": null
+  },
+  {
+    "industry_name": "房地产租赁",
+    "industry_code": "C110202",
+    "industry_level": 3,
+    "company_count": 18,
+    "pe_weighted": 31.19,
+    "pe_median": 68.58,
+    "pe_mean": 134.7,
+    "total_market_cap": 2084.6617
+  },
+  {
+    "industry_name": "房地产租赁",
+    "industry_code": "C11020201",
+    "industry_level": 4,
+    "company_count": 18,
+    "pe_weighted": 31.19,
+    "pe_median": 68.58,
+    "pe_mean": 134.7,
+    "total_market_cap": 2084.6617
+  },
+  {
+    "industry_name": "其他房地产服务",
+    "industry_code": "C110203",
+    "industry_level": 3,
+    "company_count": 4,
+    "pe_weighted": 56.68,
+    "pe_median": 65.24,
+    "pe_mean": 65.24,
+    "total_market_cap": 106.1016
+  },
+  {
+    "industry_name": "其他房地产服务",
+    "industry_code": "C11020301",
+    "industry_level": 4,
+    "company_count": 4,
+    "pe_weighted": 56.68,
+    "pe_median": 65.24,
+    "pe_mean": 65.24,
+    "total_market_cap": 106.1016
+  }
+]

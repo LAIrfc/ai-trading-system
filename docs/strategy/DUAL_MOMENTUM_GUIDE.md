@@ -17,7 +17,7 @@
 
 ```bash
 cd /home/wangxinghan/codetree/ai-trading-system
-python3 tools/backtest_dual_momentum.py
+python3 tools/backtest/backtest_dual_momentum.py
 ```
 
 **预期结果：**
@@ -125,7 +125,7 @@ python3 tools/backtest_dual_momentum.py
 
 #### 方法1：修改配置文件
 
-编辑 `tools/backtest_dual_momentum.py` 中的 `strategy_config`:
+编辑 `tools/backtest/backtest_dual_momentum.py` 中的 `strategy_config`:
 
 ```python
 strategy_config = {
@@ -357,6 +357,59 @@ data = fetcher.get_etf_pool_data(codes, start_date, end_date, use_cache=True)
 1. 查看日志: `logs/dual_momentum_backtest.log`
 2. 阅读策略规范：本文档 [策略规范（完整）](#策略规范完整)
 3. 查看源代码：`src/core/signal_engine.py`、`tools/backtest/backtest_dual_momentum.py`
+
+---
+
+## 完整工作流（数据→策略→执行→回测→优化→实盘）
+
+> 以下由原 `DUAL_MOMENTUM_WORKFLOW.md` 合并于此，便于一站式查阅。
+
+### 整体架构
+
+| 层级 | 职责 |
+|------|------|
+| **数据层** | ETF 历史数据（baostock/东方财富）→ MultiIndex DataFrame |
+| **策略层** | 绝对动量过滤、相对动量排序、风控检查、信号生成 |
+| **执行层** | 回测 / 模拟 / 同花顺桌面实盘 |
+
+### 六阶段概要
+
+1. **数据准备**：`ETFDataFetcher` 获取 5 只 ETF（510300/159949/513100/518880/511520），输出统一格式。
+2. **策略计算**：每 20 交易日执行绝对动量→流动性过滤→相对动量排序→生成买卖信号。
+3. **交易执行**：回测引擎 / 模拟账户 / 同花顺桌面三种模式。
+4. **回测与评估**：年化、最大回撤、夏普、卡玛、换手率；输出净值曲线与交易记录。
+5. **参数优化**：单参数扫描（N/M/F/K），避免过拟合，重视样本外验证。
+6. **实盘部署**：回测与模拟通过后，每月末按信号执行（手动或桌面自动化），并记录日志。
+
+### 文件对应关系
+
+| 阶段 | 文件 |
+|------|------|
+| 数据 | `src/data/fetchers/`、ETF 数据获取 |
+| 策略与回测 | `src/core/signal_engine.py`、`tools/backtest/backtest_dual_momentum.py` |
+| 实盘 | `src/api/broker/tonghuashun_desktop.py` |
+| 模拟 | `src/core/simulator/paper_trading.py` |
+
+### 日常命令速查
+
+```bash
+# 快速查看当前信号
+python3 tests/test_dual_momentum_quick.py
+
+# 完整回测
+python3 tools/backtest/backtest_dual_momentum.py
+
+# 桌面自动化执行（实盘）
+./scripts/run_desktop_trading.sh
+```
+
+### 核心理念
+
+- **纪律 > 预测**：按策略执行，不掺情绪。
+- **风控 > 收益**：止损与熔断优先。
+- **系统 > 直觉**：信任回测验证过的系统。
+- **简单 > 复杂**：参数少、逻辑清晰更稳健。
+- **记录 > 回忆**：每笔交易留日志，复盘靠数据。
 
 ---
 

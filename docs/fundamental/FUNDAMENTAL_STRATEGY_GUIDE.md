@@ -84,10 +84,10 @@ print(ensemble.sub_strategies.keys())
 
 ### 批量回测（已集成）
 
-`batch_backtest.py` 已自动启用基本面数据：
+`tools/backtest/batch_backtest.py` 已自动启用基本面数据：
 
 ```bash
-python3 tools/batch_backtest.py --count 100
+python3 tools/backtest/batch_backtest.py --count 100
 ```
 
 系统会：
@@ -221,7 +221,7 @@ ts.set_token('your_token')
 运行测试脚本验证功能：
 
 ```bash
-python3 tools/test_fundamental.py
+python3 tools/validation/test_fundamental.py
 ```
 
 测试内容：
@@ -241,4 +241,4 @@ python3 tools/test_fundamental.py
 
 - PE策略实现：`src/strategies/fundamental_pe.py`
 - 数据获取模块：`src/data/fundamental_fetcher.py`
-- 测试脚本：`tools/test_fundamental.py`
+- 测试脚本：`tools/validation/test_fundamental.py`

@@ -32,17 +32,21 @@ class MyStrategy(BaseStrategy):
     - param2: [参数说明]
     """
     
-    def __init__(self, param1=10, param2=20):
+    def __init__(self, param1=10, param2=20, name: str = "MyStrategy", config: Dict = None):
         """
         初始化策略
         
         Args:
             param1: 参数1的说明
             param2: 参数2的说明
+            name: 策略名称（供 BaseStrategy 使用）
+            config: 策略配置（供 BaseStrategy 使用，默认含 param1/param2）
         """
-        super().__init__()
-        self.param1 = param1
-        self.param2 = param2
+        config = config or {}
+        config = {**{"param1": param1, "param2": param2}, **config}
+        super().__init__(name=name, config=config)
+        self.param1 = self.config.get("param1", param1)
+        self.param2 = self.config.get("param2", param2)
     
     def generate_signals(self, market_data: Dict) -> List[Dict]:
         """

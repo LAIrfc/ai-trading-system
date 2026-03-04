@@ -3,24 +3,40 @@
 大规模回测验证：从股票池中选取 N 只股票，用 6 个策略 + 组合策略进行 3 年回测
 
 用法:
-  python3 tools/batch_backtest.py                    # 默认500只，3年
-  python3 tools/batch_backtest.py --count 100        # 只跑100只
-  python3 tools/batch_backtest.py --workers 8        # 8个并发线程
-  python3 tools/batch_backtest.py --pool data/stock_pool.json  # 指定股票池
+  python3 tools/backtest/batch_backtest.py                    # 默认500只，3年
+  python3 tools/backtest/batch_backtest.py --v33 --count 20    # V33 新策略 + 组合，20只
+  python3 tools/backtest/batch_backtest.py --workers 8         # 8个并发线程
+  python3 tools/backtest/batch_backtest.py --pool mydate/stock_pool.json  # 指定股票池
+
+可能失败点与处理:
+  - fetch_sina: 10秒超时，捕获 TimeoutError/ConnectionError；主接口失败则备用东方财富→腾讯，均失败则 skip 该标的 reason=数据不足，并打日志。
+  - 情绪指数: 预取 15 秒超时，主源 akshare 失败则备用 tushare；预取失败则 _backtest_sentiment_df=None，回测中该策略返回 HOLD；预取支持 3 次重试、间隔 2 秒。
+  - 新闻/政策/龙虎榜: analyze 内 try/except，异常时尝试备用接口；均失败返回 HOLD，不中断回测；龙虎榜/大宗支持近 7 日缓存，接口异常时用缓存。
+  - 单策略 backtest() 抛错: 已 try/except，该策略记为 status: error 并打日志，其余策略及标的照常；结束后输出错误策略统计清单。
+
+回测行为:
+  - 情绪：prepare_backtest + 日期范围缓存 + 超时/备用/重试；回测时无预取数据则 HOLD。
+  - NewsSentiment/PolicyEvent/MoneyFlow：回测时 _BACKTEST_ACTIVE 为真则使用预取/缓存数据（预留 parquet 批量预取），无预取则 HOLD，避免每 bar I/O。
+  - V33 动态权重：回测前预取沪深300（akshare→tushare 备用），按 bar 日期截面计算权重。
+  - 建议先用 --count 3~5 验证流程，再酌情加大。
 """
 
 import sys
 import os
 import json
+import logging
 import time
 import argparse
 import warnings
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from datetime import datetime
+from datetime import datetime, timedelta
+from typing import Optional
 
 import requests
 import pandas as pd
 import numpy as np
+
+logger = logging.getLogger(__name__)
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../..'))
 warnings.filterwarnings('ignore')
@@ -46,34 +62,60 @@ try:
 except ImportError:
     _HAS_BACKTEST_CONSTRAINTS = False
 
+# 日线数据：统一走 data_prefetch（主 Sina → 备1 东方财富 → 备2 腾讯），与 docs/data/API_INTERFACES_AND_FETCHERS.md 一致
+try:
+    from src.data.fetchers.data_prefetch import fetch_stock_daily
+except ImportError:
+    fetch_stock_daily = None
 
-# ── 数据获取（新浪日线，带重试）──
+
 def fetch_sina(code: str, datalen: int = 800, retries: int = 3) -> pd.DataFrame:
-    """从新浪财经获取日线数据"""
-    prefix = 'sh' if code.startswith(('5', '6')) else 'sz'
-    symbol = f'{prefix}{code}'
-    url = ('https://money.finance.sina.com.cn/quotes_service/api/'
-           'json_v2.php/CN_MarketData.getKLineData')
+    """
+    个股日线：委托 data_prefetch.fetch_stock_daily（主 Sina timeout=10 → 备1 东方财富 → 备2 腾讯）。
+    全部失败返回空 DataFrame，不中断回测。详见 docs/data/API_INTERFACES_AND_FETCHERS.md。
+    """
+    if fetch_stock_daily is not None:
+        return fetch_stock_daily(code=code, datalen=datalen, retries=retries, min_bars=100)
+    # 降级：无 data_prefetch 时使用简易 Sina 请求（仅主源）
+    try:
+        import requests as _req
+        prefix = 'sh' if code.startswith(('5', '6')) else 'sz'
+        url = 'https://money.finance.sina.com.cn/quotes_service/api/json_v2.php/CN_MarketData.getKLineData'
+        r = _req.get(url, params={'symbol': f'{prefix}{code}', 'scale': '240', 'ma': 'no', 'datalen': datalen},
+                     headers={'User-Agent': 'Mozilla/5.0'}, timeout=10)
+        data = json.loads(r.text) if r.text and r.text.strip() else None
+        if not data:
+            return pd.DataFrame()
+        df = pd.DataFrame(data)
+        df['date'] = pd.to_datetime(df['day'])
+        for c in ['open', 'high', 'low', 'close', 'volume']:
+            df[c] = pd.to_numeric(df[c], errors='coerce')
+        return df if len(df) >= 100 else pd.DataFrame()
+    except Exception:
+        return pd.DataFrame()
 
-    for attempt in range(retries):
-        try:
-            r = requests.get(url,
-                params={'symbol': symbol, 'scale': '240',
-                        'ma': 'no', 'datalen': str(datalen)},
-                headers={'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64)'},
-                timeout=15)
-            data = json.loads(r.text) if r.text.strip() else None
-            if not data:
-                return pd.DataFrame()
-            df = pd.DataFrame(data)
-            df['date'] = pd.to_datetime(df['day'])
-            for c in ['open', 'high', 'low', 'close', 'volume']:
-                df[c] = pd.to_numeric(df[c], errors='coerce')
-            return df
-        except Exception:
-            if attempt < retries - 1:
-                time.sleep(1 * (attempt + 1))
-    return pd.DataFrame()
+
+def load_kline_for_backtest(
+    code: str,
+    datalen: int,
+    local_kline_dir: Optional[str],
+    min_bars: int = 100,
+) -> pd.DataFrame:
+    """
+    回测用 K 线：若指定 local_kline_dir 则优先读 {dir}/{code}.parquet，缺失或不足再走 fetch_sina。
+    """
+    if local_kline_dir:
+        path = os.path.join(local_kline_dir, f"{code}.parquet")
+        if os.path.isfile(path):
+            try:
+                df = pd.read_parquet(path)
+                if df is not None and not df.empty and len(df) >= min_bars:
+                    if "date" in df.columns:
+                        df["date"] = pd.to_datetime(df["date"])
+                    return df.tail(datalen).reset_index(drop=True) if len(df) > datalen else df
+            except Exception as e:
+                logger.debug("读取本地 K 线 %s 失败: %s", path, e)
+    return fetch_sina(code, datalen)
 
 
 def load_stock_pool(pool_file: str, max_count: int = 500) -> list:
@@ -136,7 +178,8 @@ def backtest_one_stock(stock_info: dict, strategies: dict,
                        datalen: int = 800,
                        enable_fundamental: bool = False,
                        min_market_cap: float = 50.0,
-                       use_v33: bool = False) -> dict:
+                       use_v33: bool = False,
+                       local_kline_dir: Optional[str] = None) -> dict:
     """
     对一只股票运行所有策略回测
     
@@ -161,7 +204,7 @@ def backtest_one_stock(stock_info: dict, strategies: dict,
     else:
         ensemble_key = 'Ensemble'
 
-    df = fetch_sina(code, datalen)
+    df = load_kline_for_backtest(code, datalen, local_kline_dir, min_bars=100)
     if df.empty or len(df) < 100:
         return {'code': code, 'name': name, 'sector': sector,
                 'status': 'skip', 'reason': f'数据不足({len(df)}条)'}
@@ -226,6 +269,7 @@ def backtest_one_stock(stock_info: dict, strategies: dict,
                 'trade_count': bt['trade_count'],
             }
         except Exception as e:
+            logger.error("backtest 策略报错 标的=%s 策略=%s: %s", code, sname, e, exc_info=False)
             results[sname] = {
                 'total_return': 0, 'annualized_return': 0,
                 'max_drawdown': 0, 'sharpe': 0,
@@ -254,6 +298,7 @@ def backtest_one_stock(stock_info: dict, strategies: dict,
                 'status': 'skip',
             }
     except Exception as e:
+        logger.error("backtest 组合策略报错 标的=%s 策略=%s: %s", code, ensemble_key, e, exc_info=False)
         results[ensemble_key] = {
             'total_return': 0, 'annualized_return': 0,
             'max_drawdown': 0, 'sharpe': 0,
@@ -262,6 +307,21 @@ def backtest_one_stock(stock_info: dict, strategies: dict,
         }
 
     return results
+
+
+def collect_strategy_errors(all_results: list, strategy_names: list) -> list:
+    """从回测结果中收集所有策略级 error，返回 [(code, strategy_name, error_msg), ...]。"""
+    errors = []
+    for r in all_results:
+        if r.get("status") != "ok":
+            continue
+        code = r.get("code", "")
+        for sname in strategy_names:
+            sr = r.get(sname, {})
+            st = sr.get("status", "")
+            if st and "error" in str(st):
+                errors.append((code, sname, str(st)))
+    return errors
 
 
 def aggregate_results(all_results: list, strategy_names: list) -> dict:
@@ -383,6 +443,10 @@ def main():
                         help='启用 V3.3 未来函数校验提示（逐日回测时请用 src.core.backtest_constraints 过滤新闻/政策/龙虎榜）')
     parser.add_argument('--v33', action='store_true',
                         help='使用 V3.3 新策略（情绪/消息/政策/龙虎榜）+ V33组合 回测')
+    parser.add_argument('--local-kline', default=None, dest='local_kline',
+                        help='本地 K 线目录（每只 code.parquet）；优先读本地，缺失再拉网络。可用 tools/data/backtest_prefetch.py 预取')
+    parser.add_argument('--local-aux', default=None, dest='local_aux',
+                        help='回测辅助数据目录（含 news/, lhb/ 子目录与 policy.parquet）；设置 BACKTEST_PREFETCH_DIR，新闻/政策/龙虎榜从本地读。可用 tools/data/backtest_prefetch_aux.py 预取')
     args = parser.parse_args()
 
     base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -426,6 +490,17 @@ def main():
     errors = 0
 
     ensemble_key = 'V33组合' if use_v33 else 'Ensemble'
+    local_kline_dir = getattr(args, 'local_kline', None)
+    if local_kline_dir and not os.path.isabs(local_kline_dir):
+        local_kline_dir = os.path.join(base_dir, local_kline_dir)
+    if local_kline_dir:
+        print(f'本地 K 线: {local_kline_dir}（缺失则走网络）')
+    local_aux_dir = getattr(args, 'local_aux', None)
+    if local_aux_dir:
+        if not os.path.isabs(local_aux_dir):
+            local_aux_dir = os.path.join(base_dir, local_aux_dir)
+        os.environ["BACKTEST_PREFETCH_DIR"] = local_aux_dir
+        print(f'本地辅助数据: {local_aux_dir}（新闻/政策/龙虎榜优先读本地）')
     # 用线程池并发获取数据和回测
     with ThreadPoolExecutor(max_workers=args.workers) as executor:
         futures = {}
@@ -433,7 +508,7 @@ def main():
             future = executor.submit(
                 backtest_one_stock, stock,
                 strategies or {}, ensemble or EnsembleStrategy(),
-                args.datalen, False, 50.0, use_v33)
+                args.datalen, False, 50.0, use_v33, local_kline_dir)
             futures[future] = stock
 
         for i, future in enumerate(as_completed(futures), 1):
@@ -470,6 +545,13 @@ def main():
     # 打印报告
     print_summary(summary, strategy_names, elapsed,
                   len(stocks), ok, skip + errors)
+    strategy_errors = collect_strategy_errors(all_results, strategy_names)
+    if strategy_errors:
+        print(f'\n  错误策略统计清单 (共 {len(strategy_errors)} 条):')
+        for code, sname, msg in strategy_errors[:50]:
+            print(f'    标的={code} 策略={sname} 报错={msg[:80]}{"..." if len(msg) > 80 else ""}')
+        if len(strategy_errors) > 50:
+            print(f'    ... 其余 {len(strategy_errors) - 50} 条见日志或 details')
 
     # 保存结果
     output = {

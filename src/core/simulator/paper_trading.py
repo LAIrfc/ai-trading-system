@@ -3,7 +3,7 @@
 用于测试策略，无真实资金风险
 """
 
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
@@ -167,7 +167,7 @@ class PaperTradingAccount:
         # 最低5元
         return max(5.0, commission)
     
-    def buy(self, stock_code: str, price: float, quantity: int) -> tuple[bool, str]:
+    def buy(self, stock_code: str, price: float, quantity: int) -> Tuple[bool, str]:
         """
         买入股票
         
@@ -209,7 +209,7 @@ class PaperTradingAccount:
         
         return True, order.order_id
     
-    def sell(self, stock_code: str, price: float, quantity: int) -> tuple[bool, str]:
+    def sell(self, stock_code: str, price: float, quantity: int) -> Tuple[bool, str]:
         """
         卖出股票
         

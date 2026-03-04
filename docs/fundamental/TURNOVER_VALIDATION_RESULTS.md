@@ -148,5 +148,5 @@
 
 ---
 
-**验证脚本**：`tools/testing/validate_turnover_effect.py`
+**验证脚本**：`tools/validation/validate_turnover_effect.py`
 **详细结果**：`turnover_validation_results.json`

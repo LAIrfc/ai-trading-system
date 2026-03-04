@@ -1,0 +1,2275 @@
+{
+  "meta": {
+    "date": "2026-03-04 11:25",
+    "total_stocks": 20,
+    "ok_stocks": 20,
+    "skip_stocks": 0,
+    "datalen": 800,
+    "elapsed_seconds": 4370.6,
+    "risk_control": "stop_loss=8%, trailing_stop=5%"
+  },
+  "summary": {
+    "MA": {
+      "count": 20,
+      "avg_return": 21.49,
+      "median_return": 13.43,
+      "avg_ann_return": 5.95,
+      "avg_drawdown": 23.05,
+      "avg_sharpe": 0.34,
+      "median_sharpe": 0.3,
+      "avg_win_rate": 35.15,
+      "avg_trades": 26.6,
+      "positive_pct": 65.0,
+      "best_return": 98.24,
+      "worst_return": -20.6,
+      "return_std": 32.42
+    },
+    "MACD": {
+      "count": 20,
+      "avg_return": 26.84,
+      "median_return": 20.17,
+      "avg_ann_return": 7.28,
+      "avg_drawdown": 23.56,
+      "avg_sharpe": 0.38,
+      "median_sharpe": 0.44,
+      "avg_win_rate": 36.19,
+      "avg_trades": 32.9,
+      "positive_pct": 75.0,
+      "best_return": 138.29,
+      "worst_return": -29.97,
+      "return_std": 39.79
+    },
+    "RSI": {
+      "count": 20,
+      "avg_return": 9.52,
+      "median_return": 3.07,
+      "avg_ann_return": 2.5,
+      "avg_drawdown": 19.55,
+      "avg_sharpe": 0.22,
+      "median_sharpe": 0.15,
+      "avg_win_rate": 53.07,
+      "avg_trades": 23.5,
+      "positive_pct": 60.0,
+      "best_return": 80.27,
+      "worst_return": -23.56,
+      "return_std": 26.14
+    },
+    "BOLL": {
+      "count": 20,
+      "avg_return": 22.87,
+      "median_return": 24.52,
+      "avg_ann_return": 5.85,
+      "avg_drawdown": 16.61,
+      "avg_sharpe": 0.47,
+      "median_sharpe": 0.65,
+      "avg_win_rate": 58.26,
+      "avg_trades": 19.1,
+      "positive_pct": 75.0,
+      "best_return": 81.06,
+      "worst_return": -39.91,
+      "return_std": 30.31
+    },
+    "KDJ": {
+      "count": 20,
+      "avg_return": 19.8,
+      "median_return": 11.48,
+      "avg_ann_return": 4.96,
+      "avg_drawdown": 24.62,
+      "avg_sharpe": 0.33,
+      "median_sharpe": 0.3,
+      "avg_win_rate": 55.83,
+      "avg_trades": 52.0,
+      "positive_pct": 60.0,
+      "best_return": 99.9,
+      "worst_return": -37.32,
+      "return_std": 38.93
+    },
+    "DUAL": {
+      "count": 20,
+      "avg_return": 27.46,
+      "median_return": 15.8,
+      "avg_ann_return": 7.19,
+      "avg_drawdown": 26.6,
+      "avg_sharpe": 0.33,
+      "median_sharpe": 0.35,
+      "avg_win_rate": 27.25,
+      "avg_trades": 36.9,
+      "positive_pct": 70.0,
+      "best_return": 118.52,
+      "worst_return": -23.17,
+      "return_std": 39.25
+    },
+    "PE": {
+      "count": 20,
+      "avg_return": 0.0,
+      "median_return": 0.0,
+      "avg_ann_return": 0.0,
+      "avg_drawdown": 0.0,
+      "avg_sharpe": 0.0,
+      "median_sharpe": 0.0,
+      "avg_win_rate": 0.0,
+      "avg_trades": 0.0,
+      "positive_pct": 0.0,
+      "best_return": 0.0,
+      "worst_return": 0.0,
+      "return_std": 0.0
+    },
+    "Sentiment": {
+      "count": 20,
+      "avg_return": 0.0,
+      "median_return": 0.0,
+      "avg_ann_return": 0.0,
+      "avg_drawdown": 0.0,
+      "avg_sharpe": 0.0,
+      "median_sharpe": 0.0,
+      "avg_win_rate": 0.0,
+      "avg_trades": 0.0,
+      "positive_pct": 0.0,
+      "best_return": 0.0,
+      "worst_return": 0.0,
+      "return_std": 0.0
+    },
+    "NewsSentiment": {
+      "count": 20,
+      "avg_return": 0.0,
+      "median_return": 0.0,
+      "avg_ann_return": 0.0,
+      "avg_drawdown": 0.0,
+      "avg_sharpe": 0.0,
+      "median_sharpe": 0.0,
+      "avg_win_rate": 0.0,
+      "avg_trades": 0.0,
+      "positive_pct": 0.0,
+      "best_return": 0.0,
+      "worst_return": 0.0,
+      "return_std": 0.0
+    },
+    "PolicyEvent": {
+      "count": 20,
+      "avg_return": 0.0,
+      "median_return": 0.0,
+      "avg_ann_return": 0.0,
+      "avg_drawdown": 0.0,
+      "avg_sharpe": 0.0,
+      "median_sharpe": 0.0,
+      "avg_win_rate": 0.0,
+      "avg_trades": 0.0,
+      "positive_pct": 0.0,
+      "best_return": 0.0,
+      "worst_return": 0.0,
+      "return_std": 0.0
+    },
+    "MoneyFlow": {
+      "count": 20,
+      "avg_return": 0.0,
+      "median_return": 0.0,
+      "avg_ann_return": 0.0,
+      "avg_drawdown": 0.0,
+      "avg_sharpe": 0.0,
+      "median_sharpe": 0.0,
+      "avg_win_rate": 0.0,
+      "avg_trades": 0.0,
+      "positive_pct": 0.0,
+      "best_return": 0.0,
+      "worst_return": 0.0,
+      "return_std": 0.0
+    },
+    "V33组合": {
+      "count": 20,
+      "avg_return": 1.97,
+      "median_return": -1.9,
+      "avg_ann_return": 24.31,
+      "avg_drawdown": 7.09,
+      "avg_sharpe": -0.82,
+      "median_sharpe": -0.77,
+      "avg_win_rate": 34.91,
+      "avg_trades": 5.3,
+      "positive_pct": 40.0,
+      "best_return": 29.24,
+      "worst_return": -9.43,
+      "return_std": 10.13
+    }
+  },
+  "details": [
+    {
+      "code": "300274",
+      "name": "阳光电源",
+      "sector": "光伏",
+      "status": "ok",
+      "bars": 800,
+      "date_range": "2022-11-10 ~ 2026-03-03",
+      "MA": {
+        "total_return": 39.49,
+        "annualized_return": 11.88,
+        "max_drawdown": 29.81,
+        "sharpe": 0.59,
+        "win_rate": 41.67,
+        "trade_count": 24
+      },
+      "MACD": {
+        "total_return": 38.44,
+        "annualized_return": 11.71,
+        "max_drawdown": 28.7,
+        "sharpe": 0.55,
+        "win_rate": 37.5,
+        "trade_count": 32
+      },
+      "RSI": {
+        "total_return": 3.02,
+        "annualized_return": 1.0,
+        "max_drawdown": 17.9,
+        "sharpe": 0.15,
+        "win_rate": 51.72,
+        "trade_count": 29
+      },
+      "BOLL": {
+        "total_return": -21.73,
+        "annualized_return": -7.33,
+        "max_drawdown": 25.63,
+        "sharpe": -0.65,
+        "win_rate": 33.33,
+        "trade_count": 15
+      },
+      "KDJ": {
+        "total_return": -9.71,
+        "annualized_return": -3.34,
+        "max_drawdown": 36.86,
+        "sharpe": -0.04,
+        "win_rate": 50.0,
+        "trade_count": 54
+      },
+      "DUAL": {
+        "total_return": 48.17,
+        "annualized_return": 13.8,
+        "max_drawdown": 34.99,
+        "sharpe": 0.61,
+        "win_rate": 33.33,
+        "trade_count": 36
+      },
+      "PE": {
+        "total_return": 0.0,
+        "annualized_return": 0.0,
+        "max_drawdown": 0.0,
+        "sharpe": 0.0,
+        "win_rate": 0.0,
+        "trade_count": 0
+      },
+      "Sentiment": {
+        "total_return": 0.0,
+        "annualized_return": 0.0,
+        "max_drawdown": 0.0,
+        "sharpe": 0.0,
+        "win_rate": 0.0,
+        "trade_count": 0
+      },
+      "NewsSentiment": {
+        "total_return": 0.0,
+        "annualized_return": 0.0,
+        "max_drawdown": 0.0,
+        "sharpe": 0.0,
+        "win_rate": 0.0,
+        "trade_count": 0
+      },
+      "PolicyEvent": {
+        "total_return": 0.0,
+        "annualized_return": 0.0,
+        "max_drawdown": 0.0,
+        "sharpe": 0.0,
+        "win_rate": 0.0,
+        "trade_count": 0
+      },
+      "MoneyFlow": {
+        "total_return": 0.0,
+        "annualized_return": 0.0,
+        "max_drawdown": 0.0,
+        "sharpe": 0.0,
+        "win_rate": 0.0,
+        "trade_count": 0
+      },
+      "V33组合": {
+        "total_return": -9.43,
+        "annualized_return": -39.9,
+        "max_drawdown": 9.43,
+        "sharpe": -5.27,
+        "win_rate": 0.0,
+        "trade_count": 4
+      }
+    },
+    {
+      "code": "300124",
+      "name": "汇川技术",
+      "sector": "机器人",
+      "status": "ok",
+      "bars": 800,
+      "date_range": "2022-11-10 ~ 2026-03-03",
+      "MA": {
+        "total_return": 26.53,
+        "annualized_return": 8.26,
+        "max_drawdown": 19.7,
+        "sharpe": 0.5,
+        "win_rate": 30.77,
+        "trade_count": 26
+      },
+      "MACD": {
+        "total_return": 22.39,
+        "annualized_return": 7.12,
+        "max_drawdown": 20.9,
+        "sharpe": 0.44,
+        "win_rate": 28.57,
+        "trade_count": 28
+      },
+      "RSI": {
+        "total_return": -8.36,
+        "annualized_return": -2.88,
+        "max_drawdown": 16.31,
+        "sharpe": -0.13,
+        "win_rate": 50.0,
+        "trade_count": 30
+      },
+      "BOLL": {
+        "total_return": 2.88,
+        "annualized_return": 0.89,
+        "max_drawdown": 19.97,
+        "sharpe": 0.14,
+        "win_rate": 42.86,
+        "trade_count": 14
+      },
+      "KDJ": {
+        "total_return": -21.15,
+        "annualized_return": -7.6,
+        "max_drawdown": 29.32,
+        "sharpe": -0.48,
+        "win_rate": 45.28,
+        "trade_count": 53
+      },
+      "DUAL": {
+        "total_return": 10.17,
+        "annualized_return": 3.23,
+        "max_drawdown": 23.8,
+        "sharpe": 0.26,
+        "win_rate": 31.25,
+        "trade_count": 32
+      },
+      "PE": {
+        "total_return": 0.0,
+        "annualized_return": 0.0,
+        "max_drawdown": 0.0,
+        "sharpe": 0.0,
+        "win_rate": 0.0,
+        "trade_count": 0
+      },
+      "Sentiment": {
+        "total_return": 0.0,
+        "annualized_return": 0.0,
+        "max_drawdown": 0.0,
+        "sharpe": 0.0,
+        "win_rate": 0.0,
+        "trade_count": 0
+      },
+      "NewsSentiment": {
+        "total_return": 0.0,
+        "annualized_return": 0.0,
+        "max_drawdown": 0.0,
+        "sharpe": 0.0,
+        "win_rate": 0.0,
+        "trade_count": 0
+      },
+      "PolicyEvent": {
+        "total_return": 0.0,
+        "annualized_return": 0.0,
+        "max_drawdown": 0.0,
+        "sharpe": 0.0,
+        "win_rate": 0.0,
+        "trade_count": 0
+      },
+      "MoneyFlow": {
+        "total_return": 0.0,
+        "annualized_return": 0.0,
+        "max_drawdown": 0.0,
+        "sharpe": 0.0,
+        "win_rate": 0.0,
+        "trade_count": 0
+      },
+      "V33组合": {
+        "total_return": 1.3,
+        "annualized_return": 6.88,
+        "max_drawdown": 4.02,
+        "sharpe": 0.62,
+        "win_rate": 66.67,
+        "trade_count": 3
+      }
+    },
+    {
+      "code": "601012",
+      "name": "隆基绿能",
+      "sector": "光伏",
+      "status": "ok",
+      "bars": 800,
+      "date_range": "2022-11-10 ~ 2026-03-03",
+      "MA": {
+        "total_return": -4.84,
+        "annualized_return": -1.66,
+        "max_drawdown": 28.34,
+        "sharpe": -0.0,
+        "win_rate": 31.25,
+        "trade_count": 32
+      },
+      "MACD": {
+        "total_return": -12.52,
+        "annualized_return": -4.45,
+        "max_drawdown": 25.82,
+        "sharpe": -0.13,
+        "win_rate": 33.33,
+        "trade_count": 27
+      },
+      "RSI": {
+        "total_return": -21.02,
+        "annualized_return": -7.6,
+        "max_drawdown": 30.06,
+        "sharpe": -0.55,
+        "win_rate": 40.91,
+        "trade_count": 22
+      },
+      "BOLL": {
+        "total_return": -39.91,
+        "annualized_return": -14.64,
+        "max_drawdown": 41.39,
+        "sharpe": -1.25,
+        "win_rate": 31.82,
+        "trade_count": 22
+      },
+      "KDJ": {
+        "total_return": -22.07,
+        "annualized_return": -7.96,
+        "max_drawdown": 32.49,
+        "sharpe": -0.38,
+        "win_rate": 47.37,
+        "trade_count": 57
+      },
+      "DUAL": {
+        "total_return": 4.24,
+        "annualized_return": 1.37,
+        "max_drawdown": 20.15,
+        "sharpe": 0.17,
+        "win_rate": 29.17,
+        "trade_count": 24
+      },
+      "PE": {
+        "total_return": 0.0,
+        "annualized_return": 0.0,
+        "max_drawdown": 0.0,
+        "sharpe": 0.0,
+        "win_rate": 0.0,
+        "trade_count": 0
+      },
+      "Sentiment": {
+        "total_return": 0.0,
+        "annualized_return": 0.0,
+        "max_drawdown": 0.0,
+        "sharpe": 0.0,
+        "win_rate": 0.0,
+        "trade_count": 0
+      },
+      "NewsSentiment": {
+        "total_return": 0.0,
+        "annualized_return": 0.0,
+        "max_drawdown": 0.0,
+        "sharpe": 0.0,
+        "win_rate": 0.0,
+        "trade_count": 0
+      },
+      "PolicyEvent": {
+        "total_return": 0.0,
+        "annualized_return": 0.0,
+        "max_drawdown": 0.0,
+        "sharpe": 0.0,
+        "win_rate": 0.0,
+        "trade_count": 0
+      },
+      "MoneyFlow": {
+        "total_return": 0.0,
+        "annualized_return": 0.0,
+        "max_drawdown": 0.0,
+        "sharpe": 0.0,
+        "win_rate": 0.0,
+        "trade_count": 0
+      },
+      "V33组合": {
+        "total_return": -9.06,
+        "annualized_return": -38.63,
+        "max_drawdown": 9.06,
+        "sharpe": -5.06,
+        "win_rate": 0.0,
+        "trade_count": 5
+      }
+    },
+    {
+      "code": "600438",
+      "name": "通威股份",
+      "sector": "光伏",
+      "status": "ok",
+      "bars": 800,
+      "date_range": "2022-11-03 ~ 2026-02-24",
+      "MA": {
+        "total_return": -16.82,
+        "annualized_return": -6.02,
+        "max_drawdown": 36.42,
+        "sharpe": -0.26,
+        "win_rate": 26.09,
+        "trade_count": 23
+      },
+      "MACD": {
+        "total_return": 17.95,
+        "annualized_return": 5.78,
+        "max_drawdown": 25.06,
+        "sharpe": 0.38,
+        "win_rate": 30.77,
+        "trade_count": 26
+      },
+      "RSI": {
+        "total_return": -23.56,
+        "annualized_return": -8.61,
+        "max_drawdown": 38.82,
+        "sharpe": -0.53,
+        "win_rate": 35.71,
+        "trade_count": 28
+      },
+      "BOLL": {
+        "total_return": -11.86,
+        "annualized_return": -3.85,
+        "max_drawdown": 21.47,
+        "sharpe": -0.2,
+        "win_rate": 40.91,
+        "trade_count": 22
+      },
+      "KDJ": {
+        "total_return": -37.32,
+        "annualized_return": -14.4,
+        "max_drawdown": 37.72,
+        "sharpe": -0.7,
+        "win_rate": 48.44,
+        "trade_count": 64
+      },
+      "DUAL": {
+        "total_return": -2.76,
+        "annualized_return": -0.92,
+        "max_drawdown": 24.72,
+        "sharpe": 0.04,
+        "win_rate": 21.88,
+        "trade_count": 32
+      },
+      "PE": {
+        "total_return": 0.0,
+        "annualized_return": 0.0,
+        "max_drawdown": 0.0,
+        "sharpe": 0.0,
+        "win_rate": 0.0,
+        "trade_count": 0
+      },
+      "Sentiment": {
+        "total_return": 0.0,
+        "annualized_return": 0.0,
+        "max_drawdown": 0.0,
+        "sharpe": 0.0,
+        "win_rate": 0.0,
+        "trade_count": 0
+      },
+      "NewsSentiment": {
+        "total_return": 0.0,
+        "annualized_return": 0.0,
+        "max_drawdown": 0.0,
+        "sharpe": 0.0,
+        "win_rate": 0.0,
+        "trade_count": 0
+      },
+      "PolicyEvent": {
+        "total_return": 0.0,
+        "annualized_return": 0.0,
+        "max_drawdown": 0.0,
+        "sharpe": 0.0,
+        "win_rate": 0.0,
+        "trade_count": 0
+      },
+      "MoneyFlow": {
+        "total_return": 0.0,
+        "annualized_return": 0.0,
+        "max_drawdown": 0.0,
+        "sharpe": 0.0,
+        "win_rate": 0.0,
+        "trade_count": 0
+      },
+      "V33组合": {
+        "total_return": -2.85,
+        "annualized_return": -13.79,
+        "max_drawdown": 6.05,
+        "sharpe": -1.38,
+        "win_rate": 50.0,
+        "trade_count": 2
+      }
+    },
+    {
+      "code": "300024",
+      "name": "机器人",
+      "sector": "机器人",
+      "status": "ok",
+      "bars": 800,
+      "date_range": "2022-11-10 ~ 2026-03-03",
+      "MA": {
+        "total_return": -16.3,
+        "annualized_return": -5.83,
+        "max_drawdown": 31.25,
+        "sharpe": -0.14,
+        "win_rate": 16.67,
+        "trade_count": 30
+      },
+      "MACD": {
+        "total_return": -29.97,
+        "annualized_return": -11.42,
+        "max_drawdown": 40.15,
+        "sharpe": -0.35,
+        "win_rate": 17.95,
+        "trade_count": 39
+      },
+      "RSI": {
+        "total_return": 80.27,
+        "annualized_return": 21.81,
+        "max_drawdown": 11.88,
+        "sharpe": 0.99,
+        "win_rate": 61.9,
+        "trade_count": 21
+      },
+      "BOLL": {
+        "total_return": 55.16,
+        "annualized_return": 14.63,
+        "max_drawdown": 23.99,
+        "sharpe": 0.71,
+        "win_rate": 54.55,
+        "trade_count": 33
+      },
+      "KDJ": {
+        "total_return": -0.68,
+        "annualized_return": -0.23,
+        "max_drawdown": 33.11,
+        "sharpe": 0.1,
+        "win_rate": 46.67,
+        "trade_count": 60
+      },
+      "DUAL": {
+        "total_return": -16.5,
+        "annualized_return": -5.76,
+        "max_drawdown": 32.3,
+        "sharpe": -0.07,
+        "win_rate": 22.5,
+        "trade_count": 40
+      },
+      "PE": {
+        "total_return": 0.0,
+        "annualized_return": 0.0,
+        "max_drawdown": 0.0,
+        "sharpe": 0.0,
+        "win_rate": 0.0,
+        "trade_count": 0
+      },
+      "Sentiment": {
+        "total_return": 0.0,
+        "annualized_return": 0.0,
+        "max_drawdown": 0.0,
+        "sharpe": 0.0,
+        "win_rate": 0.0,
+        "trade_count": 0
+      },
+      "NewsSentiment": {
+        "total_return": 0.0,
+        "annualized_return": 0.0,
+        "max_drawdown": 0.0,
+        "sharpe": 0.0,
+        "win_rate": 0.0,
+        "trade_count": 0
+      },
+      "PolicyEvent": {
+        "total_return": 0.0,
+        "annualized_return": 0.0,
+        "max_drawdown": 0.0,
+        "sharpe": 0.0,
+        "win_rate": 0.0,
+        "trade_count": 0
+      },
+      "MoneyFlow": {
+        "total_return": 0.0,
+        "annualized_return": 0.0,
+        "max_drawdown": 0.0,
+        "sharpe": 0.0,
+        "win_rate": 0.0,
+        "trade_count": 0
+      },
+      "V33组合": {
+        "total_return": -4.45,
+        "annualized_return": -20.88,
+        "max_drawdown": 9.24,
+        "sharpe": -1.8,
+        "win_rate": 54.55,
+        "trade_count": 11
+      }
+    },
+    {
+      "code": "002747",
+      "name": "埃斯顿",
+      "sector": "机器人",
+      "status": "ok",
+      "bars": 800,
+      "date_range": "2022-11-10 ~ 2026-03-03",
+      "MA": {
+        "total_return": -12.01,
+        "annualized_return": -4.22,
+        "max_drawdown": 24.4,
+        "sharpe": -0.14,
+        "win_rate": 24.0,
+        "trade_count": 25
+      },
+      "MACD": {
+        "total_return": 8.93,
+        "annualized_return": 2.95,
+        "max_drawdown": 26.11,
+        "sharpe": 0.25,
+        "win_rate": 41.94,
+        "trade_count": 31
+      },
+      "RSI": {
+        "total_return": -17.47,
+        "annualized_return": -6.23,
+        "max_drawdown": 28.88,
+        "sharpe": -0.3,
+        "win_rate": 34.78,
+        "trade_count": 23
+      },
+      "BOLL": {
+        "total_return": 81.06,
+        "annualized_return": 20.27,
+        "max_drawdown": 22.91,
+        "sharpe": 1.12,
+        "win_rate": 64.52,
+        "trade_count": 31
+      },
+      "KDJ": {
+        "total_return": 36.99,
+        "annualized_return": 11.04,
+        "max_drawdown": 35.37,
+        "sharpe": 0.64,
+        "win_rate": 53.45,
+        "trade_count": 58
+      },
+      "DUAL": {
+        "total_return": 17.57,
+        "annualized_return": 5.47,
+        "max_drawdown": 21.79,
+        "sharpe": 0.36,
+        "win_rate": 23.53,
+        "trade_count": 34
+      },
+      "PE": {
+        "total_return": 0.0,
+        "annualized_return": 0.0,
+        "max_drawdown": 0.0,
+        "sharpe": 0.0,
+        "win_rate": 0.0,
+        "trade_count": 0
+      },
+      "Sentiment": {
+        "total_return": 0.0,
+        "annualized_return": 0.0,
+        "max_drawdown": 0.0,
+        "sharpe": 0.0,
+        "win_rate": 0.0,
+        "trade_count": 0
+      },
+      "NewsSentiment": {
+        "total_return": 0.0,
+        "annualized_return": 0.0,
+        "max_drawdown": 0.0,
+        "sharpe": 0.0,
+        "win_rate": 0.0,
+        "trade_count": 0
+      },
+      "PolicyEvent": {
+        "total_return": 0.0,
+        "annualized_return": 0.0,
+        "max_drawdown": 0.0,
+        "sharpe": 0.0,
+        "win_rate": 0.0,
+        "trade_count": 0
+      },
+      "MoneyFlow": {
+        "total_return": 0.0,
+        "annualized_return": 0.0,
+        "max_drawdown": 0.0,
+        "sharpe": 0.0,
+        "win_rate": 0.0,
+        "trade_count": 0
+      },
+      "V33组合": {
+        "total_return": 2.22,
+        "annualized_return": 11.93,
+        "max_drawdown": 4.52,
+        "sharpe": 1.03,
+        "win_rate": 83.33,
+        "trade_count": 6
+      }
+    },
+    {
+      "code": "688981",
+      "name": "中芯国际",
+      "sector": "半导体",
+      "status": "ok",
+      "bars": 800,
+      "date_range": "2022-11-02 ~ 2026-03-03",
+      "MA": {
+        "total_return": 12.57,
+        "annualized_return": 4.04,
+        "max_drawdown": 21.6,
+        "sharpe": 0.28,
+        "win_rate": 33.33,
+        "trade_count": 24
+      },
+      "MACD": {
+        "total_return": 55.69,
+        "annualized_return": 16.11,
+        "max_drawdown": 26.63,
+        "sharpe": 0.69,
+        "win_rate": 35.71,
+        "trade_count": 28
+      },
+      "RSI": {
+        "total_return": 14.94,
+        "annualized_return": 4.74,
+        "max_drawdown": 27.61,
+        "sharpe": 0.32,
+        "win_rate": 40.0,
+        "trade_count": 20
+      },
+      "BOLL": {
+        "total_return": 61.61,
+        "annualized_return": 15.98,
+        "max_drawdown": 12.17,
+        "sharpe": 0.94,
+        "win_rate": 63.64,
+        "trade_count": 11
+      },
+      "KDJ": {
+        "total_return": 67.31,
+        "annualized_return": 18.53,
+        "max_drawdown": 23.53,
+        "sharpe": 0.85,
+        "win_rate": 59.18,
+        "trade_count": 49
+      },
+      "DUAL": {
+        "total_return": 58.53,
+        "annualized_return": 16.23,
+        "max_drawdown": 34.37,
+        "sharpe": 0.66,
+        "win_rate": 21.74,
+        "trade_count": 46
+      },
+      "PE": {
+        "total_return": 0.0,
+        "annualized_return": 0.0,
+        "max_drawdown": 0.0,
+        "sharpe": 0.0,
+        "win_rate": 0.0,
+        "trade_count": 0
+      },
+      "Sentiment": {
+        "total_return": 0.0,
+        "annualized_return": 0.0,
+        "max_drawdown": 0.0,
+        "sharpe": 0.0,
+        "win_rate": 0.0,
+        "trade_count": 0
+      },
+      "NewsSentiment": {
+        "total_return": 0.0,
+        "annualized_return": 0.0,
+        "max_drawdown": 0.0,
+        "sharpe": 0.0,
+        "win_rate": 0.0,
+        "trade_count": 0
+      },
+      "PolicyEvent": {
+        "total_return": 0.0,
+        "annualized_return": 0.0,
+        "max_drawdown": 0.0,
+        "sharpe": 0.0,
+        "win_rate": 0.0,
+        "trade_count": 0
+      },
+      "MoneyFlow": {
+        "total_return": 0.0,
+        "annualized_return": 0.0,
+        "max_drawdown": 0.0,
+        "sharpe": 0.0,
+        "win_rate": 0.0,
+        "trade_count": 0
+      },
+      "V33组合": {
+        "total_return": -1.08,
+        "annualized_return": -5.41,
+        "max_drawdown": 5.38,
+        "sharpe": -0.4,
+        "win_rate": 50.0,
+        "trade_count": 2
+      }
+    },
+    {
+      "code": "002371",
+      "name": "北方华创",
+      "sector": "半导体",
+      "status": "ok",
+      "bars": 800,
+      "date_range": "2022-11-10 ~ 2026-03-03",
+      "MA": {
+        "total_return": 3.38,
+        "annualized_return": 1.13,
+        "max_drawdown": 25.15,
+        "sharpe": 0.16,
+        "win_rate": 37.93,
+        "trade_count": 29
+      },
+      "MACD": {
+        "total_return": -11.63,
+        "annualized_return": -4.12,
+        "max_drawdown": 27.51,
+        "sharpe": -0.1,
+        "win_rate": 37.5,
+        "trade_count": 32
+      },
+      "RSI": {
+        "total_return": 3.12,
+        "annualized_return": 1.03,
+        "max_drawdown": 15.5,
+        "sharpe": 0.15,
+        "win_rate": 47.62,
+        "trade_count": 21
+      },
+      "BOLL": {
+        "total_return": 30.02,
+        "annualized_return": 8.5,
+        "max_drawdown": 6.96,
+        "sharpe": 0.87,
+        "win_rate": 71.43,
+        "trade_count": 14
+      },
+      "KDJ": {
+        "total_return": 0.45,
+        "annualized_return": 0.15,
+        "max_drawdown": 27.4,
+        "sharpe": 0.09,
+        "win_rate": 48.72,
+        "trade_count": 39
+      },
+      "DUAL": {
+        "total_return": 14.04,
+        "annualized_return": 4.41,
+        "max_drawdown": 19.57,
+        "sharpe": 0.34,
+        "win_rate": 48.39,
+        "trade_count": 31
+      },
+      "PE": {
+        "total_return": 0.0,
+        "annualized_return": 0.0,
+        "max_drawdown": 0.0,
+        "sharpe": 0.0,
+        "win_rate": 0.0,
+        "trade_count": 0
+      },
+      "Sentiment": {
+        "total_return": 0.0,
+        "annualized_return": 0.0,
+        "max_drawdown": 0.0,
+        "sharpe": 0.0,
+        "win_rate": 0.0,
+        "trade_count": 0
+      },
+      "NewsSentiment": {
+        "total_return": 0.0,
+        "annualized_return": 0.0,
+        "max_drawdown": 0.0,
+        "sharpe": 0.0,
+        "win_rate": 0.0,
+        "trade_count": 0
+      },
+      "PolicyEvent": {
+        "total_return": 0.0,
+        "annualized_return": 0.0,
+        "max_drawdown": 0.0,
+        "sharpe": 0.0,
+        "win_rate": 0.0,
+        "trade_count": 0
+      },
+      "MoneyFlow": {
+        "total_return": 0.0,
+        "annualized_return": 0.0,
+        "max_drawdown": 0.0,
+        "sharpe": 0.0,
+        "win_rate": 0.0,
+        "trade_count": 0
+      },
+      "V33组合": {
+        "total_return": -2.71,
+        "annualized_return": -13.16,
+        "max_drawdown": 7.49,
+        "sharpe": -0.99,
+        "win_rate": 33.33,
+        "trade_count": 3
+      }
+    },
+    {
+      "code": "688041",
+      "name": "海光信息",
+      "sector": "半导体",
+      "status": "ok",
+      "bars": 800,
+      "date_range": "2022-10-27 ~ 2026-03-03",
+      "MA": {
+        "total_return": 98.24,
+        "annualized_return": 25.6,
+        "max_drawdown": 23.0,
+        "sharpe": 0.94,
+        "win_rate": 36.0,
+        "trade_count": 25
+      },
+      "MACD": {
+        "total_return": 138.29,
+        "annualized_return": 33.89,
+        "max_drawdown": 31.57,
+        "sharpe": 1.12,
+        "win_rate": 39.39,
+        "trade_count": 33
+      },
+      "RSI": {
+        "total_return": -4.63,
+        "annualized_return": -1.56,
+        "max_drawdown": 15.12,
+        "sharpe": -0.06,
+        "win_rate": 53.33,
+        "trade_count": 15
+      },
+      "BOLL": {
+        "total_return": 15.36,
+        "annualized_return": 4.49,
+        "max_drawdown": 12.53,
+        "sharpe": 0.54,
+        "win_rate": 54.55,
+        "trade_count": 11
+      },
+      "KDJ": {
+        "total_return": 99.9,
+        "annualized_return": 25.55,
+        "max_drawdown": 22.32,
+        "sharpe": 1.06,
+        "win_rate": 57.14,
+        "trade_count": 42
+      },
+      "DUAL": {
+        "total_return": 118.52,
+        "annualized_return": 28.9,
+        "max_drawdown": 31.73,
+        "sharpe": 0.9,
+        "win_rate": 38.6,
+        "trade_count": 57
+      },
+      "PE": {
+        "total_return": 0.0,
+        "annualized_return": 0.0,
+        "max_drawdown": 0.0,
+        "sharpe": 0.0,
+        "win_rate": 0.0,
+        "trade_count": 0
+      },
+      "Sentiment": {
+        "total_return": 0.0,
+        "annualized_return": 0.0,
+        "max_drawdown": 0.0,
+        "sharpe": 0.0,
+        "win_rate": 0.0,
+        "trade_count": 0
+      },
+      "NewsSentiment": {
+        "total_return": 0.0,
+        "annualized_return": 0.0,
+        "max_drawdown": 0.0,
+        "sharpe": 0.0,
+        "win_rate": 0.0,
+        "trade_count": 0
+      },
+      "PolicyEvent": {
+        "total_return": 0.0,
+        "annualized_return": 0.0,
+        "max_drawdown": 0.0,
+        "sharpe": 0.0,
+        "win_rate": 0.0,
+        "trade_count": 0
+      },
+      "MoneyFlow": {
+        "total_return": 0.0,
+        "annualized_return": 0.0,
+        "max_drawdown": 0.0,
+        "sharpe": 0.0,
+        "win_rate": 0.0,
+        "trade_count": 0
+      },
+      "V33组合": {
+        "total_return": 5.84,
+        "annualized_return": 33.87,
+        "max_drawdown": 7.69,
+        "sharpe": 1.53,
+        "win_rate": 33.33,
+        "trade_count": 3
+      }
+    },
+    {
+      "code": "601899",
+      "name": "紫金矿业",
+      "sector": "有色金属",
+      "status": "ok",
+      "bars": 800,
+      "date_range": "2022-11-10 ~ 2026-03-03",
+      "MA": {
+        "total_return": 74.14,
+        "annualized_return": 20.58,
+        "max_drawdown": 19.87,
+        "sharpe": 1.07,
+        "win_rate": 40.74,
+        "trade_count": 27
+      },
+      "MACD": {
+        "total_return": 73.23,
+        "annualized_return": 20.57,
+        "max_drawdown": 16.9,
+        "sharpe": 1.09,
+        "win_rate": 51.52,
+        "trade_count": 33
+      },
+      "RSI": {
+        "total_return": 25.51,
+        "annualized_return": 7.91,
+        "max_drawdown": 11.04,
+        "sharpe": 0.76,
+        "win_rate": 64.71,
+        "trade_count": 17
+      },
+      "BOLL": {
+        "total_return": 37.19,
+        "annualized_return": 10.33,
+        "max_drawdown": 7.09,
+        "sharpe": 1.13,
+        "win_rate": 73.33,
+        "trade_count": 15
+      },
+      "KDJ": {
+        "total_return": 42.98,
+        "annualized_return": 12.63,
+        "max_drawdown": 10.1,
+        "sharpe": 1.06,
+        "win_rate": 74.55,
+        "trade_count": 55
+      },
+      "DUAL": {
+        "total_return": 54.24,
+        "annualized_return": 15.32,
+        "max_drawdown": 18.91,
+        "sharpe": 0.82,
+        "win_rate": 38.71,
+        "trade_count": 31
+      },
+      "PE": {
+        "total_return": 0.0,
+        "annualized_return": 0.0,
+        "max_drawdown": 0.0,
+        "sharpe": 0.0,
+        "win_rate": 0.0,
+        "trade_count": 0
+      },
+      "Sentiment": {
+        "total_return": 0.0,
+        "annualized_return": 0.0,
+        "max_drawdown": 0.0,
+        "sharpe": 0.0,
+        "win_rate": 0.0,
+        "trade_count": 0
+      },
+      "NewsSentiment": {
+        "total_return": 0.0,
+        "annualized_return": 0.0,
+        "max_drawdown": 0.0,
+        "sharpe": 0.0,
+        "win_rate": 0.0,
+        "trade_count": 0
+      },
+      "PolicyEvent": {
+        "total_return": 0.0,
+        "annualized_return": 0.0,
+        "max_drawdown": 0.0,
+        "sharpe": 0.0,
+        "win_rate": 0.0,
+        "trade_count": 0
+      },
+      "MoneyFlow": {
+        "total_return": 0.0,
+        "annualized_return": 0.0,
+        "max_drawdown": 0.0,
+        "sharpe": 0.0,
+        "win_rate": 0.0,
+        "trade_count": 0
+      },
+      "V33组合": {
+        "total_return": 10.12,
+        "annualized_return": 64.12,
+        "max_drawdown": 7.61,
+        "sharpe": 2.43,
+        "win_rate": 60.0,
+        "trade_count": 5
+      }
+    },
+    {
+      "code": "603993",
+      "name": "洛阳钼业",
+      "sector": "有色金属",
+      "status": "ok",
+      "bars": 800,
+      "date_range": "2022-11-10 ~ 2026-03-03",
+      "MA": {
+        "total_return": 48.76,
+        "annualized_return": 14.34,
+        "max_drawdown": 19.84,
+        "sharpe": 0.75,
+        "win_rate": 42.31,
+        "trade_count": 26
+      },
+      "MACD": {
+        "total_return": 84.96,
+        "annualized_return": 23.29,
+        "max_drawdown": 17.08,
+        "sharpe": 1.04,
+        "win_rate": 60.0,
+        "trade_count": 30
+      },
+      "RSI": {
+        "total_return": 55.33,
+        "annualized_return": 15.89,
+        "max_drawdown": 12.95,
+        "sharpe": 1.24,
+        "win_rate": 81.82,
+        "trade_count": 22
+      },
+      "BOLL": {
+        "total_return": 31.88,
+        "annualized_return": 8.99,
+        "max_drawdown": 10.99,
+        "sharpe": 0.95,
+        "win_rate": 64.71,
+        "trade_count": 17
+      },
+      "KDJ": {
+        "total_return": 87.35,
+        "annualized_return": 23.23,
+        "max_drawdown": 14.02,
+        "sharpe": 1.4,
+        "win_rate": 72.88,
+        "trade_count": 59
+      },
+      "DUAL": {
+        "total_return": 85.53,
+        "annualized_return": 22.54,
+        "max_drawdown": 33.2,
+        "sharpe": 0.94,
+        "win_rate": 39.39,
+        "trade_count": 33
+      },
+      "PE": {
+        "total_return": 0.0,
+        "annualized_return": 0.0,
+        "max_drawdown": 0.0,
+        "sharpe": 0.0,
+        "win_rate": 0.0,
+        "trade_count": 0
+      },
+      "Sentiment": {
+        "total_return": 0.0,
+        "annualized_return": 0.0,
+        "max_drawdown": 0.0,
+        "sharpe": 0.0,
+        "win_rate": 0.0,
+        "trade_count": 0
+      },
+      "NewsSentiment": {
+        "total_return": 0.0,
+        "annualized_return": 0.0,
+        "max_drawdown": 0.0,
+        "sharpe": 0.0,
+        "win_rate": 0.0,
+        "trade_count": 0
+      },
+      "PolicyEvent": {
+        "total_return": 0.0,
+        "annualized_return": 0.0,
+        "max_drawdown": 0.0,
+        "sharpe": 0.0,
+        "win_rate": 0.0,
+        "trade_count": 0
+      },
+      "MoneyFlow": {
+        "total_return": 0.0,
+        "annualized_return": 0.0,
+        "max_drawdown": 0.0,
+        "sharpe": 0.0,
+        "win_rate": 0.0,
+        "trade_count": 0
+      },
+      "V33组合": {
+        "total_return": 10.4,
+        "annualized_return": 66.32,
+        "max_drawdown": 9.08,
+        "sharpe": 2.0,
+        "win_rate": 50.0,
+        "trade_count": 6
+      }
+    },
+    {
+      "code": "600111",
+      "name": "北方稀土",
+      "sector": "有色金属",
+      "status": "ok",
+      "bars": 800,
+      "date_range": "2022-11-10 ~ 2026-03-03",
+      "MA": {
+        "total_return": 14.28,
+        "annualized_return": 4.61,
+        "max_drawdown": 26.99,
+        "sharpe": 0.32,
+        "win_rate": 31.03,
+        "trade_count": 29
+      },
+      "MACD": {
+        "total_return": 31.73,
+        "annualized_return": 9.84,
+        "max_drawdown": 34.69,
+        "sharpe": 0.53,
+        "win_rate": 30.77,
+        "trade_count": 39
+      },
+      "RSI": {
+        "total_return": -9.93,
+        "annualized_return": -3.44,
+        "max_drawdown": 18.18,
+        "sharpe": -0.17,
+        "win_rate": 37.5,
+        "trade_count": 24
+      },
+      "BOLL": {
+        "total_return": -0.13,
+        "annualized_return": -0.04,
+        "max_drawdown": 13.04,
+        "sharpe": 0.05,
+        "win_rate": 41.18,
+        "trade_count": 17
+      },
+      "KDJ": {
+        "total_return": 48.27,
+        "annualized_return": 14.0,
+        "max_drawdown": 18.58,
+        "sharpe": 0.8,
+        "win_rate": 51.79,
+        "trade_count": 56
+      },
+      "DUAL": {
+        "total_return": 59.05,
+        "annualized_return": 16.48,
+        "max_drawdown": 22.87,
+        "sharpe": 0.76,
+        "win_rate": 36.36,
+        "trade_count": 33
+      },
+      "PE": {
+        "total_return": 0.0,
+        "annualized_return": 0.0,
+        "max_drawdown": 0.0,
+        "sharpe": 0.0,
+        "win_rate": 0.0,
+        "trade_count": 0
+      },
+      "Sentiment": {
+        "total_return": 0.0,
+        "annualized_return": 0.0,
+        "max_drawdown": 0.0,
+        "sharpe": 0.0,
+        "win_rate": 0.0,
+        "trade_count": 0
+      },
+      "NewsSentiment": {
+        "total_return": 0.0,
+        "annualized_return": 0.0,
+        "max_drawdown": 0.0,
+        "sharpe": 0.0,
+        "win_rate": 0.0,
+        "trade_count": 0
+      },
+      "PolicyEvent": {
+        "total_return": 0.0,
+        "annualized_return": 0.0,
+        "max_drawdown": 0.0,
+        "sharpe": 0.0,
+        "win_rate": 0.0,
+        "trade_count": 0
+      },
+      "MoneyFlow": {
+        "total_return": 0.0,
+        "annualized_return": 0.0,
+        "max_drawdown": 0.0,
+        "sharpe": 0.0,
+        "win_rate": 0.0,
+        "trade_count": 0
+      },
+      "V33组合": {
+        "total_return": 5.25,
+        "annualized_return": 30.11,
+        "max_drawdown": 6.68,
+        "sharpe": 1.12,
+        "win_rate": 83.33,
+        "trade_count": 6
+      }
+    },
+    {
+      "code": "600030",
+      "name": "中信证券",
+      "sector": "证券",
+      "status": "ok",
+      "bars": 800,
+      "date_range": "2022-11-10 ~ 2026-03-03",
+      "MA": {
+        "total_return": 65.01,
+        "annualized_return": 18.41,
+        "max_drawdown": 11.39,
+        "sharpe": 1.05,
+        "win_rate": 44.44,
+        "trade_count": 27
+      },
+      "MACD": {
+        "total_return": 35.52,
+        "annualized_return": 10.9,
+        "max_drawdown": 13.45,
+        "sharpe": 0.7,
+        "win_rate": 38.71,
+        "trade_count": 31
+      },
+      "RSI": {
+        "total_return": 17.1,
+        "annualized_return": 5.43,
+        "max_drawdown": 21.21,
+        "sharpe": 0.46,
+        "win_rate": 54.55,
+        "trade_count": 22
+      },
+      "BOLL": {
+        "total_return": 63.1,
+        "annualized_return": 16.43,
+        "max_drawdown": 8.11,
+        "sharpe": 1.33,
+        "win_rate": 77.78,
+        "trade_count": 18
+      },
+      "KDJ": {
+        "total_return": 10.26,
+        "annualized_return": 3.3,
+        "max_drawdown": 19.42,
+        "sharpe": 0.3,
+        "win_rate": 55.32,
+        "trade_count": 47
+      },
+      "DUAL": {
+        "total_return": 20.46,
+        "annualized_return": 6.31,
+        "max_drawdown": 22.03,
+        "sharpe": 0.44,
+        "win_rate": 15.79,
+        "trade_count": 38
+      },
+      "PE": {
+        "total_return": 0.0,
+        "annualized_return": 0.0,
+        "max_drawdown": 0.0,
+        "sharpe": 0.0,
+        "win_rate": 0.0,
+        "trade_count": 0
+      },
+      "Sentiment": {
+        "total_return": 0.0,
+        "annualized_return": 0.0,
+        "max_drawdown": 0.0,
+        "sharpe": 0.0,
+        "win_rate": 0.0,
+        "trade_count": 0
+      },
+      "NewsSentiment": {
+        "total_return": 0.0,
+        "annualized_return": 0.0,
+        "max_drawdown": 0.0,
+        "sharpe": 0.0,
+        "win_rate": 0.0,
+        "trade_count": 0
+      },
+      "PolicyEvent": {
+        "total_return": 0.0,
+        "annualized_return": 0.0,
+        "max_drawdown": 0.0,
+        "sharpe": 0.0,
+        "win_rate": 0.0,
+        "trade_count": 0
+      },
+      "MoneyFlow": {
+        "total_return": 0.0,
+        "annualized_return": 0.0,
+        "max_drawdown": 0.0,
+        "sharpe": 0.0,
+        "win_rate": 0.0,
+        "trade_count": 0
+      },
+      "V33组合": {
+        "total_return": -3.43,
+        "annualized_return": -16.44,
+        "max_drawdown": 5.26,
+        "sharpe": -2.5,
+        "win_rate": 14.29,
+        "trade_count": 7
+      }
+    },
+    {
+      "code": "601211",
+      "name": "国泰君安",
+      "sector": "证券",
+      "status": "ok",
+      "bars": 800,
+      "date_range": "2022-10-14 ~ 2026-03-03",
+      "MA": {
+        "total_return": -2.01,
+        "annualized_return": -0.67,
+        "max_drawdown": 20.44,
+        "sharpe": 0.03,
+        "win_rate": 30.3,
+        "trade_count": 33
+      },
+      "MACD": {
+        "total_return": 0.45,
+        "annualized_return": 0.15,
+        "max_drawdown": 15.73,
+        "sharpe": 0.08,
+        "win_rate": 34.15,
+        "trade_count": 41
+      },
+      "RSI": {
+        "total_return": -13.54,
+        "annualized_return": -4.64,
+        "max_drawdown": 17.46,
+        "sharpe": -0.48,
+        "win_rate": 62.96,
+        "trade_count": 27
+      },
+      "BOLL": {
+        "total_return": 21.43,
+        "annualized_return": 6.08,
+        "max_drawdown": 8.87,
+        "sharpe": 0.85,
+        "win_rate": 76.47,
+        "trade_count": 17
+      },
+      "KDJ": {
+        "total_return": 24.36,
+        "annualized_return": 7.34,
+        "max_drawdown": 17.74,
+        "sharpe": 0.65,
+        "win_rate": 69.23,
+        "trade_count": 52
+      },
+      "DUAL": {
+        "total_return": 10.58,
+        "annualized_return": 3.27,
+        "max_drawdown": 16.18,
+        "sharpe": 0.31,
+        "win_rate": 19.51,
+        "trade_count": 41
+      },
+      "PE": {
+        "total_return": 0.0,
+        "annualized_return": 0.0,
+        "max_drawdown": 0.0,
+        "sharpe": 0.0,
+        "win_rate": 0.0,
+        "trade_count": 0
+      },
+      "Sentiment": {
+        "total_return": 0.0,
+        "annualized_return": 0.0,
+        "max_drawdown": 0.0,
+        "sharpe": 0.0,
+        "win_rate": 0.0,
+        "trade_count": 0
+      },
+      "NewsSentiment": {
+        "total_return": 0.0,
+        "annualized_return": 0.0,
+        "max_drawdown": 0.0,
+        "sharpe": 0.0,
+        "win_rate": 0.0,
+        "trade_count": 0
+      },
+      "PolicyEvent": {
+        "total_return": 0.0,
+        "annualized_return": 0.0,
+        "max_drawdown": 0.0,
+        "sharpe": 0.0,
+        "win_rate": 0.0,
+        "trade_count": 0
+      },
+      "MoneyFlow": {
+        "total_return": 0.0,
+        "annualized_return": 0.0,
+        "max_drawdown": 0.0,
+        "sharpe": 0.0,
+        "win_rate": 0.0,
+        "trade_count": 0
+      },
+      "V33组合": {
+        "total_return": -4.88,
+        "annualized_return": -22.69,
+        "max_drawdown": 7.95,
+        "sharpe": -2.57,
+        "win_rate": 18.18,
+        "trade_count": 11
+      }
+    },
+    {
+      "code": "000166",
+      "name": "申万宏源",
+      "sector": "证券",
+      "status": "ok",
+      "bars": 800,
+      "date_range": "2022-11-10 ~ 2026-03-03",
+      "MA": {
+        "total_return": 33.91,
+        "annualized_return": 10.35,
+        "max_drawdown": 16.97,
+        "sharpe": 0.69,
+        "win_rate": 42.86,
+        "trade_count": 28
+      },
+      "MACD": {
+        "total_return": 17.39,
+        "annualized_return": 5.61,
+        "max_drawdown": 20.23,
+        "sharpe": 0.44,
+        "win_rate": 26.92,
+        "trade_count": 26
+      },
+      "RSI": {
+        "total_return": 43.46,
+        "annualized_return": 12.85,
+        "max_drawdown": 11.47,
+        "sharpe": 1.02,
+        "win_rate": 71.43,
+        "trade_count": 28
+      },
+      "BOLL": {
+        "total_return": 21.15,
+        "annualized_return": 6.15,
+        "max_drawdown": 15.91,
+        "sharpe": 0.55,
+        "win_rate": 65.0,
+        "trade_count": 20
+      },
+      "KDJ": {
+        "total_return": 13.21,
+        "annualized_return": 4.22,
+        "max_drawdown": 20.68,
+        "sharpe": 0.38,
+        "win_rate": 63.64,
+        "trade_count": 44
+      },
+      "DUAL": {
+        "total_return": -5.91,
+        "annualized_return": -1.98,
+        "max_drawdown": 24.2,
+        "sharpe": -0.06,
+        "win_rate": 12.82,
+        "trade_count": 39
+      },
+      "PE": {
+        "total_return": 0.0,
+        "annualized_return": 0.0,
+        "max_drawdown": 0.0,
+        "sharpe": 0.0,
+        "win_rate": 0.0,
+        "trade_count": 0
+      },
+      "Sentiment": {
+        "total_return": 0.0,
+        "annualized_return": 0.0,
+        "max_drawdown": 0.0,
+        "sharpe": 0.0,
+        "win_rate": 0.0,
+        "trade_count": 0
+      },
+      "NewsSentiment": {
+        "total_return": 0.0,
+        "annualized_return": 0.0,
+        "max_drawdown": 0.0,
+        "sharpe": 0.0,
+        "win_rate": 0.0,
+        "trade_count": 0
+      },
+      "PolicyEvent": {
+        "total_return": 0.0,
+        "annualized_return": 0.0,
+        "max_drawdown": 0.0,
+        "sharpe": 0.0,
+        "win_rate": 0.0,
+        "trade_count": 0
+      },
+      "MoneyFlow": {
+        "total_return": 0.0,
+        "annualized_return": 0.0,
+        "max_drawdown": 0.0,
+        "sharpe": 0.0,
+        "win_rate": 0.0,
+        "trade_count": 0
+      },
+      "V33组合": {
+        "total_return": -4.62,
+        "annualized_return": -21.61,
+        "max_drawdown": 4.62,
+        "sharpe": -4.85,
+        "win_rate": 8.33,
+        "trade_count": 12
+      }
+    },
+    {
+      "code": "600276",
+      "name": "恒瑞医药",
+      "sector": "创新药",
+      "status": "ok",
+      "bars": 800,
+      "date_range": "2022-11-10 ~ 2026-03-03",
+      "MA": {
+        "total_return": -5.82,
+        "annualized_return": -2.0,
+        "max_drawdown": 22.88,
+        "sharpe": -0.04,
+        "win_rate": 40.91,
+        "trade_count": 22
+      },
+      "MACD": {
+        "total_return": -18.77,
+        "annualized_return": -6.83,
+        "max_drawdown": 22.07,
+        "sharpe": -0.39,
+        "win_rate": 40.0,
+        "trade_count": 40
+      },
+      "RSI": {
+        "total_return": 24.04,
+        "annualized_return": 7.48,
+        "max_drawdown": 13.62,
+        "sharpe": 0.65,
+        "win_rate": 70.0,
+        "trade_count": 30
+      },
+      "BOLL": {
+        "total_return": 55.17,
+        "annualized_return": 14.64,
+        "max_drawdown": 9.28,
+        "sharpe": 1.12,
+        "win_rate": 77.27,
+        "trade_count": 22
+      },
+      "KDJ": {
+        "total_return": -14.94,
+        "annualized_return": -5.24,
+        "max_drawdown": 22.57,
+        "sharpe": -0.37,
+        "win_rate": 61.11,
+        "trade_count": 54
+      },
+      "DUAL": {
+        "total_return": -11.11,
+        "annualized_return": -3.8,
+        "max_drawdown": 28.55,
+        "sharpe": -0.16,
+        "win_rate": 19.35,
+        "trade_count": 31
+      },
+      "PE": {
+        "total_return": 0.0,
+        "annualized_return": 0.0,
+        "max_drawdown": 0.0,
+        "sharpe": 0.0,
+        "win_rate": 0.0,
+        "trade_count": 0
+      },
+      "Sentiment": {
+        "total_return": 0.0,
+        "annualized_return": 0.0,
+        "max_drawdown": 0.0,
+        "sharpe": 0.0,
+        "win_rate": 0.0,
+        "trade_count": 0
+      },
+      "NewsSentiment": {
+        "total_return": 0.0,
+        "annualized_return": 0.0,
+        "max_drawdown": 0.0,
+        "sharpe": 0.0,
+        "win_rate": 0.0,
+        "trade_count": 0
+      },
+      "PolicyEvent": {
+        "total_return": 0.0,
+        "annualized_return": 0.0,
+        "max_drawdown": 0.0,
+        "sharpe": 0.0,
+        "win_rate": 0.0,
+        "trade_count": 0
+      },
+      "MoneyFlow": {
+        "total_return": 0.0,
+        "annualized_return": 0.0,
+        "max_drawdown": 0.0,
+        "sharpe": 0.0,
+        "win_rate": 0.0,
+        "trade_count": 0
+      },
+      "V33组合": {
+        "total_return": -0.74,
+        "annualized_return": -3.75,
+        "max_drawdown": 2.72,
+        "sharpe": -0.54,
+        "win_rate": 0.0,
+        "trade_count": 1
+      }
+    },
+    {
+      "code": "300760",
+      "name": "迈瑞医疗",
+      "sector": "创新药",
+      "status": "ok",
+      "bars": 800,
+      "date_range": "2022-11-10 ~ 2026-03-03",
+      "MA": {
+        "total_return": -20.6,
+        "annualized_return": -7.49,
+        "max_drawdown": 21.15,
+        "sharpe": -0.66,
+        "win_rate": 25.0,
+        "trade_count": 28
+      },
+      "MACD": {
+        "total_return": -18.18,
+        "annualized_return": -6.6,
+        "max_drawdown": 24.06,
+        "sharpe": -0.5,
+        "win_rate": 28.21,
+        "trade_count": 39
+      },
+      "RSI": {
+        "total_return": -7.5,
+        "annualized_return": -2.58,
+        "max_drawdown": 18.8,
+        "sharpe": -0.11,
+        "win_rate": 41.67,
+        "trade_count": 24
+      },
+      "BOLL": {
+        "total_return": -9.83,
+        "annualized_return": -3.17,
+        "max_drawdown": 17.04,
+        "sharpe": -0.35,
+        "win_rate": 52.38,
+        "trade_count": 21
+      },
+      "KDJ": {
+        "total_return": -7.89,
+        "annualized_return": -2.7,
+        "max_drawdown": 18.47,
+        "sharpe": -0.13,
+        "win_rate": 39.13,
+        "trade_count": 46
+      },
+      "DUAL": {
+        "total_return": -23.17,
+        "annualized_return": -8.3,
+        "max_drawdown": 24.34,
+        "sharpe": -0.87,
+        "win_rate": 15.79,
+        "trade_count": 19
+      },
+      "PE": {
+        "total_return": 0.0,
+        "annualized_return": 0.0,
+        "max_drawdown": 0.0,
+        "sharpe": 0.0,
+        "win_rate": 0.0,
+        "trade_count": 0
+      },
+      "Sentiment": {
+        "total_return": 0.0,
+        "annualized_return": 0.0,
+        "max_drawdown": 0.0,
+        "sharpe": 0.0,
+        "win_rate": 0.0,
+        "trade_count": 0
+      },
+      "NewsSentiment": {
+        "total_return": 0.0,
+        "annualized_return": 0.0,
+        "max_drawdown": 0.0,
+        "sharpe": 0.0,
+        "win_rate": 0.0,
+        "trade_count": 0
+      },
+      "PolicyEvent": {
+        "total_return": 0.0,
+        "annualized_return": 0.0,
+        "max_drawdown": 0.0,
+        "sharpe": 0.0,
+        "win_rate": 0.0,
+        "trade_count": 0
+      },
+      "MoneyFlow": {
+        "total_return": 0.0,
+        "annualized_return": 0.0,
+        "max_drawdown": 0.0,
+        "sharpe": 0.0,
+        "win_rate": 0.0,
+        "trade_count": 0
+      },
+      "V33组合": {
+        "total_return": -3.55,
+        "annualized_return": -16.94,
+        "max_drawdown": 4.83,
+        "sharpe": -2.5,
+        "win_rate": 0.0,
+        "trade_count": 1
+      }
+    },
+    {
+      "code": "688235",
+      "name": "百济神州",
+      "sector": "创新药",
+      "status": "ok",
+      "bars": 800,
+      "date_range": "2022-11-10 ~ 2026-03-03",
+      "MA": {
+        "total_return": 10.97,
+        "annualized_return": 3.57,
+        "max_drawdown": 19.16,
+        "sharpe": 0.28,
+        "win_rate": 40.74,
+        "trade_count": 27
+      },
+      "MACD": {
+        "total_return": 10.45,
+        "annualized_return": 3.44,
+        "max_drawdown": 19.72,
+        "sharpe": 0.27,
+        "win_rate": 37.5,
+        "trade_count": 32
+      },
+      "RSI": {
+        "total_return": 1.03,
+        "annualized_return": 0.34,
+        "max_drawdown": 26.39,
+        "sharpe": 0.1,
+        "win_rate": 54.17,
+        "trade_count": 24
+      },
+      "BOLL": {
+        "total_return": 28.29,
+        "annualized_return": 8.05,
+        "max_drawdown": 23.28,
+        "sharpe": 0.6,
+        "win_rate": 50.0,
+        "trade_count": 24
+      },
+      "KDJ": {
+        "total_return": 12.71,
+        "annualized_return": 4.06,
+        "max_drawdown": 23.25,
+        "sharpe": 0.31,
+        "win_rate": 57.45,
+        "trade_count": 47
+      },
+      "DUAL": {
+        "total_return": -22.66,
+        "annualized_return": -8.1,
+        "max_drawdown": 26.82,
+        "sharpe": -0.36,
+        "win_rate": 26.19,
+        "trade_count": 42
+      },
+      "PE": {
+        "total_return": 0.0,
+        "annualized_return": 0.0,
+        "max_drawdown": 0.0,
+        "sharpe": 0.0,
+        "win_rate": 0.0,
+        "trade_count": 0
+      },
+      "Sentiment": {
+        "total_return": 0.0,
+        "annualized_return": 0.0,
+        "max_drawdown": 0.0,
+        "sharpe": 0.0,
+        "win_rate": 0.0,
+        "trade_count": 0
+      },
+      "NewsSentiment": {
+        "total_return": 0.0,
+        "annualized_return": 0.0,
+        "max_drawdown": 0.0,
+        "sharpe": 0.0,
+        "win_rate": 0.0,
+        "trade_count": 0
+      },
+      "PolicyEvent": {
+        "total_return": 0.0,
+        "annualized_return": 0.0,
+        "max_drawdown": 0.0,
+        "sharpe": 0.0,
+        "win_rate": 0.0,
+        "trade_count": 0
+      },
+      "MoneyFlow": {
+        "total_return": 0.0,
+        "annualized_return": 0.0,
+        "max_drawdown": 0.0,
+        "sharpe": 0.0,
+        "win_rate": 0.0,
+        "trade_count": 0
+      },
+      "V33组合": {
+        "total_return": -4.52,
+        "annualized_return": -21.17,
+        "max_drawdown": 5.69,
+        "sharpe": -3.64,
+        "win_rate": 0.0,
+        "trade_count": 3
+      }
+    },
+    {
+      "code": "600118",
+      "name": "中国卫星",
+      "sector": "商业航天",
+      "status": "ok",
+      "bars": 800,
+      "date_range": "2022-11-10 ~ 2026-03-03",
+      "MA": {
+        "total_return": 49.23,
+        "annualized_return": 14.46,
+        "max_drawdown": 19.4,
+        "sharpe": 0.78,
+        "win_rate": 39.13,
+        "trade_count": 23
+      },
+      "MACD": {
+        "total_return": 40.45,
+        "annualized_return": 12.26,
+        "max_drawdown": 20.5,
+        "sharpe": 0.65,
+        "win_rate": 33.33,
+        "trade_count": 36
+      },
+      "RSI": {
+        "total_return": 4.72,
+        "annualized_return": 1.56,
+        "max_drawdown": 22.44,
+        "sharpe": 0.18,
+        "win_rate": 47.62,
+        "trade_count": 21
+      },
+      "BOLL": {
+        "total_return": 8.87,
+        "annualized_return": 2.68,
+        "max_drawdown": 16.05,
+        "sharpe": 0.29,
+        "win_rate": 61.11,
+        "trade_count": 18
+      },
+      "KDJ": {
+        "total_return": -14.75,
+        "annualized_return": -5.17,
+        "max_drawdown": 38.07,
+        "sharpe": -0.21,
+        "win_rate": 54.9,
+        "trade_count": 51
+      },
+      "DUAL": {
+        "total_return": 89.97,
+        "annualized_return": 23.49,
+        "max_drawdown": 38.58,
+        "sharpe": 0.88,
+        "win_rate": 27.08,
+        "trade_count": 48
+      },
+      "PE": {
+        "total_return": 0.0,
+        "annualized_return": 0.0,
+        "max_drawdown": 0.0,
+        "sharpe": 0.0,
+        "win_rate": 0.0,
+        "trade_count": 0
+      },
+      "Sentiment": {
+        "total_return": 0.0,
+        "annualized_return": 0.0,
+        "max_drawdown": 0.0,
+        "sharpe": 0.0,
+        "win_rate": 0.0,
+        "trade_count": 0
+      },
+      "NewsSentiment": {
+        "total_return": 0.0,
+        "annualized_return": 0.0,
+        "max_drawdown": 0.0,
+        "sharpe": 0.0,
+        "win_rate": 0.0,
+        "trade_count": 0
+      },
+      "PolicyEvent": {
+        "total_return": 0.0,
+        "annualized_return": 0.0,
+        "max_drawdown": 0.0,
+        "sharpe": 0.0,
+        "win_rate": 0.0,
+        "trade_count": 0
+      },
+      "MoneyFlow": {
+        "total_return": 0.0,
+        "annualized_return": 0.0,
+        "max_drawdown": 0.0,
+        "sharpe": 0.0,
+        "win_rate": 0.0,
+        "trade_count": 0
+      },
+      "V33组合": {
+        "total_return": 29.24,
+        "annualized_return": 273.8,
+        "max_drawdown": 11.83,
+        "sharpe": 3.47,
+        "win_rate": 42.86,
+        "trade_count": 7
+      }
+    },
+    {
+      "code": "600879",
+      "name": "航天电子",
+      "sector": "商业航天",
+      "status": "ok",
+      "bars": 800,
+      "date_range": "2022-11-10 ~ 2026-03-03",
+      "MA": {
+        "total_return": 31.63,
+        "annualized_return": 9.71,
+        "max_drawdown": 23.18,
+        "sharpe": 0.56,
+        "win_rate": 47.83,
+        "trade_count": 23
+      },
+      "MACD": {
+        "total_return": 51.9,
+        "annualized_return": 15.3,
+        "max_drawdown": 14.3,
+        "sharpe": 0.81,
+        "win_rate": 40.0,
+        "trade_count": 35
+      },
+      "RSI": {
+        "total_return": 23.9,
+        "annualized_return": 7.44,
+        "max_drawdown": 15.29,
+        "sharpe": 0.61,
+        "win_rate": 59.09,
+        "trade_count": 22
+      },
+      "BOLL": {
+        "total_return": 27.6,
+        "annualized_return": 7.87,
+        "max_drawdown": 15.55,
+        "sharpe": 0.69,
+        "win_rate": 68.42,
+        "trade_count": 19
+      },
+      "KDJ": {
+        "total_return": 80.62,
+        "annualized_return": 21.74,
+        "max_drawdown": 11.35,
+        "sharpe": 1.18,
+        "win_rate": 60.38,
+        "trade_count": 53
+      },
+      "DUAL": {
+        "total_return": 40.15,
+        "annualized_return": 11.74,
+        "max_drawdown": 32.93,
+        "sharpe": 0.56,
+        "win_rate": 23.53,
+        "trade_count": 51
+      },
+      "PE": {
+        "total_return": 0.0,
+        "annualized_return": 0.0,
+        "max_drawdown": 0.0,
+        "sharpe": 0.0,
+        "win_rate": 0.0,
+        "trade_count": 0
+      },
+      "Sentiment": {
+        "total_return": 0.0,
+        "annualized_return": 0.0,
+        "max_drawdown": 0.0,
+        "sharpe": 0.0,
+        "win_rate": 0.0,
+        "trade_count": 0
+      },
+      "NewsSentiment": {
+        "total_return": 0.0,
+        "annualized_return": 0.0,
+        "max_drawdown": 0.0,
+        "sharpe": 0.0,
+        "win_rate": 0.0,
+        "trade_count": 0
+      },
+      "PolicyEvent": {
+        "total_return": 0.0,
+        "annualized_return": 0.0,
+        "max_drawdown": 0.0,
+        "sharpe": 0.0,
+        "win_rate": 0.0,
+        "trade_count": 0
+      },
+      "MoneyFlow": {
+        "total_return": 0.0,
+        "annualized_return": 0.0,
+        "max_drawdown": 0.0,
+        "sharpe": 0.0,
+        "win_rate": 0.0,
+        "trade_count": 0
+      },
+      "V33组合": {
+        "total_return": 26.4,
+        "annualized_return": 233.45,
+        "max_drawdown": 12.57,
+        "sharpe": 2.9,
+        "win_rate": 50.0,
+        "trade_count": 8
+      }
+    }
+  ]
+}

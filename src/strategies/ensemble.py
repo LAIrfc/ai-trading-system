@@ -398,6 +398,62 @@ class V33EnsembleStrategy(Strategy):
         self._weight_adjustment_date: Optional[pd.Timestamp] = None
         self._weight_cooldown_until: Optional[pd.Timestamp] = None
         self._weight_state: Optional[str] = None
+        # 回测用：预取指数日线，按 bar 日期做截面权重，不缩减动态权重功能
+        self._backtest_index_df: Optional[pd.DataFrame] = None
+
+    def prepare_backtest(self, df: pd.DataFrame) -> None:
+        """回测前让各子策略预取外部数据；并预取沪深300指数用于动态权重（按 bar 截面）。"""
+        for strat in self.sub_strategies.values():
+            if hasattr(strat, "prepare_backtest") and callable(getattr(strat, "prepare_backtest")):
+                try:
+                    strat.prepare_backtest(df)
+                except Exception:
+                    pass
+        if df is None or df.empty or "date" not in df.columns:
+            return
+        start_d = pd.Timestamp(df["date"].iloc[0]) - pd.Timedelta(days=90)
+        end_d = pd.Timestamp(df["date"].iloc[-1])
+        start_str = start_d.strftime("%Y%m%d")
+        end_str = end_d.strftime("%Y%m%d")
+
+        def _norm_index_df(raw):
+            if raw is None or len(raw) < 30:
+                return None
+            raw = raw.rename(columns={"日期": "date", "开盘": "open", "收盘": "close", "最高": "high", "最低": "low"})
+            if "date" not in raw.columns:
+                raw = raw.rename(columns={"trade_date": "date"})
+            raw["date"] = pd.to_datetime(raw["date"])
+            for c in ["high", "low", "close"]:
+                if c not in raw.columns:
+                    raw[c] = raw["close"]
+            raw["high"] = pd.to_numeric(raw["high"], errors="coerce").fillna(raw["close"])
+            raw["low"] = pd.to_numeric(raw["low"], errors="coerce").fillna(raw["close"])
+            raw["close"] = pd.to_numeric(raw["close"], errors="coerce")
+            return raw.dropna(subset=["close"]).sort_values("date").reset_index(drop=True)
+
+        idx_df = None
+        try:
+            import akshare as ak
+            idx_df = ak.stock_zh_index_hist_csindex(symbol="000300", start_date=start_str, end_date=end_str)
+            idx_df = _norm_index_df(idx_df)
+        except Exception as e:
+            logger.warning("V33 预取沪深300 akshare 失败: %s，尝试备用 tushare", e)
+        if idx_df is None:
+            try:
+                import tushare as ts
+                token = getattr(ts, "token", None) or __import__("os").environ.get("TUSHARE_TOKEN")
+                if token:
+                    pro = ts.pro_api(token)
+                    tushare_df = pro.index_daily(ts_code="399300.SZ", start_date=start_str, end_date=end_str)
+                    if tushare_df is not None and not tushare_df.empty:
+                        tushare_df = tushare_df.rename(columns={"trade_date": "date", "close": "close", "high": "high", "low": "low"})
+                        tushare_df["date"] = pd.to_datetime(tushare_df["date"])
+                        idx_df = _norm_index_df(tushare_df)
+                        if idx_df is not None:
+                            logger.info("V33 预取沪深300 已用备用 tushare 成功")
+            except Exception as e2:
+                logger.debug("V33 预取沪深300 tushare 失败: %s", e2)
+        self._backtest_index_df = idx_df
 
     def analyze(self, df: pd.DataFrame) -> StrategySignal:
         # 动态权重与冷却（Phase 5.2–5.4）
@@ -408,24 +464,33 @@ class V33EnsembleStrategy(Strategy):
                 as_of = pd.Timestamp(d.iloc[-1]) if hasattr(d, "iloc") else pd.Timestamp(datetime.now().date())
             except Exception:
                 pass
-        if self.use_dynamic_weights and compute_v33_weights is not None and fetch_index_for_state is not None:
-            in_cooldown = (
-                self._weight_cooldown_until is not None
-                and as_of is not None
-                and as_of < self._weight_cooldown_until
-            )
-            if not in_cooldown:
+        from .base import _BACKTEST_ACTIVE
+        index_df = None
+        if self.use_dynamic_weights and compute_v33_weights is not None:
+            if _BACKTEST_ACTIVE and self._backtest_index_df is not None and not self._backtest_index_df.empty:
+                # 回测：用预取指数，截取到当前 bar 日期的最近 60 日，保证动态权重按截面生效
+                sub = self._backtest_index_df[self._backtest_index_df["date"] <= as_of].tail(60)
+                if len(sub) >= 30:
+                    index_df = sub.reset_index(drop=True)
+            elif not _BACKTEST_ACTIVE and fetch_index_for_state is not None:
                 index_df = fetch_index_for_state("000300", 60)
-                trigger = should_trigger_adjustment(index_df, self._weight_state) if should_trigger_adjustment else True
-                if trigger and index_df is not None:
-                    as_of_dt = as_of.to_pydatetime() if hasattr(as_of, "to_pydatetime") else datetime.now()
-                    w, state, adj_date = compute_v33_weights(
-                        index_df, self._weight_state, self._weight_adjustment_date, as_of_dt
-                    )
-                    self.weights = {k: v for k, v in w.items() if k in self.sub_strategies}
-                    self._weight_state = state
-                    self._weight_adjustment_date = pd.Timestamp(adj_date) if adj_date else as_of
-                    self._weight_cooldown_until = self._weight_adjustment_date + pd.Timedelta(days=7)
+            if index_df is not None:
+                in_cooldown = (
+                    self._weight_cooldown_until is not None
+                    and as_of is not None
+                    and as_of < self._weight_cooldown_until
+                )
+                if not in_cooldown:
+                    trigger = should_trigger_adjustment(index_df, self._weight_state) if should_trigger_adjustment else True
+                    if trigger:
+                        as_of_dt = as_of.to_pydatetime() if hasattr(as_of, "to_pydatetime") else datetime.now()
+                        w, state, adj_date = compute_v33_weights(
+                            index_df, self._weight_state, self._weight_adjustment_date, as_of_dt
+                        )
+                        self.weights = {k: v for k, v in w.items() if k in self.sub_strategies}
+                        self._weight_state = state
+                        self._weight_adjustment_date = pd.Timestamp(adj_date) if adj_date else as_of
+                        self._weight_cooldown_until = self._weight_adjustment_date + pd.Timedelta(days=7)
 
         votes: Dict[str, StrategySignal] = {}
         buy_votes: List[tuple] = []

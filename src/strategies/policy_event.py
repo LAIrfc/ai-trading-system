@@ -80,6 +80,46 @@ def _get_policy_legacy(max_news: int = 15) -> Optional[float]:
             return None
 
 
+def _get_policy_prefetch_for_backtest(df: pd.DataFrame):
+    """回测时从本地预取数据读取（预留 parquet 等）。无预取返回 None。"""
+    return None
+
+
+def _analyze_from_prefetched_policy(prefetched: dict, buy_threshold: float, sell_threshold: float) -> StrategySignal:
+    """用预取政策数据计算信号。"""
+    agg = prefetched.get("agg")
+    if agg is None:
+        return StrategySignal("HOLD", 0.0, 0.5, "预取政策数据无效", {})
+    confidence = 0.5 + 0.35 * min(abs(agg), 1.0)
+    if prefetched.get("has_major_negative") and agg <= 0:
+        return StrategySignal("SELL", min(1.0, prefetched.get("avg_influence", 1) * 1.2), 0.15, "预取重大利空", {"policy_agg": agg})
+    if agg >= buy_threshold:
+        return StrategySignal("BUY", confidence, min(0.9, 0.5 + 0.4 * (agg - buy_threshold) / (1 - buy_threshold)), f"预取政策利好{agg:.2f}", {"policy_agg": agg})
+    if agg <= sell_threshold:
+        return StrategySignal("SELL", confidence, max(0.05, 0.5 - 0.4 * (sell_threshold - agg) / abs(sell_threshold)), f"预取政策利空{agg:.2f}", {"policy_agg": agg})
+    return StrategySignal("HOLD", 0.5, 0.5, f"预取政策中性{agg:.2f}", {"policy_agg": agg})
+
+
+def _get_policy_backup(
+    max_news: int,
+    buy_threshold: float,
+    sell_threshold: float,
+    max_index_return_for_buy: float,
+) -> Optional[StrategySignal]:
+    """备用：主流财经媒体政策专栏（预留），失败返回 None。"""
+    agg = _get_policy_legacy(max_news=max_news)
+    if agg is None:
+        return None
+    confidence = 0.5 + 0.35 * min(abs(agg), 1.0)
+    if agg >= buy_threshold:
+        pos = min(0.9, max(0.5, 0.5 + 0.4 * min((agg - buy_threshold) / (1.0 - buy_threshold), 1.0)))
+        return StrategySignal("BUY", confidence, pos, f"备用政策利好({agg:.2f})", {"policy_agg": round(agg, 3)})
+    if agg <= sell_threshold:
+        pos = max(0.05, min(0.5, 0.5 * (1.0 - (agg - sell_threshold) / max(0.01, sell_threshold))))
+        return StrategySignal("SELL", confidence, pos, f"备用政策利空({agg:.2f})", {"policy_agg": round(agg, 3)})
+    return StrategySignal("HOLD", 0.5, 0.5, f"备用政策中性({agg:.2f})", {"policy_agg": round(agg, 3)})
+
+
 class PolicyEventStrategy(Strategy):
     """政策事件驱动 V3.3：重大利好 + S<S_high + 指数涨幅<2% 买入；重大利空无条件卖出。"""
 
@@ -109,6 +149,34 @@ class PolicyEventStrategy(Strategy):
         self.max_index_return_for_buy = max_index_return_for_buy
 
     def analyze(self, df: pd.DataFrame) -> StrategySignal:
+        from .base import _BACKTEST_ACTIVE
+        if _BACKTEST_ACTIVE:
+            prefetched = _get_policy_prefetch_for_backtest(df)
+            if prefetched is None:
+                return StrategySignal("HOLD", 0.0, "回测中无预取政策数据", 0.5, {"policy": "no_prefetch"})
+            return _analyze_from_prefetched_policy(prefetched, self.buy_threshold, self.sell_threshold)
+        try:
+            return self._analyze_impl(df)
+        except Exception as e:
+            logger.warning(
+                "[PolicyEvent] 策略=%s 时间=%s 主接口异常: %s",
+                self.name, pd.Timestamp.now().isoformat(), e,
+            )
+            try:
+                out = _get_policy_backup(self.max_news, self.buy_threshold, self.sell_threshold, self.max_index_return_for_buy)
+                if out is not None:
+                    return out
+            except Exception as e2:
+                logger.debug("[PolicyEvent] 备用接口(财经媒体政策专栏)异常: %s", e2)
+            return StrategySignal(
+                action="HOLD",
+                confidence=0.0,
+                position=0.5,
+                reason="政策接口异常及备用均失败，暂观望",
+                indicators={"policy": None},
+            )
+
+    def _analyze_impl(self, df: pd.DataFrame) -> StrategySignal:
         v33 = _get_policy_v33(max_news=self.max_news)
         if v33 is not None:
             agg, has_major_negative, avg_influence = v33

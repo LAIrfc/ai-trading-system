@@ -20,74 +20,20 @@ wheels/
 .installed.cfg
 *.egg
 
-# 虚拟环境
+# 虚拟环境（不提交）
 venv/
 ENV/
 env/
 .venv
 myvenv/
 
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
-.DS_Store
-
-# 配置文件（包含敏感信息）
-config/trading_config.yaml
-config/risk_config.yaml
-config/strategy_config.yaml
-config/broker_config.yaml
-config/strategy_rules.yaml
-*.secret
-
-# 数据文件（新目录结构）
-mydate/
-!mydate/.gitkeep
-mycache/
-!mycache/.gitkeep
-mylog/
-!mylog/.gitkeep
-myoutput/
-!myoutput/.gitkeep
-
-# 数据文件（旧目录，保留兼容）
-data/
-!data/.gitkeep
-data/market_data/*.csv
-data/market_data/*.h5
-data/market_data/*.parquet
-data/factor_data/*.csv
-data/factor_data/*.h5
-data/models/*.pkl
-data/models/*.h5
-data/models/*.pth
-
-# 日志文件（旧目录，保留兼容）
+# 日志与输出（不提交）
 logs/
 !logs/.gitkeep
 logs/*.log
 logs/*.txt
-
-# 个人交易记录（敏感）
-# 注意：mydate/ 目录已在上方忽略，这里只处理根目录的敏感JSON
-mydate/*.json
-!mydate/.gitkeep
-!mydate/stock_pool*.json.example
-!package.json
-!tsconfig.json
-
-# 模拟交易数据（包含个人信息）
-paper_trading_*.json
-account_*.json
-
-# 输出文件
 output/
 !output/.gitkeep
-
-# 缓存（旧目录，保留兼容）
 cache/
 .cache/
 GPUCache/

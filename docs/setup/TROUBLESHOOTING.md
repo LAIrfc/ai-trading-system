@@ -153,5 +153,5 @@ python3 tests/simple_test.py
 
 **需要更多帮助？** 查看其他文档：
 - [SIMPLE_START.md](SIMPLE_START.md) - 最简单的开始方式
-- [DESKTOP_QUICKSTART.md](DESKTOP_QUICKSTART.md) - 桌面版快速开始
+- [DESKTOP_TRADING_GUIDE.md](DESKTOP_TRADING_GUIDE.md) - 桌面交易指南
 - [docs/DESKTOP_TRADING_GUIDE.md](docs/DESKTOP_TRADING_GUIDE.md) - 详细指南
