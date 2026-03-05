@@ -1,20 +1,22 @@
 #!/usr/bin/env python3
 """
-📈 每日选股推荐工具（基于优化后的MACD策略）
+📈 每日选股推荐工具
 
 功能:
 1. 对股票池中所有股票获取最新数据
-2. 用最优MACD参数(12,30,9)分析每只股票当前状态
-3. 输出：该买哪些、该卖哪些、观望哪些
-4. 每只推荐股票附带：信号强度、建议仓位、理由
+2. 策略模式: macd(单MACD) | ensemble(7策略) | full_11(11大策略，与持仓分析一致)
+3. 输出：该买哪些、该卖哪些、观望哪些；每只附带信号强度、建议仓位、理由
 
 用法:
-    python3 tools/analysis/recommend_today.py                    # 使用默认股票池
-    python3 tools/analysis/recommend_today.py --pool mydate/stock_pool_600.json  # 指定池
-    python3 tools/analysis/recommend_today.py --fast 12 --slow 30 --signal 9  # 自定义参数
+    python3 tools/analysis/recommend_today.py --strategy full_11 --pool stock_pool_all.json --top 10
+    python3 tools/analysis/recommend_today.py --pool stock_pool.json  # 默认池可选
+    python3 tools/analysis/recommend_today.py --strategy ensemble --fast 12 --slow 30 --signal 9
+
+11策略: MA | MACD | RSI | BOLL | KDJ | DUAL | Sentiment | NewsSentiment | PolicyEvent | MoneyFlow | PE | PB
+默认池: stock_pool_all.json（812只），可 --pool stock_pool.json（100只）缩小范围。
 
 输出:
-    终端彩色报告 + output/daily_recommendation_YYYY-MM-DD.md
+    终端报告 + output/daily_recommendation_YYYY-MM-DD.md
 """
 
 import sys
@@ -34,6 +36,15 @@ from src.strategies.macd_cross import MACDStrategy
 from src.strategies.ensemble import EnsembleStrategy
 from src.strategies.fundamental_pe import PEStrategy
 from src.strategies.fundamental_pb import PBStrategy
+from src.strategies.ma_cross import MACrossStrategy
+from src.strategies.rsi_signal import RSIStrategy
+from src.strategies.bollinger_band import BollingerBandStrategy
+from src.strategies.kdj_signal import KDJStrategy
+from src.strategies.dual_momentum import DualMomentumSingleStrategy
+from src.strategies.sentiment import SentimentStrategy
+from src.strategies.news_sentiment import NewsSentimentStrategy
+from src.strategies.policy_event import PolicyEventStrategy
+from src.strategies.money_flow import MoneyFlowStrategy
 from src.data.fetchers.fundamental_fetcher import FundamentalFetcher
 
 
@@ -75,12 +86,12 @@ def fetch_stock_data(code: str, days: int = 200) -> pd.DataFrame:
     return df
 
 
-def load_stock_pool(pool_file: str) -> list:
-    """加载股票池（兼容多种格式）"""
+def load_stock_pool(pool_file: str, max_count: int = 0) -> list:
+    """加载股票池（兼容 sectors / stocks 格式，优先使用 pool_loader）"""
     try:
         from src.utils.pool_loader import load_pool
-        return load_pool(pool_file, include_etf=False)
-    except ImportError:
+        return load_pool(pool_file, max_count=max_count, include_etf=False)
+    except Exception:
         pass
 
     with open(pool_file, 'r', encoding='utf-8') as f:
@@ -90,8 +101,11 @@ def load_stock_pool(pool_file: str) -> list:
     sectors = pool.get('stocks', pool.get('sectors', {}))
     for sec_name, sec_stocks in sectors.items():
         for s in sec_stocks:
+            s = dict(s)
             s['sector'] = sec_name
             stocks.append(s)
+    if max_count > 0 and len(stocks) > max_count:
+        stocks = stocks[:max_count]
     return stocks
 
 
@@ -303,15 +317,130 @@ def compute_score(info: dict) -> float:
 
 
 # ============================================================
+# 11 策略全量分析（与持仓分析一致）
+# ============================================================
+
+def run_full_11_analysis(code: str, name: str, sector: str, df: pd.DataFrame, fetcher: FundamentalFetcher) -> dict:
+    """
+    运行 11 大策略: MA, MACD, RSI, BOLL, KDJ, DUAL, Sentiment, NewsSentiment, PolicyEvent, MoneyFlow, PE, PB。
+    返回 buy_count, sell_count, hold_count, score（买-卖加权）, signals 列表。
+    """
+    tech_strategies = {
+        'MA': MACrossStrategy(),
+        'MACD': MACDStrategy(),
+        'RSI': RSIStrategy(),
+        'BOLL': BollingerBandStrategy(),
+        'KDJ': KDJStrategy(),
+        'DUAL': DualMomentumSingleStrategy(),
+        'Sentiment': SentimentStrategy(),
+        'NewsSentiment': NewsSentimentStrategy(symbol=code),
+        'PolicyEvent': PolicyEventStrategy(),
+        'MoneyFlow': MoneyFlowStrategy(symbol=code),
+    }
+    buy_count = sell_count = hold_count = 0
+    signals = []
+    score_sum = 0.0  # BUY +position, SELL -position, HOLD 0
+
+    for strat_name, strat in tech_strategies.items():
+        try:
+            if len(df) < strat.min_bars:
+                continue
+            sig = strat.safe_analyze(df)
+            if sig.action == 'BUY':
+                buy_count += 1
+                score_sum += sig.position
+            elif sig.action == 'SELL':
+                sell_count += 1
+                score_sum -= sig.position
+            else:
+                hold_count += 1
+            signals.append((strat_name, sig.action, sig.confidence, sig.reason[:40]))
+        except Exception:
+            pass
+
+    industry = None
+    industry_pe_data = industry_pb_data = None
+    try:
+        industry = fetcher.get_industry_classification(code)
+        if industry:
+            industry_data = fetcher.get_industry_pe_pb_data(code, datalen=min(len(df), 800))
+            industry_pe_data = industry_data.get('industry_pe')
+            industry_pb_data = industry_data.get('industry_pb')
+    except Exception:
+        pass
+
+    if 'pe_ttm' in df.columns and df['pe_ttm'].notna().sum() > 100:
+        try:
+            available_data = len(df[df['pe_ttm'].notna()])
+            rolling_window = min(available_data, 756)
+            pe_strat = PEStrategy(industry=industry, industry_pe_data=industry_pe_data, rolling_window=rolling_window) if industry and industry_pe_data is not None else PEStrategy(rolling_window=rolling_window)
+            pe_strat.min_bars = max(100, available_data)
+            if len(df) >= pe_strat.min_bars:
+                pe_sig = pe_strat.safe_analyze(df)
+                if pe_sig.action == 'BUY':
+                    buy_count += 1
+                    score_sum += pe_sig.position
+                elif pe_sig.action == 'SELL':
+                    sell_count += 1
+                    score_sum -= pe_sig.position
+                else:
+                    hold_count += 1
+                signals.append(('PE', pe_sig.action, pe_sig.confidence, pe_sig.reason[:40]))
+        except Exception:
+            pass
+
+    if 'pb' in df.columns and df['pb'].notna().sum() > 100:
+        try:
+            available_data = len(df[df['pb'].notna()])
+            rolling_window = min(available_data, 756)
+            roe_passes, _, _ = fetcher.get_roe_for_filter(code)
+            pb_strat = PBStrategy(industry=industry, industry_pb_data=industry_pb_data, min_roe=8.0 if roe_passes else 0, rolling_window=rolling_window) if industry and industry_pb_data is not None else PBStrategy(min_roe=8.0 if roe_passes else 0, rolling_window=rolling_window)
+            pb_strat.min_bars = max(100, available_data)
+            if len(df) >= pb_strat.min_bars:
+                pb_sig = pb_strat.safe_analyze(df)
+                if pb_sig.action == 'BUY':
+                    buy_count += 1
+                    score_sum += pb_sig.position
+                elif pb_sig.action == 'SELL':
+                    sell_count += 1
+                    score_sum -= pb_sig.position
+                else:
+                    hold_count += 1
+                signals.append(('PB', pb_sig.action, pb_sig.confidence, pb_sig.reason[:40]))
+        except Exception:
+            pass
+
+    # 综合得分：买数量*2 - 卖数量*2 + 仓位加权
+    score = buy_count * 2 - sell_count * 2 + round(score_sum, 2)
+    price = float(df['close'].iloc[-1])
+    change_5d = (price / float(df['close'].iloc[-6]) - 1) * 100 if len(df) > 5 else 0
+    change_20d = (price / float(df['close'].iloc[-21]) - 1) * 100 if len(df) > 20 else 0
+    return {
+        'code': code,
+        'name': name,
+        'sector': sector,
+        'buy_count': buy_count,
+        'sell_count': sell_count,
+        'hold_count': hold_count,
+        'score': score,
+        'price': price,
+        'change_5d': round(change_5d, 2),
+        'change_20d': round(change_20d, 2),
+        'signals': signals,
+    }
+
+
+# ============================================================
 # 主逻辑
 # ============================================================
 
 def main():
     parser = argparse.ArgumentParser(description='每日选股推荐')
-    parser.add_argument('--pool', type=str, default='stock_pool.json', help='股票池')
-    parser.add_argument('--strategy', type=str, default='ensemble',
-                        choices=['macd', 'ensemble'],
-                        help='策略类型: macd(单MACD) 或 ensemble(7策略组合)')
+    parser.add_argument('--pool', type=str, default='stock_pool_all.json', help='股票池（默认大池 812 只）')
+    parser.add_argument('--max-pool', type=int, default=0, help='最多扫描池内前 N 只（0=全部）')
+    parser.add_argument('--strategy', type=str, default='full_11',
+                        choices=['macd', 'ensemble', 'full_11'],
+                        help='策略: macd | ensemble(7策略) | full_11(11大策略)')
     parser.add_argument('--fast', type=int, default=12, help='MACD快线(仅macd模式)')
     parser.add_argument('--slow', type=int, default=30, help='MACD慢线(仅macd模式)')
     parser.add_argument('--signal', type=int, default=9, help='MACD信号线(仅macd模式)')
@@ -325,9 +454,125 @@ def main():
     pool_file = os.path.join(base_dir, 'mydate', args.pool)
     if not os.path.exists(pool_file):
         pool_file = os.path.join(base_dir, 'data', args.pool)
-    stocks = load_stock_pool(pool_file)
+    if not os.path.exists(pool_file):
+        pool_file = args.pool
+    stocks = load_stock_pool(pool_file, max_count=args.max_pool if args.max_pool > 0 else 0)
 
-    # 选择策略
+    today = datetime.now().strftime('%Y-%m-%d')
+
+    # ---------- 11 策略全量模式 ----------
+    if args.strategy == 'full_11':
+        strategy_name = '11大策略(MA|MACD|RSI|BOLL|KDJ|DUAL|Sentiment|NewsSentiment|PolicyEvent|MoneyFlow|PE|PB)'
+        print(f"{'='*70}")
+        print(f"📈 每日选股推荐 — {today} [全策略+大池]")
+        print(f"{'='*70}")
+        print(f"📌 策略: {strategy_name}")
+        print(f"📌 股票池: {len(stocks)} 只")
+        print(f"📌 推荐TOP: {args.top} 只")
+        print()
+
+        import baostock as bs
+        bs.login()
+        fetcher = FundamentalFetcher()
+        full_results = []
+        fail_count = 0
+        BATCH_SIZE = 80
+
+        for i, stock in enumerate(stocks, 1):
+            code = stock.get('code') or stock.get('symbol', '')
+            name = stock.get('name', '')
+            sector = stock.get('sector', '')
+            if not code:
+                continue
+            if i > 1 and (i - 1) % BATCH_SIZE == 0:
+                try:
+                    bs.logout()
+                except Exception:
+                    pass
+                time.sleep(0.5)
+                bs.login()
+            if i % 50 == 0 or i == len(stocks) or len(stocks) <= 30:
+                pct = i / len(stocks) * 100
+                bar = '█' * int(pct / 2) + '░' * (50 - int(pct / 2))
+                print(f"\r  [{bar}] {i}/{len(stocks)} ({pct:.0f}%)", end='', flush=True)
+
+            df = pd.DataFrame()
+            for attempt in range(3):
+                df = fetch_stock_data(code, 200)
+                if len(df) >= 60:
+                    break
+                if attempt < 2:
+                    try:
+                        bs.logout()
+                    except Exception:
+                        pass
+                    time.sleep(0.3)
+                    bs.login()
+            if len(df) < 60:
+                fail_count += 1
+                continue
+            try:
+                start_dt = df['date'].iloc[0].strftime('%Y%m%d')
+                end_dt = df['date'].iloc[-1].strftime('%Y%m%d')
+                fund_df = fetcher.get_daily_basic(code, start_date=start_dt, end_date=end_dt)
+                if not fund_df.empty:
+                    df = fetcher.merge_to_daily(df, fund_df, fill_method='ffill')
+            except Exception:
+                pass
+            res = run_full_11_analysis(code, name, sector, df, fetcher)
+            full_results.append(res)
+            time.sleep(0.03)
+
+        try:
+            bs.logout()
+        except Exception:
+            pass
+        fetcher._bs_logout()
+
+        if fail_count:
+            print(f"\n⚠️  {fail_count} 只数据不足，已跳过")
+        if not full_results:
+            print("\n⚠️ 无有效分析结果")
+            return
+
+        full_results.sort(key=lambda x: x['score'], reverse=True)
+        top_list = full_results[:args.top]
+
+        print(f"\n\n{'='*70}")
+        print(f"🟢 11策略选股 TOP {len(top_list)}（按综合得分排序）")
+        print(f"{'='*70}")
+        print(f"{'排名':>4} {'代码':>8} {'名称':>10} {'价格':>8} {'得分':>6} {'买':>3} {'卖':>3} {'观':>3} {'5日%':>7} {'20日%':>7} {'板块'}")
+        print("-" * 75)
+        for rank, r in enumerate(top_list, 1):
+            print(f"{rank:>4} {r['code']:>8} {r['name']:>10} {r['price']:>8.2f} {r['score']:>6.1f} "
+                  f"{r['buy_count']:>3} {r['sell_count']:>3} {r['hold_count']:>3} "
+                  f"{r['change_5d']:>+7.2f} {r['change_20d']:>+7.2f} {str(r['sector'])[:12]}")
+        print("-" * 75)
+        print("\n📋 策略信号明细（TOP3）:")
+        for rank, r in enumerate(top_list[:3], 1):
+            print(f"\n  {rank}. {r['code']} {r['name']} (得分 {r['score']:.1f}, 买{r['buy_count']}/卖{r['sell_count']}/观{r['hold_count']})")
+            for sn, action, conf, reason in r['signals']:
+                em = '🟢' if action == 'BUY' else ('🔴' if action == 'SELL' else '⚪')
+                print(f"      {sn:>12} {em} {action:>4} {conf:.0%} {reason[:45]}")
+        output_dir = os.path.join(os.path.dirname(__file__), '..', 'output')
+        os.makedirs(output_dir, exist_ok=True)
+        md_path = os.path.join(output_dir, f'daily_recommendation_{today}.md')
+        with open(md_path, 'w', encoding='utf-8') as f:
+            f.write(f"# 📈 每日选股推荐 — {today}（11策略+大池）\n\n")
+            f.write(f"**策略**: {strategy_name}\n")
+            f.write(f"**股票池**: {len(stocks)} 只，有效 {len(full_results)} 只\n\n")
+            f.write("## TOP 推荐\n\n")
+            f.write("| 排名 | 代码 | 名称 | 价格 | 得分 | 买 | 卖 | 观 | 5日% | 20日% | 板块 |\n")
+            f.write("|------|------|------|------|------|----|----|----|------|-------|------|\n")
+            for rank, r in enumerate(top_list, 1):
+                f.write(f"| {rank} | {r['code']} | {r['name']} | {r['price']:.2f} | {r['score']:.1f} | "
+                        f"{r['buy_count']} | {r['sell_count']} | {r['hold_count']} | "
+                        f"{r['change_5d']:+.2f} | {r['change_20d']:+.2f} | {r['sector']} |\n")
+        print(f"\n📝 报告已保存: {md_path}")
+        print("\n✅ 分析完成!")
+        return
+
+    # ---------- 原有 macd / ensemble 模式 ----------
     if args.strategy == 'ensemble':
         strat = EnsembleStrategy(mode='majority', buy_threshold=0.5, sell_threshold=0.5)
         strategy_name = '7策略组合(MA+MACD+RSI+BOLL+KDJ+DUAL+PE)'
@@ -336,12 +581,9 @@ def main():
                              signal_period=args.signal)
         strategy_name = f'MACD({args.fast},{args.slow},{args.signal})'
     
-    # 基本面策略（ensemble已包含PE，这里单独处理PB）
     pe_strat = PEStrategy() if args.fundamental and args.strategy != 'ensemble' else None
     pb_strat = PBStrategy() if args.fundamental else None
     fund_fetcher = FundamentalFetcher() if args.fundamental else None
-
-    today = datetime.now().strftime('%Y-%m-%d')
 
     print(f"{'='*70}")
     print(f"📈 每日选股推荐 — {today}")
@@ -352,10 +594,8 @@ def main():
     print(f"📌 推荐TOP: {args.top} 只")
     print()
 
-    # 预加载数据
     import baostock as bs
     bs.login()
-
     BATCH_SIZE = 80
     all_results = []
     fail_count = 0

@@ -36,6 +36,7 @@ output/
 !output/.gitkeep
 cache/
 .cache/
+mycache/
 GPUCache/
 
 # Jupyter Notebook

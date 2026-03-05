@@ -9,7 +9,39 @@ import os
 import json
 import pandas as pd
 from datetime import datetime, timedelta
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+import requests
+_SCRIPT_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.insert(0, _SCRIPT_DIR)
+ETF_KLINE_CACHE_DIR = os.path.join(_SCRIPT_DIR, 'mycache', 'etf_kline')
+
+
+def load_etf_cache(code, max_days_old=2):
+    """优先用本地缓存：今日或最近 max_days_old 天内的 ETF 日 K，避免网络不稳时反复拿不到"""
+    os.makedirs(ETF_KLINE_CACHE_DIR, exist_ok=True)
+    for i in range(max_days_old):
+        d = (datetime.now() - timedelta(days=i)).strftime('%Y%m%d')
+        path = os.path.join(ETF_KLINE_CACHE_DIR, f"{code}_{d}.csv")
+        if os.path.exists(path):
+            try:
+                df = pd.read_csv(path, parse_dates=['date'])
+                if len(df) >= 60:
+                    return df
+            except Exception:
+                pass
+    return None
+
+
+def save_etf_cache(code, df):
+    """成功拉取到 ETF 日 K 后写入缓存，下次优先用"""
+    if df is None or len(df) < 60:
+        return
+    os.makedirs(ETF_KLINE_CACHE_DIR, exist_ok=True)
+    path = os.path.join(ETF_KLINE_CACHE_DIR, f"{code}_{datetime.now().strftime('%Y%m%d')}.csv")
+    try:
+        df.to_csv(path, index=False)
+    except Exception:
+        pass
+
 
 from src.strategies.ma_cross import MACrossStrategy
 from src.strategies.macd_cross import MACDStrategy
@@ -24,9 +56,11 @@ from src.strategies.money_flow import MoneyFlowStrategy
 from src.strategies.fundamental_pe import PEStrategy
 from src.strategies.fundamental_pb import PBStrategy
 from src.data.fetchers.fundamental_fetcher import FundamentalFetcher
+from src.data.fetchers.market_data import MarketData
 import akshare as ak
 import baostock as bs
 import time
+import random
 
 def get_stock_data_bs(code):
     """使用baostock获取历史数据（股票）"""
@@ -51,61 +85,120 @@ def get_stock_data_bs(code):
         return df
     return None
 
-def get_etf_data_akshare(code):
-    """使用akshare获取ETF历史数据"""
-    try:
-        # 确定市场
-        if code.startswith('15') or code.startswith('16'):
-            symbol = f'sz{code}'  # 深交所ETF
-        elif code.startswith('51'):
-            symbol = f'sh{code}'  # 上交所ETF
-        else:
-            symbol = code
-        
-        end_date = datetime.now().strftime('%Y%m%d')
-        start_date = (datetime.now() - timedelta(days=800)).strftime('%Y%m%d')
-        
-        # 方法1: stock_zh_a_hist (优先)
-        try:
-            df = ak.stock_zh_a_hist(symbol=symbol, period="日k", start_date=start_date, end_date=end_date, adjust="qfq")
-            if not df.empty and len(df) >= 60:
-                # 转换列名
-                df = df.rename(columns={
-                    '日期': 'date',
-                    '开盘': 'open',
-                    '收盘': 'close',
-                    '最高': 'high',
-                    '最低': 'low',
-                    '成交量': 'volume'
-                })
-                df['date'] = pd.to_datetime(df['date'])
-                df = df.sort_values('date').reset_index(drop=True)
-                return df
-        except Exception:
-            pass
-        
-        # 方法2: fund_etf_hist_em
-        try:
-            df = ak.fund_etf_hist_em(symbol=code, period="日k", start_date=start_date, end_date=end_date, adjust="qfq")
-            if not df.empty and len(df) >= 60:
-                df = df.rename(columns={
-                    '日期': 'date',
-                    '开盘': 'open',
-                    '收盘': 'close',
-                    '最高': 'high',
-                    '最低': 'low',
-                    '成交量': 'volume'
-                })
-                df['date'] = pd.to_datetime(df['date'])
-                df = df.sort_values('date').reset_index(drop=True)
-                return df
-        except Exception:
-            pass
-        
-    except Exception:
-        pass
-    
+def _normalize_etf_df(df, min_bars=60):
+    """将各源返回的 ETF DataFrame 统一为 date, open, high, low, close, volume"""
+    if df is None or df.empty or len(df) < min_bars:
+        return None
+    col_map = {'日期': 'date', '开盘': 'open', '收盘': 'close', '最高': 'high', '最低': 'low', '成交量': 'volume'}
+    rename = {k: v for k, v in col_map.items() if k in df.columns}
+    df = df.rename(columns=rename)
+    if 'date' not in df.columns:
+        return None
+    required = ['open', 'high', 'low', 'close', 'volume']
+    for c in required:
+        if c not in df.columns:
+            return None
+    df['date'] = pd.to_datetime(df['date'])
+    df = df[['date'] + required].dropna(subset=['close'])
+    df = df.sort_values('date').reset_index(drop=True)
+    return df if len(df) >= min_bars else None
+
+
+def get_etf_data_akshare(code, max_retries_per_source=2):
+    """
+    多源获取 ETF 日线数据，带重试与随机延迟
+    源顺序：新浪 -> 网易 -> 东方财富（最后尝试）
+    """
+    end_date = pd.Timestamp.now().strftime('%Y%m%d')
+    start_date = "20180101"
+    common_kw = dict(period="daily", start_date=start_date, end_date=end_date, adjust="")
+
+    # 各源 (名称, 获取函数, 调用参数) — 新浪仅 symbol，东方财富需完整日期参数
+    sources = [
+        ('新浪', getattr(ak, 'fund_etf_hist_sina', None), {'symbol': code}),
+        ('网易', getattr(ak, 'fund_etf_hist_163', None), {'symbol': code, **common_kw}),
+        ('东方财富', ak.fund_etf_hist_em, {'symbol': code, **common_kw}),
+    ]
+
+    for source_name, fetch_func, kwargs in sources:
+        if fetch_func is None:
+            continue
+        for attempt in range(max_retries_per_source):
+            try:
+                time.sleep(random.uniform(2, 5))
+                df = fetch_func(**kwargs)
+                out = _normalize_etf_df(df, min_bars=60)
+                if out is not None:
+                    print(f"  ✅ ETF {code} 从 {source_name} 源获取成功，共 {len(out)} 条数据")
+                    return out
+                print(f"  ⚠️ {source_name} 源返回空或数据不足，尝试下一个")
+                break
+            except Exception as e:
+                print(f"  ❌ {source_name} 源第 {attempt+1} 次尝试失败: {str(e)[:60]}")
+                if attempt == max_retries_per_source - 1:
+                    break
+                time.sleep(random.uniform(5, 10))
+
+    print(f"  ❌ 所有 ETF akshare 源均无法获取 {code}")
     return None
+
+
+def get_etf_data_marketdata(code):
+    """使用 MarketData（东方财富 push2his）获取 ETF 日 K，作为 akshare 后的备选"""
+    try:
+        md = MarketData(use_cache=True)
+        df = md.get_history(code, days=800)
+        if df is None or len(df) < 60:
+            return None
+        df = df[['date', 'open', 'high', 'low', 'close', 'volume']].copy()
+        df['date'] = pd.to_datetime(df['date'])
+        df = df.sort_values('date').reset_index(drop=True)
+        return df
+    except Exception as e:
+        print(f"  MarketData 获取失败: {e}")
+        return None
+
+
+def get_etf_data_direct(code):
+    """直接用东方财富 push2his 接口请求 ETF 日 K（最后手段）"""
+    try:
+        secid = f"1.{code}" if code.startswith('5') else f"0.{code}"
+        url = "https://push2his.eastmoney.com/api/qt/stock/kline/get"
+        params = {
+            "secid": secid,
+            "fields1": "f1,f2,f3,f4,f5,f6",
+            "fields2": "f51,f52,f53,f54,f55,f56,f57,f58,f59,f60,f61",
+            "klt": "101",
+            "fqt": "1",
+            "end": "20500101",
+            "lmt": "800",
+        }
+        headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
+        resp = requests.get(url, params=params, headers=headers, timeout=10)
+        data = resp.json()
+        if not data.get("data") or not data["data"].get("klines"):
+            return None
+        rows = []
+        for k in data["data"]["klines"]:
+            parts = k.split(",")
+            rows.append({
+                "date": parts[0],
+                "open": float(parts[1]),
+                "close": float(parts[2]),
+                "high": float(parts[3]),
+                "low": float(parts[4]),
+                "volume": float(parts[5]),
+            })
+        df = pd.DataFrame(rows)
+        df["date"] = pd.to_datetime(df["date"])
+        df = df.sort_values("date").reset_index(drop=True)
+        if len(df) < 60:
+            return None
+        return df
+    except Exception as e:
+        print(f"  直接 push2his 请求失败: {e}")
+        return None
+
 
 def get_realtime_price(code):
     """获取实时价格"""
@@ -165,13 +258,36 @@ def main():
         
         print()
         
-        # 获取历史数据
+        # 获取历史数据（股票用 baostock，失败且为 ETF 时用 ETF 专用接口）
         df = get_stock_data_bs(code)
-        
         if df is None or len(df) < 60:
-            print("  ⚠️  历史数据不足，无法运行策略分析\n")
-            continue
-        
+            if (code.startswith('5') and len(code) == 6) or code.startswith('159'):
+                print("  ⚠️  baostock 数据不足，尝试 ETF 专用接口...")
+                df = load_etf_cache(code)
+                if df is not None and len(df) >= 60:
+                    print(f"  ✅ 使用本地缓存 ETF 数据（{len(df)} 条）")
+                if df is None or len(df) < 60:
+                    df = get_etf_data_akshare(code)
+                    if df is not None and len(df) >= 60:
+                        save_etf_cache(code, df)
+                        print(f"  ✅ ETF 接口(akshare)获取 {code} 数据成功")
+                if df is None or len(df) < 60:
+                    df = get_etf_data_marketdata(code)
+                    if df is not None and len(df) >= 60:
+                        save_etf_cache(code, df)
+                        print(f"  ✅ ETF 接口(MarketData/push2his)获取 {code} 数据成功")
+                if df is None or len(df) < 60:
+                    df = get_etf_data_direct(code)
+                    if df is not None and len(df) >= 60:
+                        save_etf_cache(code, df)
+                        print(f"  ✅ ETF 接口(直接 push2his)获取 {code} 数据成功")
+                if df is None or len(df) < 60:
+                    print("  ⚠️  历史数据不足，无法运行策略分析\n")
+                    continue
+            else:
+                print("  ⚠️  历史数据不足，无法运行策略分析\n")
+                continue
+
         print(f"📊 历史数据: {len(df)}条 ({df['date'].iloc[0].strftime('%Y-%m-%d')} ~ {df['date'].iloc[-1].strftime('%Y-%m-%d')})")
         
         # 获取基本面数据

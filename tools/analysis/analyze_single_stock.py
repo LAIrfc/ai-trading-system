@@ -13,6 +13,7 @@ import os
 import pandas as pd
 from datetime import datetime, timedelta
 import argparse
+import requests
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../..'))
 
@@ -37,6 +38,7 @@ from src.strategies.ensemble import (
     V33EnsembleStrategy,
 )
 from src.data.fetchers.fundamental_fetcher import FundamentalFetcher
+from src.data.fetchers.market_data import MarketData
 import akshare as ak
 import baostock as bs
 
@@ -120,6 +122,116 @@ def get_stock_data_akshare(code):
     return None
 
 
+def get_etf_data_akshare(code):
+    """使用 akshare 获取 ETF 历史数据（与 portfolio_strategy_analysis 保持一致）"""
+    try:
+        if code.startswith('15') or code.startswith('16'):
+            symbol = f'sz{code}'
+        elif code.startswith('51'):
+            symbol = f'sh{code}'
+        else:
+            symbol = code
+        end_date = datetime.now().strftime('%Y%m%d')
+        start_date = (datetime.now() - timedelta(days=800)).strftime('%Y%m%d')
+        # 方法1: stock_zh_a_hist（period 用 daily 兼容新版本 akshare）
+        try:
+            df = ak.stock_zh_a_hist(symbol=symbol, period="daily", start_date=start_date, end_date=end_date, adjust="qfq")
+            if not df.empty and len(df) >= 60:
+                df = df.rename(columns={
+                    '日期': 'date', '开盘': 'open', '收盘': 'close',
+                    '最高': 'high', '最低': 'low', '成交量': 'volume'
+                })
+                if '成交额' in df.columns:
+                    df = df.rename(columns={'成交额': 'amount'})
+                else:
+                    df['amount'] = 0
+                df['date'] = pd.to_datetime(df['date'])
+                df = df.sort_values('date').reset_index(drop=True)
+                return df
+        except Exception:
+            pass
+        # 方法2: fund_etf_hist_em（period 用 daily 兼容新版本 akshare）
+        try:
+            df = ak.fund_etf_hist_em(symbol=code, period="daily", start_date=start_date, end_date=end_date, adjust="qfq")
+            if not df.empty and len(df) >= 60:
+                df = df.rename(columns={
+                    '日期': 'date', '开盘': 'open', '收盘': 'close',
+                    '最高': 'high', '最低': 'low', '成交量': 'volume'
+                })
+                if '成交额' in df.columns:
+                    df = df.rename(columns={'成交额': 'amount'})
+                else:
+                    df['amount'] = 0
+                df['date'] = pd.to_datetime(df['date'])
+                df = df.sort_values('date').reset_index(drop=True)
+                return df
+        except Exception:
+            pass
+    except Exception:
+        pass
+    return None
+
+
+def get_etf_data_marketdata(code):
+    """使用 MarketData（东方财富 push2his）获取 ETF 日 K，作为 akshare 后的备选"""
+    try:
+        md = MarketData(use_cache=True)
+        df = md.get_history(code, days=800)
+        if df is None or len(df) < 60:
+            return None
+        df = df[['date', 'open', 'high', 'low', 'close', 'volume']].copy()
+        if 'amount' not in df.columns:
+            df['amount'] = 0
+        df['date'] = pd.to_datetime(df['date'])
+        df = df.sort_values('date').reset_index(drop=True)
+        return df
+    except Exception as e:
+        print(f"  MarketData 获取失败: {e}")
+        return None
+
+
+def get_etf_data_direct(code):
+    """直接用东方财富 push2his 接口请求 ETF 日 K（最后手段）"""
+    try:
+        secid = f"1.{code}" if code.startswith('5') else f"0.{code}"
+        url = "https://push2his.eastmoney.com/api/qt/stock/kline/get"
+        params = {
+            "secid": secid,
+            "fields1": "f1,f2,f3,f4,f5,f6",
+            "fields2": "f51,f52,f53,f54,f55,f56,f57,f58,f59,f60,f61",
+            "klt": "101",
+            "fqt": "1",
+            "end": "20500101",
+            "lmt": "800",
+        }
+        headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
+        resp = requests.get(url, params=params, headers=headers, timeout=10)
+        data = resp.json()
+        if not data.get("data") or not data["data"].get("klines"):
+            return None
+        rows = []
+        for k in data["data"]["klines"]:
+            parts = k.split(",")
+            rows.append({
+                "date": parts[0],
+                "open": float(parts[1]),
+                "close": float(parts[2]),
+                "high": float(parts[3]),
+                "low": float(parts[4]),
+                "volume": float(parts[5]),
+            })
+        df = pd.DataFrame(rows)
+        df["date"] = pd.to_datetime(df["date"])
+        df["amount"] = 0
+        df = df.sort_values("date").reset_index(drop=True)
+        if len(df) < 60:
+            return None
+        return df
+    except Exception as e:
+        print(f"  直接 push2his 请求失败: {e}")
+        return None
+
+
 def get_realtime_price(code):
     """获取实时价格"""
     try:
@@ -197,12 +309,29 @@ def analyze_stock(code: str, name: str = None):
             print(f"  ⚠️  akshare获取失败: {str(e)[:50]}")
     
     if df is None or len(df) < 60:
-        print("  ❌ 历史数据不足，无法运行策略分析")
-        try:
-            bs.logout()
-        except:
-            pass
-        return
+        if (code.startswith('5') and len(code) == 6) or code.startswith('159'):
+            print("  ⚠️  尝试 ETF 专用接口...")
+            try:
+                df = get_etf_data_akshare(code)
+                if df is not None and len(df) >= 60:
+                    print("  ✅ ETF 接口(akshare)获取数据成功")
+            except Exception as e:
+                print(f"  ⚠️  ETF akshare 失败: {str(e)[:50]}")
+            if df is None or len(df) < 60:
+                df = get_etf_data_marketdata(code)
+                if df is not None and len(df) >= 60:
+                    print("  ✅ ETF 接口(MarketData/push2his)获取数据成功")
+            if df is None or len(df) < 60:
+                df = get_etf_data_direct(code)
+                if df is not None and len(df) >= 60:
+                    print("  ✅ ETF 接口(直接 push2his)获取数据成功")
+        if df is None or len(df) < 60:
+            print("  ❌ 历史数据不足，无法运行策略分析")
+            try:
+                bs.logout()
+            except Exception:
+                pass
+            return
     
     print(f"  ✅ 历史数据: {len(df)}条 ({df['date'].iloc[0].strftime('%Y-%m-%d')} ~ {df['date'].iloc[-1].strftime('%Y-%m-%d')})")
     

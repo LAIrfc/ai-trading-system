@@ -1,35 +1,67 @@
 # 策略返回「观望/失败」常见原因说明
 
-单股分析或回测时，部分策略会显示「观望」且理由为「无数据/获取失败/数据不足」。本文说明原因与可选改进。
+单股分析或回测时，部分策略会显示「观望」且理由为「无数据/获取失败/数据不足」。本文说明**实现方式**与常见原因。
 
 ---
 
 ## 1. NewsSentiment：无近期新闻或获取失败
 
-**触发条件**：`_get_news_sentiment_v33(symbol)` 返回 `None`，且旧版 `_get_news_sentiment_legacy(symbol)` 也返回 `None`。
+### 实现方式（数据流）
 
-**常见原因**：
-- **网络/接口**：akshare 个股新闻、东方财富搜索、财联社(CLS_API_KEY)、同花顺(10JQKA_COOKIE) 全部失败或超时。
-- **数据为空**：接口成功但该标的近期无新闻，或去重/过滤后无有效条目。
-- **环境**：未配置 `CLS_API_KEY` / `10JQKA_COOKIE` 时，仅用 akshare + 东方财富，任一失败即可能落到「无近期新闻」。
+- **策略层**：`src/strategies/news_sentiment.py`  
+  - 先调 `get_news_sentiment_v33(symbol)`（24h 同向 N 篇、S_news、新闻源权重）；若为 `None` 再调旧版 `_get_news_sentiment_legacy(symbol)`（近期 N 篇情感均值）。  
+  - 两者都为 `None` 时返回 HOLD，理由为「无近期新闻或获取失败」。
 
-**改进建议**：
-- 配置财联社/同花顺环境变量，增加备用源。
-- 在单股分析脚本中增加重试或超时放大（若网络不稳）。
+- **数据层**：`src/data/news/news_v33.py` → `src/data/news/news_fetcher.py` 的 `fetch_stock_news(symbol, max_items)`。  
+  - **主**：`akshare.stock_news_em(symbol=symbol)`（东方财富个股新闻）。  
+  - **备1**：东方财富搜索 API `search-api-web.eastmoney.com/search/jsonp`，keyword=股票代码。  
+  - **备2**：财联社 `api.cls.cn/v1/information/list`，POST，**需环境变量 `CLS_API_KEY`**。  
+  - **备3**：同花顺新闻，**需环境变量 `10JQKA_COOKIE`**。  
+  任一成功即返回 DataFrame（title, content, date, source），再经情感打分、24h 窗口、同向篇数等算出 S_news；全部失败或返回空则上游得到空，最终显示「无近期新闻或获取失败」。
+
+### 触发条件与常见原因
+
+- **触发条件**：`_get_news_sentiment_v33(symbol)` 返回 `None`，且旧版 `_get_news_sentiment_legacy(symbol)` 也返回 `None`。
+
+- **常见原因**：  
+  - **网络/接口**：akshare、东方财富搜索、财联社、同花顺 全部超时或连接失败（与当前环境访问外网/东方财富受限有关）。  
+  - **数据为空**：接口成功但该标的近期无新闻，或去重/24h 过滤后无有效条目。  
+  - **环境**：未配置 `CLS_API_KEY` / `10JQKA_COOKIE` 时，只有 akshare + 东方财富两个源，任一失败就容易落到「无近期新闻」。
+
+### 改进建议
+
+- 配置 `CLS_API_KEY`、`10JQKA_COOKIE`，增加财联社/同花顺备用源。  
+- 网络不稳时可对 `fetch_stock_news` 增加重试或适当放大超时。
 
 ---
 
 ## 2. PolicyEvent：无政策面数据或获取失败
 
-**触发条件**：V3.3 政策情感与旧版 `_get_policy_legacy()` 均返回 `None`。
+### 实现方式（数据流）
 
-**常见原因**：
-- **主/备用接口**：政府网、东方财富关键词、财联社 policy、同花顺政策 全部失败或返回空。
-- **解析失败**：政府网/同花顺 HTML 结构变化导致解析不到列表。
-- **环境**：未配置 `CLS_API_KEY` / `10JQKA_COOKIE` 时，政策仅靠政府网 + 东方财富，容易空。
+- **策略层**：`src/strategies/policy_event.py`  
+  - 先调 `get_policy_sentiment_v33(max_news)`（政策情感 + 是否重大利空 + 影响力）；若为 `None` 再调旧版 `_get_policy_legacy(max_news)`。  
+  - 两者都为 `None` 时返回 HOLD，理由为「无政策面数据或获取失败」。
 
-**改进建议**：
-- 配置财联社/同花顺后，政策面多两个备用源。
+- **数据层**：`src/data/policy/policy_news.py` 的 `fetch_policy_news(max_items)`。  
+  - **主**：政府官网（中国政府网 gov.cn 政策/要闻列表），requests + BeautifulSoup，需标题含「政策/国务院/宏观」等。  
+  - **备1**：东方财富搜索 API，keyword=`"政策 降准 减税 央行 宏观"`。  
+  - **备2**：财联社 `api.cls.cn/v1/information/list`，`category=policy`，**需 `CLS_API_KEY`**。  
+  - **备3**：同花顺政策页 `data.10jqka.com.cn/policy/`，**需 `10JQKA_COOKIE`**。  
+  取到列表后由 `policy_keywords.score_policy_text` / `has_major_negative` 等打分，聚合为情感与重大利空标志；全部失败或返回空则上游为 `None`，最终显示「无政策面数据或获取失败」。
+
+### 触发条件与常见原因
+
+- **触发条件**：V3.3 政策情感与旧版 `_get_policy_legacy()` 均返回 `None`。
+
+- **常见原因**：  
+  - **主/备用接口**：政府网、东方财富关键词、财联社 policy、同花顺政策 全部失败或返回空。  
+  - **解析失败**：政府网/同花顺 HTML 改版，选择器失效。  
+  - **环境**：未配置 `CLS_API_KEY` / `10JQKA_COOKIE` 时，仅政府网 + 东方财富，易空。
+
+### 改进建议
+
+- 配置财联社/同花顺后，政策面多两个备用源。  
 - 政府网 URL 或选择器变化时，需更新 `policy_news._fetch_policy_via_gov`。
 
 ---

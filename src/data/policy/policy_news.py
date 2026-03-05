@@ -8,11 +8,16 @@ import json
 import os
 import re
 import logging
+import time
 from typing import Optional
 
 import pandas as pd
 
 logger = logging.getLogger(__name__)
+
+POLICY_REQUEST_TIMEOUT = 15
+POLICY_RETRY_DELAY = 2
+POLICY_MAX_RETRIES = 2
 
 # 搜索政策新闻用的关键词（东方财富搜索）
 POLICY_SEARCH_KEYWORDS = "政策 降准 减税 央行 宏观"
@@ -30,21 +35,23 @@ def _fetch_policy_via_gov(max_items: int = 20) -> pd.DataFrame:
         out = []
         # 中国政府网 最新政策/国务院 列表页（示例）
         for url in [
-            "https://www.gov.cn/pushinfo/list.htm",
-            "https://www.gov.cn/xinwen/list.htm",
+            "https://www.gov.cn/yaowen/liebiao/home_5.htm",
+            "https://www.gov.cn/zhengce/zuixin/home_2.htm",
         ]:
             try:
                 r = requests.get(
                     url,
                     headers={"User-Agent": "Mozilla/5.0 (compatible; PolicyBot/1.0)"},
-                    timeout=12,
+                    timeout=POLICY_REQUEST_TIMEOUT,
                 )
                 if r.status_code != 200 or not r.text:
                     continue
                 soup = BeautifulSoup(r.text, "html.parser")
-                for a in soup.select("a[href*='/content/'], a[href*='gov.cn']")[:max_items]:
+                for a in soup.select("a[href*='/content/'], a[href*='gov.cn'], a[href*='yaowen'], a[href*='zhengce']")[:max_items * 2]:
                     title = (a.get_text(strip=True) or "").strip()
-                    if len(title) < 4 or "政策" not in title and "国务院" not in title and "宏观" not in title:
+                    if len(title) < 4:
+                        continue
+                    if not any(k in title for k in ("政策", "国务院", "宏观", "要闻", "发布", "通知", "意见", "方案")):
                         continue
                     href = a.get("href", "")
                     if not href.startswith("http"):
@@ -64,6 +71,77 @@ def _fetch_policy_via_gov(max_items: int = 20) -> pd.DataFrame:
         return pd.DataFrame(out[:max_items]) if out else pd.DataFrame()
     except Exception as e:
         logger.debug("政府官网政策获取失败: %s", e)
+        return pd.DataFrame()
+
+
+def _parse_eastmoney_jsonp(text: str):
+    """解析东方财富 JSONP 响应。"""
+    text = (text or "").strip()
+    if not text:
+        return None
+    start, end = text.find("("), text.rfind(")")
+    if start == -1 or end <= start:
+        return None
+    try:
+        return json.loads(text[start + 1 : end])
+    except json.JSONDecodeError:
+        return None
+
+
+def _fetch_policy_via_curl_cffi(max_items: int = 20) -> pd.DataFrame:
+    """东方财富政策关键词搜索，使用 curl_cffi 过反爬。"""
+    try:
+        from curl_cffi import requests as curl_requests
+    except ImportError:
+        return pd.DataFrame()
+    try:
+        from datetime import datetime as dt
+        url = "https://search-api-web.eastmoney.com/search/jsonp"
+        page_size = max(min(max_items, 50), 5)
+        inner = {
+            "uid": "",
+            "keyword": POLICY_SEARCH_KEYWORDS,
+            "type": ["cmsArticleWebOld"],
+            "client": "web",
+            "clientType": "web",
+            "clientVersion": "curr",
+            "param": {
+                "cmsArticleWebOld": {
+                    "searchScope": "default",
+                    "sort": "default",
+                    "pageIndex": 1,
+                    "pageSize": page_size,
+                    "preTag": "<em>",
+                    "postTag": "</em>",
+                }
+            },
+        }
+        ts = int(dt.now().timestamp() * 1000)
+        params = {
+            "cb": f"jQuery{ts}_{ts}",
+            "param": json.dumps(inner, ensure_ascii=False),
+            "_": str(ts),
+        }
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36",
+            "Referer": "https://so.eastmoney.com/",
+            "Accept": "*/*",
+        }
+        r = curl_requests.get(url, params=params, headers=headers, timeout=POLICY_REQUEST_TIMEOUT, impersonate="chrome")
+        data = _parse_eastmoney_jsonp(r.text)
+        if not data:
+            return pd.DataFrame()
+        rows = data.get("result", {}).get("cmsArticleWebOld")
+        if not rows:
+            return pd.DataFrame()
+        out = []
+        for row in rows[:max_items]:
+            title = (row.get("title") or "").replace("<em>", "").replace("</em>", "")
+            content = (row.get("content") or "").replace("<em>", "").replace("</em>", "").replace("\u3000", " ").replace("\r\n", " ")
+            out.append({"title": title, "content": content, "date": row.get("date"), "source": row.get("mediaName")})
+        return pd.DataFrame(out)
+    except Exception as e:
+        logger.debug("政策新闻 curl_cffi 失败: %s", e)
         return pd.DataFrame()
 
 
@@ -92,20 +170,20 @@ def _fetch_policy_news_requests(max_items: int = 20) -> pd.DataFrame:
                 }
             },
         }
+        ts = int(datetime.now().timestamp() * 1000)
         params = {
+            "cb": f"jQuery{ts}_{ts}",
             "param": json.dumps(inner, ensure_ascii=False),
-            "_": str(int(datetime.now().timestamp() * 1000)),
+            "_": str(ts),
         }
         headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
             "Referer": "https://so.eastmoney.com/",
         }
-        r = requests.get(url, params=params, headers=headers, timeout=10)
-        text = r.text.strip()
-        m = re.search(r"\((.+)\)\s*$", text, re.DOTALL)
-        if not m:
+        r = requests.get(url, params=params, headers=headers, timeout=POLICY_REQUEST_TIMEOUT)
+        data = _parse_eastmoney_jsonp(r.text)
+        if not data:
             return pd.DataFrame()
-        data = json.loads(m.group(1))
         rows = data.get("result", {}).get("cmsArticleWebOld")
         if not rows:
             return pd.DataFrame()
@@ -182,13 +260,32 @@ def fetch_policy_news(max_items: int = 20) -> pd.DataFrame:
                 return pd.read_parquet(path).head(max_items)
             except Exception as e:
                 logger.debug("回测预取政策读本地失败: %s", e)
-    df = _fetch_policy_via_gov(max_items)
+    # 优先东方财富 curl_cffi（易过反爬），再政府网、东方财富 requests、财联社、同花顺
+    df = _fetch_policy_via_curl_cffi(max_items)
+    if df is None or df.empty:
+        df = _fetch_policy_via_gov(max_items)
+        if df is None or df.empty:
+            for _ in range(POLICY_MAX_RETRIES):
+                time.sleep(POLICY_RETRY_DELAY)
+                df = _fetch_policy_via_gov(max_items)
+                if df is not None and not df.empty:
+                    break
     if df is None or df.empty:
         df = _fetch_policy_news_requests(max_items)
+        if df is None or df.empty:
+            for _ in range(POLICY_MAX_RETRIES):
+                time.sleep(POLICY_RETRY_DELAY)
+                df = _fetch_policy_news_requests(max_items)
+                if df is not None and not df.empty:
+                    break
     if df is None or df.empty:
         df = _fetch_policy_via_cls(max_items)
     if df is None or df.empty:
         df = _fetch_policy_via_10jqka(max_items)
+    if df is None or df.empty:
+        logger.info(
+            "政策面全部源均无数据或失败（主 政府网/东方财富，备 财联社/同花顺 需 CLS_API_KEY、10JQKA_COOKIE）"
+        )
     return df if df is not None else pd.DataFrame()
 
 
