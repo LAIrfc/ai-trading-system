@@ -5,7 +5,7 @@
 - 市场数据（日线、实时行情）
 - 基本面数据（PE、PB、ROE等）
 - ETF数据
-- 日线主备容错：data_prefetch（Sina → 东方财富 → 腾讯），见 docs/data/API_INTERFACES_AND_FETCHERS.md
+- 日线：统一 DataProvider（config 配置主备顺序），见 docs/data/API_INTERFACES_AND_FETCHERS.md
 """
 
 from .market_data import MarketData
@@ -20,6 +20,12 @@ from .data_prefetch import (
     fetch_eastmoney_stock_news,
 )
 
+try:
+    from src.data.provider import get_default_kline_provider, UnifiedDataProvider
+except ImportError:
+    get_default_kline_provider = None  # type: ignore
+    UnifiedDataProvider = None  # type: ignore
+
 __all__ = [
     'MarketData',
     'RealtimeDataFetcher',
@@ -32,4 +38,6 @@ __all__ = [
     'get_realtime_snapshot_eastmoney',
     'fetch_eastmoney_lhb',
     'fetch_eastmoney_stock_news',
+    'get_default_kline_provider',
+    'UnifiedDataProvider',
 ]

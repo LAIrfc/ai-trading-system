@@ -1,1 +1,6407 @@
-{"date": "2026-03-02", "total_fetched": 63, "total_passed": 49, "all_data": {"002432": {"name": "九安医疗", "pe_ttm": 10.72, "market_cap_yi": 227.0, "is_st": false, "sector": "C35专用设备制造业"}, "002595": {"name": "豪迈科技", "pe_ttm": 32.4, "market_cap_yi": 772.6, "is_st": false, "sector": "C35专用设备制造业"}, "002837": {"name": "英维克", "pe_ttm": 203.81, "market_cap_yi": 1084.5, "is_st": false, "sector": "C35专用设备制造业"}, "300003": {"name": "乐普医疗", "pe_ttm": 25.02, "market_cap_yi": 327.6, "is_st": false, "sector": "C35专用设备制造业"}, "300450": {"name": "先导智能", "pe_ttm": 56.38, "market_cap_yi": 891.8, "is_st": false, "sector": "C35专用设备制造业"}, "300604": {"name": "长川科技", "pe_ttm": 77.08, "market_cap_yi": 889.4, "is_st": false, "sector": "C35专用设备制造业"}, "300724": {"name": "捷佳伟创", "pe_ttm": 11.6, "market_cap_yi": 415.6, "is_st": false, "sector": "C35专用设备制造业"}, "300751": {"name": "迈为股份", "pe_ttm": 86.99, "market_cap_yi": 769.3, "is_st": false, "sector": "C35专用设备制造业"}, "300757": {"name": "罗博特科", "pe_ttm": -714.34, "market_cap_yi": 711.9, "is_st": false, "sector": "C35专用设备制造业"}, "301200": {"name": "大族数控", "pe_ttm": 111.35, "market_cap_yi": 730.0, "is_st": false, "sector": "C35专用设备制造业"}, "600522": {"name": "中天科技", "pe_ttm": 33.06, "market_cap_yi": 1030.7, "is_st": false, "sector": "C38电气机械和器材制造业"}, "600690": {"name": "海尔智家", "pe_ttm": 10.25, "market_cap_yi": 2374.4, "is_st": false, "sector": "C38电气机械和器材制造业"}, "601877": {"name": "正泰电器", "pe_ttm": 12.95, "market_cap_yi": 721.8, "is_st": false, "sector": "C38电气机械和器材制造业"}, "603195": {"name": "公牛集团", "pe_ttm": 19.36, "market_cap_yi": 769.1, "is_st": false, "sector": "C38电气机械和器材制造业"}, "605117": {"name": "德业股份", "pe_ttm": 33.39, "market_cap_yi": 1044.8, "is_st": false, "sector": "C38电气机械和器材制造业"}, "688472": {"name": "阿特斯", "pe_ttm": 50.01, "market_cap_yi": 510.8, "is_st": false, "sector": "C38电气机械和器材制造业"}, "000333": {"name": "美的集团", "pe_ttm": 11.65, "market_cap_yi": 5886.1, "is_st": false, "sector": "C38电气机械和器材制造业"}, "000651": {"name": "格力电器", "pe_ttm": 7.28, "market_cap_yi": 2083.7, "is_st": false, "sector": "C38电气机械和器材制造业"}, "002028": {"name": "思源电气", "pe_ttm": 54.96, "market_cap_yi": 1738.2, "is_st": false, "sector": "C38电气机械和器材制造业"}, "002074": {"name": "国轩高科", "pe_ttm": 19.98, "market_cap_yi": 674.9, "is_st": false, "sector": "C38电气机械和器材制造业"}, "002459": {"name": "晶澳科技", "pe_ttm": -8.28, "market_cap_yi": 392.2, "is_st": false, "sector": "C38电气机械和器材制造业"}, "300014": {"name": "亿纬锂能", "pe_ttm": 33.93, "market_cap_yi": 1273.7, "is_st": false, "sector": "C38电气机械和器材制造业"}, "300750": {"name": "宁德时代", "pe_ttm": 23.75, "market_cap_yi": 15527.2, "is_st": false, "sector": "C38电气机械和器材制造业"}, "600312": {"name": "平高电气", "pe_ttm": 24.22, "market_cap_yi": 317.2, "is_st": false, "sector": "C38电气机械和器材制造业"}, "600487": {"name": "亨通光电", "pe_ttm": 38.62, "market_cap_yi": 1223.5, "is_st": false, "sector": "C38电气机械和器材制造业"}, "600580": {"name": "卧龙电驱", "pe_ttm": 61.8, "market_cap_yi": 674.5, "is_st": false, "sector": "C38电气机械和器材制造业"}, "600885": {"name": "宏发股份", "pe_ttm": 24.8, "market_cap_yi": 486.1, "is_st": false, "sector": "C38电气机械和器材制造业"}, "601179": {"name": "中国西电", "pe_ttm": 66.2, "market_cap_yi": 828.3, "is_st": false, "sector": "C38电气机械和器材制造业"}, "603606": {"name": "东方电缆", "pe_ttm": 33.41, "market_cap_yi": 407.2, "is_st": false, "sector": "C38电气机械和器材制造业"}, "603728": {"name": "鸣志电器", "pe_ttm": 419.51, "market_cap_yi": 278.8, "is_st": false, "sector": "C38电气机械和器材制造业"}, "688349": {"name": "三一重能", "pe_ttm": 44.06, "market_cap_yi": 323.8, "is_st": false, "sector": "C38电气机械和器材制造业"}, "688599": {"name": "天合光能", "pe_ttm": -6.08, "market_cap_yi": 425.2, "is_st": false, "sector": "C38电气机械和器材制造业"}, "688676": {"name": "金盘科技", "pe_ttm": 69.92, "market_cap_yi": 461.4, "is_st": false, "sector": "C38电气机械和器材制造业"}, "688772": {"name": "珠海冠宇", "pe_ttm": 42.23, "market_cap_yi": 199.4, "is_st": false, "sector": "C38电气机械和器材制造业"}, "688819": {"name": "天能股份", "pe_ttm": 19.98, "market_cap_yi": 317.8, "is_st": false, "sector": "C38电气机械和器材制造业"}, "000400": {"name": "许继电气", "pe_ttm": 27.36, "market_cap_yi": 328.8, "is_st": false, "sector": "C38电气机械和器材制造业"}, "000921": {"name": "海信家电", "pe_ttm": 8.61, "market_cap_yi": 322.9, "is_st": false, "sector": "C38电气机械和器材制造业"}, "002032": {"name": "苏 泊 尔", "pe_ttm": 16.74, "market_cap_yi": 351.0, "is_st": false, "sector": "C38电气机械和器材制造业"}, "002056": {"name": "横店东磁", "pe_ttm": 18.46, "market_cap_yi": 357.6, "is_st": false, "sector": "C38电气机械和器材制造业"}, "002335": {"name": "科华数据", "pe_ttm": 69.63, "market_cap_yi": 319.8, "is_st": false, "sector": "C38电气机械和器材制造业"}, "002508": {"name": "老板电器", "pe_ttm": 12.6, "market_cap_yi": 194.4, "is_st": false, "sector": "C38电气机械和器材制造业"}, "002851": {"name": "麦格米特", "pe_ttm": 271.29, "market_cap_yi": 769.1, "is_st": false, "sector": "C38电气机械和器材制造业"}, "003021": {"name": "兆威机电", "pe_ttm": 115.19, "market_cap_yi": 278.3, "is_st": false, "sector": "C38电气机械和器材制造业"}, "300001": {"name": "特锐德", "pe_ttm": 35.15, "market_cap_yi": 321.3, "is_st": false, "sector": "C38电气机械和器材制造业"}, "300207": {"name": "欣旺达", "pe_ttm": 25.52, "market_cap_yi": 478.3, "is_st": false, "sector": "C38电气机械和器材制造业"}, "600406": {"name": "国电南瑞", "pe_ttm": 35.15, "market_cap_yi": 2275.4, "is_st": false, "sector": "I65软件和信息技术服务业"}, "600570": {"name": "恒生电子", "pe_ttm": 90.36, "market_cap_yi": 548.4, "is_st": false, "sector": "I65软件和信息技术服务业"}, "600588": {"name": "用友网络", "pe_ttm": -25.13, "market_cap_yi": 468.5, "is_st": false, "sector": "I65软件和信息技术服务业"}, "600845": {"name": "宝信软件", "pe_ttm": 46.68, "market_cap_yi": 683.2, "is_st": false, "sector": "I65软件和信息技术服务业"}, "688111": {"name": "金山办公", "pe_ttm": 73.72, "market_cap_yi": 1358.6, "is_st": false, "sector": "I65软件和信息技术服务业"}, "300442": {"name": "润泽科技", "pe_ttm": 25.72, "market_cap_yi": 1613.1, "is_st": false, "sector": "I65软件和信息技术服务业"}, "301236": {"name": "软通动力", "pe_ttm": 377.26, "market_cap_yi": 497.4, "is_st": false, "sector": "I65软件和信息技术服务业"}, "301269": {"name": "华大九天", "pe_ttm": 4474.9, "market_cap_yi": 540.6, "is_st": false, "sector": "I65软件和信息技术服务业"}, "600131": {"name": "国网信通", "pe_ttm": 35.18, "market_cap_yi": 238.6, "is_st": false, "sector": "I65软件和信息技术服务业"}, "600536": {"name": "中国软件", "pe_ttm": -290.26, "market_cap_yi": 402.6, "is_st": false, "sector": "I65软件和信息技术服务业"}, "600602": {"name": "云赛智联", "pe_ttm": 150.46, "market_cap_yi": 291.3, "is_st": false, "sector": "I65软件和信息技术服务业"}, "603927": {"name": "中科软", "pe_ttm": 67.2, "market_cap_yi": 155.3, "is_st": false, "sector": "I65软件和信息技术服务业"}, "688018": {"name": "乐鑫科技", "pe_ttm": 56.4, "market_cap_yi": 280.8, "is_st": false, "sector": "I65软件和信息技术服务业"}, "688052": {"name": "纳芯微", "pe_ttm": -114.34, "market_cap_yi": 275.6, "is_st": false, "sector": "I65软件和信息技术服务业"}, "688099": {"name": "晶晨股份", "pe_ttm": 44.5, "market_cap_yi": 387.7, "is_st": false, "sector": "I65软件和信息技术服务业"}, "688188": {"name": "柏楚电子", "pe_ttm": 40.77, "market_cap_yi": 452.0, "is_st": false, "sector": "I65软件和信息技术服务业"}, "688213": {"name": "思特威-W", "pe_ttm": 38.8, "market_cap_yi": 388.5, "is_st": false, "sector": "I65软件和信息技术服务业"}, "688318": {"name": "财富趋势", "pe_ttm": 99.93, "market_cap_yi": 314.7, "is_st": false, "sector": "I65软件和信息技术服务业"}}, "passed": {"002432": {"name": "九安医疗", "pe_ttm": 10.72, "market_cap_yi": 227.0, "is_st": false, "sector": "C35专用设备制造业"}, "002595": {"name": "豪迈科技", "pe_ttm": 32.4, "market_cap_yi": 772.6, "is_st": false, "sector": "C35专用设备制造业"}, "300003": {"name": "乐普医疗", "pe_ttm": 25.02, "market_cap_yi": 327.6, "is_st": false, "sector": "C35专用设备制造业"}, "300450": {"name": "先导智能", "pe_ttm": 56.38, "market_cap_yi": 891.8, "is_st": false, "sector": "C35专用设备制造业"}, "300604": {"name": "长川科技", "pe_ttm": 77.08, "market_cap_yi": 889.4, "is_st": false, "sector": "C35专用设备制造业"}, "300724": {"name": "捷佳伟创", "pe_ttm": 11.6, "market_cap_yi": 415.6, "is_st": false, "sector": "C35专用设备制造业"}, "300751": {"name": "迈为股份", "pe_ttm": 86.99, "market_cap_yi": 769.3, "is_st": false, "sector": "C35专用设备制造业"}, "600522": {"name": "中天科技", "pe_ttm": 33.06, "market_cap_yi": 1030.7, "is_st": false, "sector": "C38电气机械和器材制造业"}, "600690": {"name": "海尔智家", "pe_ttm": 10.25, "market_cap_yi": 2374.4, "is_st": false, "sector": "C38电气机械和器材制造业"}, "601877": {"name": "正泰电器", "pe_ttm": 12.95, "market_cap_yi": 721.8, "is_st": false, "sector": "C38电气机械和器材制造业"}, "603195": {"name": "公牛集团", "pe_ttm": 19.36, "market_cap_yi": 769.1, "is_st": false, "sector": "C38电气机械和器材制造业"}, "605117": {"name": "德业股份", "pe_ttm": 33.39, "market_cap_yi": 1044.8, "is_st": false, "sector": "C38电气机械和器材制造业"}, "688472": {"name": "阿特斯", "pe_ttm": 50.01, "market_cap_yi": 510.8, "is_st": false, "sector": "C38电气机械和器材制造业"}, "000333": {"name": "美的集团", "pe_ttm": 11.65, "market_cap_yi": 5886.1, "is_st": false, "sector": "C38电气机械和器材制造业"}, "000651": {"name": "格力电器", "pe_ttm": 7.28, "market_cap_yi": 2083.7, "is_st": false, "sector": "C38电气机械和器材制造业"}, "002028": {"name": "思源电气", "pe_ttm": 54.96, "market_cap_yi": 1738.2, "is_st": false, "sector": "C38电气机械和器材制造业"}, "002074": {"name": "国轩高科", "pe_ttm": 19.98, "market_cap_yi": 674.9, "is_st": false, "sector": "C38电气机械和器材制造业"}, "300014": {"name": "亿纬锂能", "pe_ttm": 33.93, "market_cap_yi": 1273.7, "is_st": false, "sector": "C38电气机械和器材制造业"}, "300750": {"name": "宁德时代", "pe_ttm": 23.75, "market_cap_yi": 15527.2, "is_st": false, "sector": "C38电气机械和器材制造业"}, "600312": {"name": "平高电气", "pe_ttm": 24.22, "market_cap_yi": 317.2, "is_st": false, "sector": "C38电气机械和器材制造业"}, "600487": {"name": "亨通光电", "pe_ttm": 38.62, "market_cap_yi": 1223.5, "is_st": false, "sector": "C38电气机械和器材制造业"}, "600580": {"name": "卧龙电驱", "pe_ttm": 61.8, "market_cap_yi": 674.5, "is_st": false, "sector": "C38电气机械和器材制造业"}, "600885": {"name": "宏发股份", "pe_ttm": 24.8, "market_cap_yi": 486.1, "is_st": false, "sector": "C38电气机械和器材制造业"}, "601179": {"name": "中国西电", "pe_ttm": 66.2, "market_cap_yi": 828.3, "is_st": false, "sector": "C38电气机械和器材制造业"}, "603606": {"name": "东方电缆", "pe_ttm": 33.41, "market_cap_yi": 407.2, "is_st": false, "sector": "C38电气机械和器材制造业"}, "688349": {"name": "三一重能", "pe_ttm": 44.06, "market_cap_yi": 323.8, "is_st": false, "sector": "C38电气机械和器材制造业"}, "688676": {"name": "金盘科技", "pe_ttm": 69.92, "market_cap_yi": 461.4, "is_st": false, "sector": "C38电气机械和器材制造业"}, "688772": {"name": "珠海冠宇", "pe_ttm": 42.23, "market_cap_yi": 199.4, "is_st": false, "sector": "C38电气机械和器材制造业"}, "688819": {"name": "天能股份", "pe_ttm": 19.98, "market_cap_yi": 317.8, "is_st": false, "sector": "C38电气机械和器材制造业"}, "000400": {"name": "许继电气", "pe_ttm": 27.36, "market_cap_yi": 328.8, "is_st": false, "sector": "C38电气机械和器材制造业"}, "000921": {"name": "海信家电", "pe_ttm": 8.61, "market_cap_yi": 322.9, "is_st": false, "sector": "C38电气机械和器材制造业"}, "002032": {"name": "苏 泊 尔", "pe_ttm": 16.74, "market_cap_yi": 351.0, "is_st": false, "sector": "C38电气机械和器材制造业"}, "002056": {"name": "横店东磁", "pe_ttm": 18.46, "market_cap_yi": 357.6, "is_st": false, "sector": "C38电气机械和器材制造业"}, "002335": {"name": "科华数据", "pe_ttm": 69.63, "market_cap_yi": 319.8, "is_st": false, "sector": "C38电气机械和器材制造业"}, "002508": {"name": "老板电器", "pe_ttm": 12.6, "market_cap_yi": 194.4, "is_st": false, "sector": "C38电气机械和器材制造业"}, "300001": {"name": "特锐德", "pe_ttm": 35.15, "market_cap_yi": 321.3, "is_st": false, "sector": "C38电气机械和器材制造业"}, "300207": {"name": "欣旺达", "pe_ttm": 25.52, "market_cap_yi": 478.3, "is_st": false, "sector": "C38电气机械和器材制造业"}, "600406": {"name": "国电南瑞", "pe_ttm": 35.15, "market_cap_yi": 2275.4, "is_st": false, "sector": "I65软件和信息技术服务业"}, "600570": {"name": "恒生电子", "pe_ttm": 90.36, "market_cap_yi": 548.4, "is_st": false, "sector": "I65软件和信息技术服务业"}, "600845": {"name": "宝信软件", "pe_ttm": 46.68, "market_cap_yi": 683.2, "is_st": false, "sector": "I65软件和信息技术服务业"}, "688111": {"name": "金山办公", "pe_ttm": 73.72, "market_cap_yi": 1358.6, "is_st": false, "sector": "I65软件和信息技术服务业"}, "300442": {"name": "润泽科技", "pe_ttm": 25.72, "market_cap_yi": 1613.1, "is_st": false, "sector": "I65软件和信息技术服务业"}, "600131": {"name": "国网信通", "pe_ttm": 35.18, "market_cap_yi": 238.6, "is_st": false, "sector": "I65软件和信息技术服务业"}, "603927": {"name": "中科软", "pe_ttm": 67.2, "market_cap_yi": 155.3, "is_st": false, "sector": "I65软件和信息技术服务业"}, "688018": {"name": "乐鑫科技", "pe_ttm": 56.4, "market_cap_yi": 280.8, "is_st": false, "sector": "I65软件和信息技术服务业"}, "688099": {"name": "晶晨股份", "pe_ttm": 44.5, "market_cap_yi": 387.7, "is_st": false, "sector": "I65软件和信息技术服务业"}, "688188": {"name": "柏楚电子", "pe_ttm": 40.77, "market_cap_yi": 452.0, "is_st": false, "sector": "I65软件和信息技术服务业"}, "688213": {"name": "思特威-W", "pe_ttm": 38.8, "market_cap_yi": 388.5, "is_st": false, "sector": "I65软件和信息技术服务业"}, "688318": {"name": "财富趋势", "pe_ttm": 99.93, "market_cap_yi": 314.7, "is_st": false, "sector": "I65软件和信息技术服务业"}}}
+{
+  "date": "2026-03-06",
+  "total": 800,
+  "success": 800,
+  "all_data": {
+    "600000": {
+      "name": "",
+      "pe_ttm": 6.512408,
+      "pb": 0.464662,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600015": {
+      "name": "",
+      "pe_ttm": 4.002136,
+      "pb": 0.352784,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600016": {
+      "name": "",
+      "pe_ttm": 5.596856,
+      "pb": 0.302312,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600036": {
+      "name": "",
+      "pe_ttm": 6.574447,
+      "pb": 0.905975,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600919": {
+      "name": "",
+      "pe_ttm": 5.683966,
+      "pb": 0.761796,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600926": {
+      "name": "",
+      "pe_ttm": 6.311927,
+      "pb": 0.903325,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "601009": {
+      "name": "",
+      "pe_ttm": 6.395242,
+      "pb": 0.765918,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "601077": {
+      "name": "",
+      "pe_ttm": 6.461962,
+      "pb": 0.58438,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "601166": {
+      "name": "",
+      "pe_ttm": 5.045605,
+      "pb": 0.502358,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "601169": {
+      "name": "",
+      "pe_ttm": 4.410744,
+      "pb": 0.410851,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "601229": {
+      "name": "",
+      "pe_ttm": 5.766819,
+      "pb": 0.578156,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "601288": {
+      "name": "",
+      "pe_ttm": 8.174397,
+      "pb": 0.861378,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "601328": {
+      "name": "",
+      "pe_ttm": 6.257821,
+      "pb": 0.522912,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "601398": {
+      "name": "",
+      "pe_ttm": 6.909546,
+      "pb": 0.662709,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "601658": {
+      "name": "",
+      "pe_ttm": 6.856831,
+      "pb": 0.59001,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "601818": {
+      "name": "",
+      "pe_ttm": 4.750302,
+      "pb": 0.384901,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "601825": {
+      "name": "",
+      "pe_ttm": 6.611367,
+      "pb": 0.649476,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "601838": {
+      "name": "",
+      "pe_ttm": 5.358247,
+      "pb": 0.841055,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "601916": {
+      "name": "",
+      "pe_ttm": 5.906797,
+      "pb": 0.464421,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "601939": {
+      "name": "",
+      "pe_ttm": 6.936471,
+      "pb": 0.681162,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "601988": {
+      "name": "",
+      "pe_ttm": 7.244262,
+      "pb": 0.649549,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "601998": {
+      "name": "",
+      "pe_ttm": 5.689174,
+      "pb": 0.559266,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "000001": {
+      "name": "",
+      "pe_ttm": 4.865207,
+      "pb": 0.468278,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "000617": {
+      "name": "",
+      "pe_ttm": 26.887162,
+      "pb": 1.10426,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "002142": {
+      "name": "",
+      "pe_ttm": 7.136462,
+      "pb": 0.96078,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600901": {
+      "name": "",
+      "pe_ttm": 11.596571,
+      "pb": 1.465909,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "601128": {
+      "name": "",
+      "pe_ttm": 5.70032,
+      "pb": 0.804118,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "601577": {
+      "name": "",
+      "pe_ttm": 4.680156,
+      "pb": 0.54938,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "601665": {
+      "name": "",
+      "pe_ttm": 6.063917,
+      "pb": 0.720138,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "601997": {
+      "name": "",
+      "pe_ttm": 4.093939,
+      "pb": 0.331039,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "002958": {
+      "name": "",
+      "pe_ttm": 5.759821,
+      "pb": 0.466407,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "002966": {
+      "name": "",
+      "pe_ttm": 6.790401,
+      "pb": 0.726477,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600009": {
+      "name": "",
+      "pe_ttm": 30.894405,
+      "pb": 1.73864,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600029": {
+      "name": "",
+      "pe_ttm": -87.794138,
+      "pb": 3.209755,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600115": {
+      "name": "",
+      "pe_ttm": -56.638075,
+      "pb": 6.862393,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "601021": {
+      "name": "",
+      "pe_ttm": 24.270199,
+      "pb": 2.675821,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "601111": {
+      "name": "",
+      "pe_ttm": 492.296208,
+      "pb": 2.876021,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "001391": {
+      "name": "",
+      "pe_ttm": 26.1037,
+      "pb": 2.685569,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600004": {
+      "name": "",
+      "pe_ttm": 17.248661,
+      "pb": 1.225438,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "601156": {
+      "name": "",
+      "pe_ttm": 10.985195,
+      "pb": 1.511852,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "603885": {
+      "name": "",
+      "pe_ttm": 37.584276,
+      "pb": 2.801937,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600010": {
+      "name": "",
+      "pe_ttm": 138.50459,
+      "pb": 2.69585,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600019": {
+      "name": "",
+      "pe_ttm": 16.430197,
+      "pb": 0.759305,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "000708": {
+      "name": "",
+      "pe_ttm": 15.806564,
+      "pb": 2.138599,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600126": {
+      "name": "",
+      "pe_ttm": -367.444461,
+      "pb": 1.522207,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600282": {
+      "name": "",
+      "pe_ttm": 13.324255,
+      "pb": 1.32623,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600295": {
+      "name": "",
+      "pe_ttm": 25.752949,
+      "pb": 2.246205,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600808": {
+      "name": "",
+      "pe_ttm": -16.075625,
+      "pb": 1.363626,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "000709": {
+      "name": "",
+      "pe_ttm": 27.516683,
+      "pb": 0.512404,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "000825": {
+      "name": "",
+      "pe_ttm": 207.585466,
+      "pb": 0.884909,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "000898": {
+      "name": "",
+      "pe_ttm": -5.950535,
+      "pb": 0.530573,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "000932": {
+      "name": "",
+      "pe_ttm": 15.958902,
+      "pb": 0.797038,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "000959": {
+      "name": "",
+      "pe_ttm": 34.682384,
+      "pb": 0.839751,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600011": {
+      "name": "",
+      "pe_ttm": 8.062751,
+      "pb": 1.75638,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600023": {
+      "name": "",
+      "pe_ttm": 10.101257,
+      "pb": 0.980647,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600025": {
+      "name": "",
+      "pe_ttm": 21.853417,
+      "pb": 2.739057,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600027": {
+      "name": "",
+      "pe_ttm": 9.153103,
+      "pb": 1.237962,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600674": {
+      "name": "",
+      "pe_ttm": 17.180102,
+      "pb": 1.667156,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600795": {
+      "name": "",
+      "pe_ttm": 12.191814,
+      "pb": 1.477136,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600886": {
+      "name": "",
+      "pe_ttm": 16.696631,
+      "pb": 1.658348,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600900": {
+      "name": "",
+      "pe_ttm": 19.392962,
+      "pb": 2.996752,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600905": {
+      "name": "",
+      "pe_ttm": 22.786299,
+      "pb": 1.361778,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600930": {
+      "name": "",
+      "pe_ttm": 28.581673,
+      "pb": 2.291049,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "601985": {
+      "name": "",
+      "pe_ttm": 23.015747,
+      "pb": 1.56251,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "003816": {
+      "name": "",
+      "pe_ttm": 22.130624,
+      "pb": 1.687406,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600021": {
+      "name": "",
+      "pe_ttm": 23.526888,
+      "pb": 2.936117,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600032": {
+      "name": "",
+      "pe_ttm": 37.461507,
+      "pb": 1.550754,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600098": {
+      "name": "",
+      "pe_ttm": 11.717497,
+      "pb": 0.981561,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600157": {
+      "name": "",
+      "pe_ttm": 135.570894,
+      "pb": 0.84835,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600483": {
+      "name": "",
+      "pe_ttm": 9.424323,
+      "pb": 1.080557,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600578": {
+      "name": "",
+      "pe_ttm": 10.459135,
+      "pb": 1.535485,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600642": {
+      "name": "",
+      "pe_ttm": 11.108668,
+      "pb": 1.203218,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600863": {
+      "name": "",
+      "pe_ttm": 20.085805,
+      "pb": 2.391793,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600995": {
+      "name": "",
+      "pe_ttm": 32.137715,
+      "pb": 2.170964,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "601016": {
+      "name": "",
+      "pe_ttm": 23.909441,
+      "pb": 1.230386,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "601991": {
+      "name": "",
+      "pe_ttm": 11.070327,
+      "pb": 2.1404,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "000027": {
+      "name": "",
+      "pe_ttm": 18.109777,
+      "pb": 1.020091,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "000155": {
+      "name": "",
+      "pe_ttm": 59.591229,
+      "pb": 2.567795,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "000537": {
+      "name": "",
+      "pe_ttm": 20.883417,
+      "pb": 0.937779,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "000539": {
+      "name": "",
+      "pe_ttm": 327.564207,
+      "pb": 1.133629,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "000591": {
+      "name": "",
+      "pe_ttm": 22.475691,
+      "pb": 0.978361,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "000883": {
+      "name": "",
+      "pe_ttm": 17.922664,
+      "pb": 0.976441,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "000958": {
+      "name": "",
+      "pe_ttm": 129.702374,
+      "pb": 5.738777,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "001286": {
+      "name": "",
+      "pe_ttm": 13.946694,
+      "pb": 1.559679,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "002608": {
+      "name": "",
+      "pe_ttm": 8.717184,
+      "pb": 0.885021,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600018": {
+      "name": "",
+      "pe_ttm": 8.84291,
+      "pb": 0.846222,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600026": {
+      "name": "",
+      "pe_ttm": 41.333994,
+      "pb": 3.648577,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "601018": {
+      "name": "",
+      "pe_ttm": 15.999579,
+      "pb": 1.038339,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "601298": {
+      "name": "",
+      "pe_ttm": 10.818678,
+      "pb": 1.307858,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "601872": {
+      "name": "",
+      "pe_ttm": 27.982743,
+      "pb": 3.457439,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "601919": {
+      "name": "",
+      "pe_ttm": 6.351103,
+      "pb": 1.040452,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "601000": {
+      "name": "",
+      "pe_ttm": 13.972553,
+      "pb": 1.189936,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "601228": {
+      "name": "",
+      "pe_ttm": 29.628574,
+      "pb": 1.240236,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "601866": {
+      "name": "",
+      "pe_ttm": 22.103801,
+      "pb": 1.220322,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "601880": {
+      "name": "",
+      "pe_ttm": 26.738483,
+      "pb": 0.992179,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "603565": {
+      "name": "",
+      "pe_ttm": 10.819232,
+      "pb": 2.340411,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "000088": {
+      "name": "",
+      "pe_ttm": 16.326507,
+      "pb": 1.298652,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "000582": {
+      "name": "",
+      "pe_ttm": 25.819796,
+      "pb": 1.495615,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600028": {
+      "name": "",
+      "pe_ttm": 23.581314,
+      "pb": 1.023033,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600938": {
+      "name": "",
+      "pe_ttm": 16.042825,
+      "pb": 2.516986,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "601857": {
+      "name": "",
+      "pe_ttm": 14.683704,
+      "pb": 1.49026,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600030": {
+      "name": "",
+      "pe_ttm": 12.926243,
+      "pb": 1.386007,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600061": {
+      "name": "",
+      "pe_ttm": 13.297986,
+      "pb": 0.859039,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600918": {
+      "name": "",
+      "pe_ttm": 28.439358,
+      "pb": 1.288724,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600958": {
+      "name": "",
+      "pe_ttm": 16.092297,
+      "pb": 1.051805,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600999": {
+      "name": "",
+      "pe_ttm": 11.291586,
+      "pb": 1.180619,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "601059": {
+      "name": "",
+      "pe_ttm": 30.693125,
+      "pb": 2.762779,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "601066": {
+      "name": "",
+      "pe_ttm": 17.806805,
+      "pb": 2.179116,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "601136": {
+      "name": "",
+      "pe_ttm": 45.5209,
+      "pb": 3.442088,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "601211": {
+      "name": "",
+      "pe_ttm": 12.648565,
+      "pb": 1.029678,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "601236": {
+      "name": "",
+      "pe_ttm": 38.014514,
+      "pb": 1.503535,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "601377": {
+      "name": "",
+      "pe_ttm": 16.732631,
+      "pb": 1.002769,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "601456": {
+      "name": "",
+      "pe_ttm": 30.458697,
+      "pb": 1.03303,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "601688": {
+      "name": "",
+      "pe_ttm": 11.797881,
+      "pb": 1.0668,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "601788": {
+      "name": "",
+      "pe_ttm": 19.758805,
+      "pb": 1.232029,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "601878": {
+      "name": "",
+      "pe_ttm": 18.356296,
+      "pb": 1.285107,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "601881": {
+      "name": "",
+      "pe_ttm": 10.961287,
+      "pb": 1.308619,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "601901": {
+      "name": "",
+      "pe_ttm": 15.033134,
+      "pb": 1.205499,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "601995": {
+      "name": "",
+      "pe_ttm": 17.578167,
+      "pb": 1.693484,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "000166": {
+      "name": "",
+      "pe_ttm": 12.924615,
+      "pb": 1.089942,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "000776": {
+      "name": "",
+      "pe_ttm": 11.289535,
+      "pb": 1.228256,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "002736": {
+      "name": "",
+      "pe_ttm": 9.91736,
+      "pb": 1.273443,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "300059": {
+      "name": "",
+      "pe_ttm": 26.315945,
+      "pb": 3.750128,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600095": {
+      "name": "",
+      "pe_ttm": 71.177915,
+      "pb": 2.360484,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600109": {
+      "name": "",
+      "pe_ttm": 13.044573,
+      "pb": 0.925182,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600369": {
+      "name": "",
+      "pe_ttm": 31.059266,
+      "pb": 1.104417,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600906": {
+      "name": "",
+      "pe_ttm": 21.675127,
+      "pb": 1.731072,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600909": {
+      "name": "",
+      "pe_ttm": 13.90747,
+      "pb": 1.25248,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600927": {
+      "name": "",
+      "pe_ttm": 33.799427,
+      "pb": 1.622192,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "601099": {
+      "name": "",
+      "pe_ttm": 82.354622,
+      "pb": 2.727821,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "601108": {
+      "name": "",
+      "pe_ttm": 13.202521,
+      "pb": 1.038623,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "601162": {
+      "name": "",
+      "pe_ttm": 60.154371,
+      "pb": 1.446981,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "601198": {
+      "name": "",
+      "pe_ttm": 19.818754,
+      "pb": 1.473554,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "601555": {
+      "name": "",
+      "pe_ttm": 13.304913,
+      "pb": 1.091349,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "601696": {
+      "name": "",
+      "pe_ttm": 33.744079,
+      "pb": 1.984292,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "601990": {
+      "name": "",
+      "pe_ttm": 27.22022,
+      "pb": 1.851055,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "000728": {
+      "name": "",
+      "pe_ttm": 12.770465,
+      "pb": 0.914611,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "000750": {
+      "name": "",
+      "pe_ttm": 33.585908,
+      "pb": 1.140373,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "000783": {
+      "name": "",
+      "pe_ttm": 11.04942,
+      "pb": 1.171591,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "002500": {
+      "name": "",
+      "pe_ttm": 22.701647,
+      "pb": 1.12942,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "002670": {
+      "name": "",
+      "pe_ttm": 91.196448,
+      "pb": 2.632743,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "002673": {
+      "name": "",
+      "pe_ttm": 17.687464,
+      "pb": 1.142939,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "002797": {
+      "name": "",
+      "pe_ttm": 29.488309,
+      "pb": 1.785275,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "002926": {
+      "name": "",
+      "pe_ttm": 14.775411,
+      "pb": 0.928005,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "002939": {
+      "name": "",
+      "pe_ttm": 15.587107,
+      "pb": 1.190563,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "002945": {
+      "name": "",
+      "pe_ttm": 95.386238,
+      "pb": 6.507876,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600031": {
+      "name": "",
+      "pe_ttm": 24.629829,
+      "pb": 2.765515,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "688012": {
+      "name": "",
+      "pe_ttm": 100.970373,
+      "pb": 9.928958,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "688082": {
+      "name": "",
+      "pe_ttm": 55.486602,
+      "pb": 5.750389,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "688271": {
+      "name": "",
+      "pe_ttm": 52.624265,
+      "pb": 4.774202,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "000157": {
+      "name": "",
+      "pe_ttm": 19.541853,
+      "pb": 1.441289,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "000425": {
+      "name": "",
+      "pe_ttm": 21.571671,
+      "pb": 2.378439,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "002371": {
+      "name": "",
+      "pe_ttm": 53.78558,
+      "pb": 9.377126,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "300316": {
+      "name": "",
+      "pe_ttm": 139.426075,
+      "pb": 3.603066,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "300760": {
+      "name": "",
+      "pe_ttm": 24.836744,
+      "pb": 5.436264,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "300896": {
+      "name": "",
+      "pe_ttm": 28.678539,
+      "pb": 5.686077,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600499": {
+      "name": "",
+      "pe_ttm": 22.300352,
+      "pb": 2.575838,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600528": {
+      "name": "",
+      "pe_ttm": 12.808595,
+      "pb": 0.745426,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600582": {
+      "name": "",
+      "pe_ttm": 8.957448,
+      "pb": 0.978408,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "601106": {
+      "name": "",
+      "pe_ttm": -9.328772,
+      "pb": 6.423725,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "601399": {
+      "name": "",
+      "pe_ttm": 76.376025,
+      "pb": 2.471323,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "601608": {
+      "name": "",
+      "pe_ttm": 89.562618,
+      "pb": 3.635363,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "601717": {
+      "name": "",
+      "pe_ttm": 8.982061,
+      "pb": 1.753123,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "603338": {
+      "name": "",
+      "pe_ttm": 15.5072,
+      "pb": 2.459797,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "688037": {
+      "name": "",
+      "pe_ttm": 580.806756,
+      "pb": 15.386149,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "688114": {
+      "name": "",
+      "pe_ttm": -97.759178,
+      "pb": 2.997505,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "688120": {
+      "name": "",
+      "pe_ttm": 57.902332,
+      "pb": 8.727187,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "688301": {
+      "name": "",
+      "pe_ttm": 40.034197,
+      "pb": 4.545285,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "688361": {
+      "name": "",
+      "pe_ttm": 1053.176348,
+      "pb": 23.852141,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "688425": {
+      "name": "",
+      "pe_ttm": 18.880865,
+      "pb": 1.546468,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "688617": {
+      "name": "",
+      "pe_ttm": 39.079702,
+      "pb": 10.730058,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "000519": {
+      "name": "",
+      "pe_ttm": -87.327892,
+      "pb": 2.786458,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "000528": {
+      "name": "",
+      "pe_ttm": 15.297485,
+      "pb": 1.228294,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "000967": {
+      "name": "",
+      "pe_ttm": 67.791084,
+      "pb": 1.513177,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "002008": {
+      "name": "",
+      "pe_ttm": 65.060895,
+      "pb": 4.336849,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "002223": {
+      "name": "",
+      "pe_ttm": 20.894651,
+      "pb": 2.689103,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "002353": {
+      "name": "",
+      "pe_ttm": 44.544902,
+      "pb": 5.704986,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "002430": {
+      "name": "",
+      "pe_ttm": 30.743118,
+      "pb": 3.192926,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "002432": {
+      "name": "",
+      "pe_ttm": 12.372933,
+      "pb": 1.053409,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "002595": {
+      "name": "",
+      "pe_ttm": 32.734269,
+      "pb": 6.849645,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "002837": {
+      "name": "",
+      "pe_ttm": 199.821096,
+      "pb": 30.094983,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "300003": {
+      "name": "",
+      "pe_ttm": 72.986137,
+      "pb": 1.967025,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "300450": {
+      "name": "",
+      "pe_ttm": 97.839381,
+      "pb": 6.633179,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "300529": {
+      "name": "",
+      "pe_ttm": 31.145825,
+      "pb": 4.533111,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "300604": {
+      "name": "",
+      "pe_ttm": 85.894542,
+      "pb": 19.308478,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "300724": {
+      "name": "",
+      "pe_ttm": 11.601395,
+      "pb": 2.977073,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "300751": {
+      "name": "",
+      "pe_ttm": 89.141115,
+      "pb": 9.421055,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "300757": {
+      "name": "",
+      "pe_ttm": -807.222485,
+      "pb": 39.772504,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "301200": {
+      "name": "",
+      "pe_ttm": 119.131915,
+      "pb": 12.480173,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600039": {
+      "name": "",
+      "pe_ttm": 11.73385,
+      "pb": 1.825116,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "601117": {
+      "name": "",
+      "pe_ttm": 9.19626,
+      "pb": 0.853644,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "601186": {
+      "name": "",
+      "pe_ttm": 4.583618,
+      "pb": 0.358343,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "601390": {
+      "name": "",
+      "pe_ttm": 5.901083,
+      "pb": 0.463847,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "601618": {
+      "name": "",
+      "pe_ttm": 16.641373,
+      "pb": 0.619247,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "601668": {
+      "name": "",
+      "pe_ttm": 4.625377,
+      "pb": 0.428457,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "601669": {
+      "name": "",
+      "pe_ttm": 9.247696,
+      "pb": 0.688824,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "601800": {
+      "name": "",
+      "pe_ttm": 6.248977,
+      "pb": 0.441761,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "601868": {
+      "name": "",
+      "pe_ttm": 13.795614,
+      "pb": 0.99951,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600170": {
+      "name": "",
+      "pe_ttm": 12.446944,
+      "pb": 0.799609,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600606": {
+      "name": "",
+      "pe_ttm": -1.012875,
+      "pb": 0.397408,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600820": {
+      "name": "",
+      "pe_ttm": 7.863996,
+      "pb": 0.644512,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600970": {
+      "name": "",
+      "pe_ttm": 9.517794,
+      "pb": 1.287387,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "601611": {
+      "name": "",
+      "pe_ttm": 29.495814,
+      "pb": 2.325394,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600048": {
+      "name": "",
+      "pe_ttm": 76.68136,
+      "pb": 0.407767,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600515": {
+      "name": "",
+      "pe_ttm": 148.164041,
+      "pb": 1.950886,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "000002": {
+      "name": "",
+      "pe_ttm": -0.939616,
+      "pb": 0.318368,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "001979": {
+      "name": "",
+      "pe_ttm": 22.065376,
+      "pb": 0.874927,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600007": {
+      "name": "",
+      "pe_ttm": 16.741178,
+      "pb": 2.089878,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600208": {
+      "name": "",
+      "pe_ttm": -68.891241,
+      "pb": 0.705155,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600663": {
+      "name": "",
+      "pe_ttm": 26.381112,
+      "pb": 1.579144,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600848": {
+      "name": "",
+      "pe_ttm": 17.199667,
+      "pb": 1.377852,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "601155": {
+      "name": "",
+      "pe_ttm": 130.6587,
+      "pb": 0.573878,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "002244": {
+      "name": "",
+      "pe_ttm": 9.945255,
+      "pb": 1.106758,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600050": {
+      "name": "",
+      "pe_ttm": 16.353134,
+      "pb": 0.900126,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600941": {
+      "name": "",
+      "pe_ttm": 14.493555,
+      "pb": 1.515075,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "601698": {
+      "name": "",
+      "pe_ttm": 606.692025,
+      "pb": 9.916239,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "601728": {
+      "name": "",
+      "pe_ttm": 15.761206,
+      "pb": 1.186478,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600637": {
+      "name": "",
+      "pe_ttm": 72.423828,
+      "pb": 1.192495,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600959": {
+      "name": "",
+      "pe_ttm": 42.555941,
+      "pb": 0.853399,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600066": {
+      "name": "",
+      "pe_ttm": 13.8263,
+      "pb": 5.129314,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600104": {
+      "name": "",
+      "pe_ttm": 56.836984,
+      "pb": 0.550018,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600741": {
+      "name": "",
+      "pe_ttm": 8.433172,
+      "pb": 0.899671,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "601127": {
+      "name": "",
+      "pe_ttm": 24.36724,
+      "pb": 6.328211,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "601238": {
+      "name": "",
+      "pe_ttm": -21.957935,
+      "pb": 0.71742,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "601633": {
+      "name": "",
+      "pe_ttm": 17.233165,
+      "pb": 1.984127,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "601689": {
+      "name": "",
+      "pe_ttm": 40.840576,
+      "pb": 4.795928,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "000338": {
+      "name": "",
+      "pe_ttm": 20.47135,
+      "pb": 2.585788,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "000625": {
+      "name": "",
+      "pe_ttm": 15.809963,
+      "pb": 1.393068,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "002594": {
+      "name": "",
+      "pe_ttm": 22.459323,
+      "pb": 3.91752,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600166": {
+      "name": "",
+      "pe_ttm": 31.731727,
+      "pb": 1.571877,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "601799": {
+      "name": "",
+      "pe_ttm": 25.622147,
+      "pb": 3.638753,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "603179": {
+      "name": "",
+      "pe_ttm": 42.557693,
+      "pb": 6.249543,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "603596": {
+      "name": "",
+      "pe_ttm": 23.942819,
+      "pb": 4.327195,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "603786": {
+      "name": "",
+      "pe_ttm": 29.564702,
+      "pb": 4.628104,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "000559": {
+      "name": "",
+      "pe_ttm": 58.75722,
+      "pb": 6.299346,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "000951": {
+      "name": "",
+      "pe_ttm": 14.48735,
+      "pb": 1.487292,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "002085": {
+      "name": "",
+      "pe_ttm": 41.824848,
+      "pb": 4.508005,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "002126": {
+      "name": "",
+      "pe_ttm": 50.95624,
+      "pb": 6.433211,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "002265": {
+      "name": "",
+      "pe_ttm": 227.471027,
+      "pb": 6.646558,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "002472": {
+      "name": "",
+      "pe_ttm": 27.619052,
+      "pb": 3.399492,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "300100": {
+      "name": "",
+      "pe_ttm": 35.469085,
+      "pb": 6.138957,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "300432": {
+      "name": "",
+      "pe_ttm": 68.404812,
+      "pb": 6.128621,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600085": {
+      "name": "",
+      "pe_ttm": 30.108552,
+      "pb": 2.983146,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600161": {
+      "name": "",
+      "pe_ttm": 23.497716,
+      "pb": 2.697894,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600196": {
+      "name": "",
+      "pe_ttm": 20.525257,
+      "pb": 1.402811,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600276": {
+      "name": "",
+      "pe_ttm": 47.742986,
+      "pb": 5.992015,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600436": {
+      "name": "",
+      "pe_ttm": 39.146239,
+      "pb": 6.544995,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "603392": {
+      "name": "",
+      "pe_ttm": -144.03753,
+      "pb": 3.977422,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "688506": {
+      "name": "",
+      "pe_ttm": -100.155922,
+      "pb": 14.674483,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "000538": {
+      "name": "",
+      "pe_ttm": 19.178103,
+      "pb": 2.509788,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "000661": {
+      "name": "",
+      "pe_ttm": 37.950137,
+      "pb": 1.581946,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "000999": {
+      "name": "",
+      "pe_ttm": 14.420548,
+      "pb": 2.336844,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "002001": {
+      "name": "",
+      "pe_ttm": 14.338866,
+      "pb": 3.205797,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "002252": {
+      "name": "",
+      "pe_ttm": 22.426788,
+      "pb": 1.256962,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "002422": {
+      "name": "",
+      "pe_ttm": 29.051494,
+      "pb": 2.041057,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "300122": {
+      "name": "",
+      "pe_ttm": -28.677636,
+      "pb": 1.280494,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "300832": {
+      "name": "",
+      "pe_ttm": 24.752742,
+      "pb": 4.669478,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600062": {
+      "name": "",
+      "pe_ttm": 11.793106,
+      "pb": 1.64644,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600329": {
+      "name": "",
+      "pe_ttm": 8.825283,
+      "pb": 3.504569,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600332": {
+      "name": "",
+      "pe_ttm": 13.565627,
+      "pb": 1.068812,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600380": {
+      "name": "",
+      "pe_ttm": 14.56895,
+      "pb": 1.338878,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600521": {
+      "name": "",
+      "pe_ttm": 48.97336,
+      "pb": 2.472863,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600535": {
+      "name": "",
+      "pe_ttm": 18.772303,
+      "pb": 1.686464,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600566": {
+      "name": "",
+      "pe_ttm": 15.35585,
+      "pb": 1.83344,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "603087": {
+      "name": "",
+      "pe_ttm": 40.06172,
+      "pb": 3.287128,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "603658": {
+      "name": "",
+      "pe_ttm": 17.905945,
+      "pb": 2.247413,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "603707": {
+      "name": "",
+      "pe_ttm": 23.395629,
+      "pb": 2.267291,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "603858": {
+      "name": "",
+      "pe_ttm": 10326.352689,
+      "pb": 1.623796,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "688166": {
+      "name": "",
+      "pe_ttm": 303.950879,
+      "pb": 7.138569,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "688180": {
+      "name": "",
+      "pe_ttm": -34.943574,
+      "pb": 4.915302,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "688192": {
+      "name": "",
+      "pe_ttm": -29.552755,
+      "pb": 15.660482,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "688235": {
+      "name": "",
+      "pe_ttm": 256.876231,
+      "pb": 12.453594,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "688266": {
+      "name": "",
+      "pe_ttm": -127.974719,
+      "pb": 17.898112,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "688278": {
+      "name": "",
+      "pe_ttm": 27.561819,
+      "pb": 9.504608,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "688336": {
+      "name": "",
+      "pe_ttm": 11.698303,
+      "pb": 5.828065,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "688520": {
+      "name": "",
+      "pe_ttm": -29.853045,
+      "pb": -22.811062,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "688578": {
+      "name": "",
+      "pe_ttm": 19.89554,
+      "pb": 6.677842,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "000423": {
+      "name": "",
+      "pe_ttm": 20.174273,
+      "pb": 3.403761,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "000513": {
+      "name": "",
+      "pe_ttm": 14.024415,
+      "pb": 2.15191,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "000623": {
+      "name": "",
+      "pe_ttm": 8.602077,
+      "pb": 0.722586,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "000739": {
+      "name": "",
+      "pe_ttm": 22.987782,
+      "pb": 3.05401,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "002007": {
+      "name": "",
+      "pe_ttm": 28.954434,
+      "pb": 2.415317,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "002262": {
+      "name": "",
+      "pe_ttm": 18.8368,
+      "pb": 2.857881,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "002294": {
+      "name": "",
+      "pe_ttm": 79.762167,
+      "pb": 6.115097,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "002603": {
+      "name": "",
+      "pe_ttm": -98.485487,
+      "pb": 2.566032,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "002773": {
+      "name": "",
+      "pe_ttm": 19.937965,
+      "pb": 2.71983,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "002821": {
+      "name": "",
+      "pe_ttm": 33.830612,
+      "pb": 2.025645,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "300142": {
+      "name": "",
+      "pe_ttm": 369.594922,
+      "pb": 1.879596,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "300558": {
+      "name": "",
+      "pe_ttm": 58.682698,
+      "pb": 3.045666,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "300601": {
+      "name": "",
+      "pe_ttm": -153.920039,
+      "pb": 1.696344,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "301301": {
+      "name": "",
+      "pe_ttm": 25.189175,
+      "pb": 2.974021,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600089": {
+      "name": "",
+      "pe_ttm": 31.136697,
+      "pb": 2.407064,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600438": {
+      "name": "",
+      "pe_ttm": -9.807992,
+      "pb": 1.958658,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600522": {
+      "name": "",
+      "pe_ttm": 34.32646,
+      "pb": 2.686065,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600690": {
+      "name": "",
+      "pe_ttm": 11.012205,
+      "pb": 1.930796,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "601012": {
+      "name": "",
+      "pe_ttm": -24.313477,
+      "pb": 2.364651,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "601877": {
+      "name": "",
+      "pe_ttm": 15.952816,
+      "pb": 1.662782,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "603195": {
+      "name": "",
+      "pe_ttm": 19.440936,
+      "pb": 4.949954,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "605117": {
+      "name": "",
+      "pe_ttm": 35.671619,
+      "pb": 11.725033,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "688223": {
+      "name": "",
+      "pe_ttm": -10.394546,
+      "pb": 2.581254,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "688303": {
+      "name": "",
+      "pe_ttm": -43.543671,
+      "pb": 1.257849,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "688472": {
+      "name": "",
+      "pe_ttm": 48.657743,
+      "pb": 2.116143,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "000333": {
+      "name": "",
+      "pe_ttm": 12.965611,
+      "pb": 2.628961,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "000651": {
+      "name": "",
+      "pe_ttm": 6.548083,
+      "pb": 1.436574,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "002028": {
+      "name": "",
+      "pe_ttm": 56.97467,
+      "pb": 12.465961,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "002074": {
+      "name": "",
+      "pe_ttm": 19.887414,
+      "pb": 2.326353,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "002459": {
+      "name": "",
+      "pe_ttm": -5.167259,
+      "pb": 1.761601,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "300014": {
+      "name": "",
+      "pe_ttm": 33.913059,
+      "pb": 3.17315,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "300124": {
+      "name": "",
+      "pe_ttm": 36.746876,
+      "pb": 5.543225,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "300274": {
+      "name": "",
+      "pe_ttm": 20.093353,
+      "pb": 6.845065,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "300750": {
+      "name": "",
+      "pe_ttm": 25.063481,
+      "pb": 5.08672,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600312": {
+      "name": "",
+      "pe_ttm": 29.194336,
+      "pb": 2.946794,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600487": {
+      "name": "",
+      "pe_ttm": 44.368913,
+      "pb": 4.079519,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600580": {
+      "name": "",
+      "pe_ttm": 66.132015,
+      "pb": 6.012394,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600885": {
+      "name": "",
+      "pe_ttm": 26.771504,
+      "pb": 4.853584,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "601179": {
+      "name": "",
+      "pe_ttm": 76.978709,
+      "pb": 4.102951,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "603606": {
+      "name": "",
+      "pe_ttm": 42.512784,
+      "pb": 5.489614,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "603728": {
+      "name": "",
+      "pe_ttm": 325.168222,
+      "pb": 8.827145,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "688349": {
+      "name": "",
+      "pe_ttm": 42.690626,
+      "pb": 2.363513,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "688599": {
+      "name": "",
+      "pe_ttm": -5.917999,
+      "pb": 1.942795,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "688676": {
+      "name": "",
+      "pe_ttm": 70.491719,
+      "pb": 9.865538,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "688772": {
+      "name": "",
+      "pe_ttm": 39.785086,
+      "pb": 2.63393,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "688819": {
+      "name": "",
+      "pe_ttm": 19.030951,
+      "pb": 1.796563,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "000400": {
+      "name": "",
+      "pe_ttm": 30.622137,
+      "pb": 2.90516,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "000921": {
+      "name": "",
+      "pe_ttm": 9.399185,
+      "pb": 1.869629,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "002032": {
+      "name": "",
+      "pe_ttm": 16.349459,
+      "pb": 6.188029,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "002056": {
+      "name": "",
+      "pe_ttm": 14.725915,
+      "pb": 3.380408,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "002335": {
+      "name": "",
+      "pe_ttm": 70.757926,
+      "pb": 4.71779,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "002508": {
+      "name": "",
+      "pe_ttm": 12.337782,
+      "pb": 1.65667,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "002851": {
+      "name": "",
+      "pe_ttm": 314.713542,
+      "pb": 11.930863,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "003021": {
+      "name": "",
+      "pe_ttm": 114.173826,
+      "pb": 8.282701,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "300001": {
+      "name": "",
+      "pe_ttm": 28.332433,
+      "pb": 4.081926,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "300207": {
+      "name": "",
+      "pe_ttm": 27.910266,
+      "pb": 1.858336,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "300763": {
+      "name": "",
+      "pe_ttm": 40.512339,
+      "pb": 3.949791,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600111": {
+      "name": "",
+      "pe_ttm": 93.539936,
+      "pb": 8.381853,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600219": {
+      "name": "",
+      "pe_ttm": 17.431051,
+      "pb": 1.713134,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600362": {
+      "name": "",
+      "pe_ttm": 23.836748,
+      "pb": 2.335129,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "601600": {
+      "name": "",
+      "pe_ttm": 17.791582,
+      "pb": 3.456396,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "603799": {
+      "name": "",
+      "pe_ttm": 25.331455,
+      "pb": 2.84159,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "000630": {
+      "name": "",
+      "pe_ttm": 55.546642,
+      "pb": 2.843621,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "000807": {
+      "name": "",
+      "pe_ttm": 24.644468,
+      "pb": 3.804694,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "002460": {
+      "name": "",
+      "pe_ttm": -99.943012,
+      "pb": 3.381161,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "002466": {
+      "name": "",
+      "pe_ttm": -44.147291,
+      "pb": 2.106422,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600392": {
+      "name": "",
+      "pe_ttm": 54.18259,
+      "pb": 3.672618,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600497": {
+      "name": "",
+      "pe_ttm": 44.201359,
+      "pb": 3.012954,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600549": {
+      "name": "",
+      "pe_ttm": 51.502065,
+      "pb": 7.092184,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "601212": {
+      "name": "",
+      "pe_ttm": 420.308046,
+      "pb": 4.818723,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "688122": {
+      "name": "",
+      "pe_ttm": 67.373523,
+      "pb": 8.188413,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "000060": {
+      "name": "",
+      "pe_ttm": 30.207539,
+      "pb": 2.127003,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "000629": {
+      "name": "",
+      "pe_ttm": -800.132644,
+      "pb": 3.041988,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "000831": {
+      "name": "",
+      "pe_ttm": 572.194492,
+      "pb": 12.817026,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "000878": {
+      "name": "",
+      "pe_ttm": 41.728919,
+      "pb": 3.523919,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "000933": {
+      "name": "",
+      "pe_ttm": 19.162031,
+      "pb": 3.405285,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "000960": {
+      "name": "",
+      "pe_ttm": 35.426497,
+      "pb": 3.386316,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "002203": {
+      "name": "",
+      "pe_ttm": 42.801389,
+      "pb": 1.9089,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "002532": {
+      "name": "",
+      "pe_ttm": 18.852583,
+      "pb": 3.058148,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "002738": {
+      "name": "",
+      "pe_ttm": 139.802949,
+      "pb": 4.834562,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "002756": {
+      "name": "",
+      "pe_ttm": 61.304194,
+      "pb": 2.957716,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600150": {
+      "name": "",
+      "pe_ttm": 43.218059,
+      "pb": 2.06673,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600372": {
+      "name": "",
+      "pe_ttm": 87.712482,
+      "pb": 1.89393,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600482": {
+      "name": "",
+      "pe_ttm": 43.351168,
+      "pb": 2.005188,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600760": {
+      "name": "",
+      "pe_ttm": 53.995151,
+      "pb": 7.269457,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600893": {
+      "name": "",
+      "pe_ttm": 635.641367,
+      "pb": 3.867337,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "601766": {
+      "name": "",
+      "pe_ttm": 11.873654,
+      "pb": 1.056401,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "688009": {
+      "name": "",
+      "pe_ttm": 16.892605,
+      "pb": 1.342203,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "688187": {
+      "name": "",
+      "pe_ttm": 18.649112,
+      "pb": 1.862413,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "000768": {
+      "name": "",
+      "pe_ttm": 75.232885,
+      "pb": 3.698925,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "002625": {
+      "name": "",
+      "pe_ttm": 137.329842,
+      "pb": 10.372838,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600038": {
+      "name": "",
+      "pe_ttm": 53.169853,
+      "pb": 1.760599,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600316": {
+      "name": "",
+      "pe_ttm": 801.652148,
+      "pb": 5.509911,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600685": {
+      "name": "",
+      "pe_ttm": 59.542574,
+      "pb": 2.800672,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600765": {
+      "name": "",
+      "pe_ttm": 130.371601,
+      "pb": 2.143946,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600862": {
+      "name": "",
+      "pe_ttm": 34.71336,
+      "pb": 4.8736,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600879": {
+      "name": "",
+      "pe_ttm": 442.466767,
+      "pb": 4.165007,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600967": {
+      "name": "",
+      "pe_ttm": 56.172151,
+      "pb": 2.47158,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "603129": {
+      "name": "",
+      "pe_ttm": 20.16831,
+      "pb": 5.056589,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "603529": {
+      "name": "",
+      "pe_ttm": 10.332532,
+      "pb": 2.542425,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "603766": {
+      "name": "",
+      "pe_ttm": 17.061647,
+      "pb": 3.090282,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "688297": {
+      "name": "",
+      "pe_ttm": 473.319755,
+      "pb": 7.322535,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "688563": {
+      "name": "",
+      "pe_ttm": 57.109837,
+      "pb": 2.909364,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "000738": {
+      "name": "",
+      "pe_ttm": 63.905697,
+      "pb": 2.663361,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600160": {
+      "name": "",
+      "pe_ttm": 28.330992,
+      "pb": 5.489447,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600309": {
+      "name": "",
+      "pe_ttm": 25.163314,
+      "pb": 2.655564,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600346": {
+      "name": "",
+      "pe_ttm": 25.66303,
+      "pb": 2.764352,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600426": {
+      "name": "",
+      "pe_ttm": 25.832533,
+      "pb": 2.549623,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600989": {
+      "name": "",
+      "pe_ttm": 18.546951,
+      "pb": 4.338893,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "603260": {
+      "name": "",
+      "pe_ttm": -1603.771337,
+      "pb": 1.773877,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "000301": {
+      "name": "",
+      "pe_ttm": -118.169756,
+      "pb": 2.656434,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "000408": {
+      "name": "",
+      "pe_ttm": 36.697696,
+      "pb": 8.409988,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "000792": {
+      "name": "",
+      "pe_ttm": 32.436442,
+      "pb": 4.759412,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "002493": {
+      "name": "",
+      "pe_ttm": 209.622921,
+      "pb": 3.532244,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "002601": {
+      "name": "",
+      "pe_ttm": 40.141775,
+      "pb": 2.186574,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "002648": {
+      "name": "",
+      "pe_ttm": 13.432568,
+      "pb": 2.571662,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600096": {
+      "name": "",
+      "pe_ttm": 13.160414,
+      "pb": 3.06351,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600141": {
+      "name": "",
+      "pe_ttm": 29.222969,
+      "pb": 2.157336,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600352": {
+      "name": "",
+      "pe_ttm": 24.800438,
+      "pb": 1.506141,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600378": {
+      "name": "",
+      "pe_ttm": 33.377295,
+      "pb": 2.658553,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600486": {
+      "name": "",
+      "pe_ttm": 26.327101,
+      "pb": 2.877095,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "601216": {
+      "name": "",
+      "pe_ttm": 15.283687,
+      "pb": 1.782763,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "603077": {
+      "name": "",
+      "pe_ttm": -254.689002,
+      "pb": 1.35694,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "603379": {
+      "name": "",
+      "pe_ttm": 25.014997,
+      "pb": 5.942523,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "603605": {
+      "name": "",
+      "pe_ttm": 16.825049,
+      "pb": 4.727613,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "603650": {
+      "name": "",
+      "pe_ttm": 60.968201,
+      "pb": 10.164612,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "603737": {
+      "name": "",
+      "pe_ttm": 54.74752,
+      "pb": 11.212893,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "605589": {
+      "name": "",
+      "pe_ttm": 28.049407,
+      "pb": 2.858836,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "688363": {
+      "name": "",
+      "pe_ttm": 72.779856,
+      "pb": 3.000706,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "000683": {
+      "name": "",
+      "pe_ttm": 33.251384,
+      "pb": 2.44444,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "000830": {
+      "name": "",
+      "pe_ttm": 24.146555,
+      "pb": 1.871946,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "000893": {
+      "name": "",
+      "pe_ttm": 31.398847,
+      "pb": 4.317219,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "002312": {
+      "name": "",
+      "pe_ttm": 45.143587,
+      "pb": 2.554681,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "002409": {
+      "name": "",
+      "pe_ttm": 48.227558,
+      "pb": 5.675229,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "003022": {
+      "name": "",
+      "pe_ttm": 93.276889,
+      "pb": 3.647222,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "300285": {
+      "name": "",
+      "pe_ttm": 57.84878,
+      "pb": 5.052396,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "300487": {
+      "name": "",
+      "pe_ttm": 45.266792,
+      "pb": 9.517021,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "300957": {
+      "name": "",
+      "pe_ttm": 51.067661,
+      "pb": 3.025253,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600176": {
+      "name": "",
+      "pe_ttm": 31.509241,
+      "pb": 3.468523,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600585": {
+      "name": "",
+      "pe_ttm": 14.930742,
+      "pb": 0.690307,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600660": {
+      "name": "",
+      "pe_ttm": 17.058206,
+      "pb": 4.36772,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "000786": {
+      "name": "",
+      "pe_ttm": 15.48358,
+      "pb": 1.782197,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600516": {
+      "name": "",
+      "pe_ttm": 650.212797,
+      "pb": 1.71062,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600801": {
+      "name": "",
+      "pe_ttm": 14.57098,
+      "pb": 1.514402,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "601865": {
+      "name": "",
+      "pe_ttm": 104.602421,
+      "pb": 1.679675,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "603688": {
+      "name": "",
+      "pe_ttm": 184.390546,
+      "pb": 4.954454,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "002080": {
+      "name": "",
+      "pe_ttm": 44.682297,
+      "pb": 4.016507,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "002271": {
+      "name": "",
+      "pe_ttm": -113.315446,
+      "pb": 1.955258,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "300395": {
+      "name": "",
+      "pe_ttm": 143.40142,
+      "pb": 13.02361,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "300748": {
+      "name": "",
+      "pe_ttm": 82.316268,
+      "pb": 7.154275,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600183": {
+      "name": "",
+      "pe_ttm": 48.072514,
+      "pb": 10.318278,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600460": {
+      "name": "",
+      "pe_ttm": 89.142053,
+      "pb": 4.031487,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600584": {
+      "name": "",
+      "pe_ttm": 58.605767,
+      "pb": 3.094336,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "601138": {
+      "name": "",
+      "pe_ttm": 35.801952,
+      "pb": 6.773969,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "603019": {
+      "name": "",
+      "pe_ttm": 58.72095,
+      "pb": 5.889516,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "603296": {
+      "name": "",
+      "pe_ttm": 22.598875,
+      "pb": 3.6121,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "603501": {
+      "name": "",
+      "pe_ttm": 34.6223,
+      "pb": 5.239904,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "603893": {
+      "name": "",
+      "pe_ttm": 68.680033,
+      "pb": 16.571834,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "603986": {
+      "name": "",
+      "pe_ttm": 146.471081,
+      "pb": 10.897344,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "688008": {
+      "name": "",
+      "pe_ttm": 83.44377,
+      "pb": 15.216136,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "688036": {
+      "name": "",
+      "pe_ttm": 23.908843,
+      "pb": 3.068696,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "688041": {
+      "name": "",
+      "pe_ttm": 222.160598,
+      "pb": 25.79338,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "688047": {
+      "name": "",
+      "pe_ttm": -127.807814,
+      "pb": 22.686125,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "688126": {
+      "name": "",
+      "pe_ttm": -43.671324,
+      "pb": 5.712077,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "688169": {
+      "name": "",
+      "pe_ttm": 25.493803,
+      "pb": 2.52001,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "688396": {
+      "name": "",
+      "pe_ttm": 102.668438,
+      "pb": 2.965983,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "688981": {
+      "name": "",
+      "pe_ttm": 169.686933,
+      "pb": 5.657769,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "000063": {
+      "name": "",
+      "pe_ttm": 31.025462,
+      "pb": 2.417149,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "000100": {
+      "name": "",
+      "pe_ttm": 33.571691,
+      "pb": 1.700126,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "000725": {
+      "name": "",
+      "pe_ttm": 24.976295,
+      "pb": 1.234911,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "000938": {
+      "name": "",
+      "pe_ttm": 49.422491,
+      "pb": 4.763817,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "000977": {
+      "name": "",
+      "pe_ttm": 35.004652,
+      "pb": 4.135674,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "002049": {
+      "name": "",
+      "pe_ttm": 44.439899,
+      "pb": 4.849515,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "002179": {
+      "name": "",
+      "pe_ttm": 34.92304,
+      "pb": 3.121912,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "002236": {
+      "name": "",
+      "pe_ttm": 15.476773,
+      "pb": 1.560695,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "002241": {
+      "name": "",
+      "pe_ttm": 30.64771,
+      "pb": 2.495597,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "002384": {
+      "name": "",
+      "pe_ttm": 136.75481,
+      "pb": 7.968052,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "002415": {
+      "name": "",
+      "pe_ttm": 19.869333,
+      "pb": 3.596081,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "002463": {
+      "name": "",
+      "pe_ttm": 38.489221,
+      "pb": 10.548279,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "002475": {
+      "name": "",
+      "pe_ttm": 21.661177,
+      "pb": 4.293964,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "002600": {
+      "name": "",
+      "pe_ttm": 45.867501,
+      "pb": 4.520326,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "002709": {
+      "name": "",
+      "pe_ttm": 151.543042,
+      "pb": 6.540821,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "002916": {
+      "name": "",
+      "pe_ttm": 67.270362,
+      "pb": 11.286455,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "002920": {
+      "name": "",
+      "pe_ttm": 28.67156,
+      "pb": 4.671412,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "002938": {
+      "name": "",
+      "pe_ttm": 31.417009,
+      "pb": 3.898684,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "300308": {
+      "name": "",
+      "pe_ttm": 57.312146,
+      "pb": 23.452347,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "300394": {
+      "name": "",
+      "pe_ttm": 142.040115,
+      "pb": 53.357163,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "300408": {
+      "name": "",
+      "pe_ttm": 44.402666,
+      "pb": 5.382368,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "300433": {
+      "name": "",
+      "pe_ttm": 41.743701,
+      "pb": 3.17536,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "300476": {
+      "name": "",
+      "pe_ttm": 68.407005,
+      "pb": 16.388551,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "300502": {
+      "name": "",
+      "pe_ttm": 53.044972,
+      "pb": 27.460487,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "300628": {
+      "name": "",
+      "pe_ttm": 17.097271,
+      "pb": 5.124329,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "300661": {
+      "name": "",
+      "pe_ttm": 69.264275,
+      "pb": 7.887272,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "300782": {
+      "name": "",
+      "pe_ttm": -227.855185,
+      "pb": 4.420087,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "300866": {
+      "name": "",
+      "pe_ttm": 19.734054,
+      "pb": 5.139806,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "302132": {
+      "name": "",
+      "pe_ttm": -192.581131,
+      "pb": 10.304989,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600060": {
+      "name": "",
+      "pe_ttm": 11.262001,
+      "pb": 1.41318,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600118": {
+      "name": "",
+      "pe_ttm": 1926.643174,
+      "pb": 17.433038,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600171": {
+      "name": "",
+      "pe_ttm": 57.777086,
+      "pb": 4.645123,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600363": {
+      "name": "",
+      "pe_ttm": 89.190044,
+      "pb": 6.164494,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600435": {
+      "name": "",
+      "pe_ttm": 108.209086,
+      "pb": 9.551151,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600498": {
+      "name": "",
+      "pe_ttm": 93.813556,
+      "pb": 5.098008,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600562": {
+      "name": "",
+      "pe_ttm": 55.785985,
+      "pb": 5.436827,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600563": {
+      "name": "",
+      "pe_ttm": 22.401916,
+      "pb": 4.507194,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600601": {
+      "name": "",
+      "pe_ttm": 127.842167,
+      "pb": 10.449845,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600699": {
+      "name": "",
+      "pe_ttm": 36.059988,
+      "pb": 2.868089,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600707": {
+      "name": "",
+      "pe_ttm": 62.17039,
+      "pb": 1.113658,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600764": {
+      "name": "",
+      "pe_ttm": 86.150703,
+      "pb": 2.430603,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600884": {
+      "name": "",
+      "pe_ttm": -300.689468,
+      "pb": 1.463163,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "601231": {
+      "name": "",
+      "pe_ttm": 53.429539,
+      "pb": 4.827019,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "603160": {
+      "name": "",
+      "pe_ttm": 40.427728,
+      "pb": 3.606544,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "603228": {
+      "name": "",
+      "pe_ttm": 50.721669,
+      "pb": 4.819273,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "603290": {
+      "name": "",
+      "pe_ttm": 50.402744,
+      "pb": 3.397915,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "603341": {
+      "name": "",
+      "pe_ttm": 38.292749,
+      "pb": 3.852831,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "603486": {
+      "name": "",
+      "pe_ttm": 23.235896,
+      "pb": 4.349691,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "603659": {
+      "name": "",
+      "pe_ttm": 35.641921,
+      "pb": 2.98187,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "603920": {
+      "name": "",
+      "pe_ttm": 49.780336,
+      "pb": 6.092433,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "605358": {
+      "name": "",
+      "pe_ttm": -78.935969,
+      "pb": 3.597765,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "688002": {
+      "name": "",
+      "pe_ttm": 44.833378,
+      "pb": 8.210765,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "688019": {
+      "name": "",
+      "pe_ttm": 53.184509,
+      "pb": 12.63671,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "688027": {
+      "name": "",
+      "pe_ttm": 13583.719702,
+      "pb": 22.793652,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "688100": {
+      "name": "",
+      "pe_ttm": 30.832397,
+      "pb": 5.803812,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "688172": {
+      "name": "",
+      "pe_ttm": -134.915334,
+      "pb": 2.83017,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "688183": {
+      "name": "",
+      "pe_ttm": 45.737071,
+      "pb": 13.062051,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "688220": {
+      "name": "",
+      "pe_ttm": -87.701355,
+      "pb": 6.266924,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "688234": {
+      "name": "",
+      "pe_ttm": -190.462259,
+      "pb": 5.364755,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "688322": {
+      "name": "",
+      "pe_ttm": 266.336749,
+      "pb": 11.370801,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "688347": {
+      "name": "",
+      "pe_ttm": 3744.271331,
+      "pb": 4.536192,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "688375": {
+      "name": "",
+      "pe_ttm": 133.112883,
+      "pb": 10.898465,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "688385": {
+      "name": "",
+      "pe_ttm": 291.071518,
+      "pb": 10.948536,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "688387": {
+      "name": "",
+      "pe_ttm": -197.579514,
+      "pb": 8.761562,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "688469": {
+      "name": "",
+      "pe_ttm": -103.493966,
+      "pb": 4.497319,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "688475": {
+      "name": "",
+      "pe_ttm": 37.653875,
+      "pb": 3.780392,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "688525": {
+      "name": "",
+      "pe_ttm": 103.211385,
+      "pb": 19.132714,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "688538": {
+      "name": "",
+      "pe_ttm": -17.744764,
+      "pb": 4.032288,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "688582": {
+      "name": "",
+      "pe_ttm": 79.598541,
+      "pb": 9.921325,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "688608": {
+      "name": "",
+      "pe_ttm": 53.284632,
+      "pb": 4.52792,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "688629": {
+      "name": "",
+      "pe_ttm": 147.448682,
+      "pb": 31.526831,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "688709": {
+      "name": "",
+      "pe_ttm": 128.066355,
+      "pb": 10.482254,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "688728": {
+      "name": "",
+      "pe_ttm": 784.217378,
+      "pb": 5.050971,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "688778": {
+      "name": "",
+      "pe_ttm": 51.68591,
+      "pb": 4.331026,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "689009": {
+      "name": "",
+      "pe_ttm": 19.522938,
+      "pb": 4.811127,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "000021": {
+      "name": "",
+      "pe_ttm": 48.452757,
+      "pb": 3.89872,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "000050": {
+      "name": "",
+      "pe_ttm": 203.483287,
+      "pb": 0.866826,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "000733": {
+      "name": "",
+      "pe_ttm": 30.914232,
+      "pb": 1.91812,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "001389": {
+      "name": "",
+      "pe_ttm": 49.890494,
+      "pb": 12.458029,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "002025": {
+      "name": "",
+      "pe_ttm": 283.827849,
+      "pb": 3.547114,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "002130": {
+      "name": "",
+      "pe_ttm": 32.910437,
+      "pb": 6.052138,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "002138": {
+      "name": "",
+      "pe_ttm": 32.315397,
+      "pb": 4.866642,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "002152": {
+      "name": "",
+      "pe_ttm": 37.587587,
+      "pb": 2.530172,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "002156": {
+      "name": "",
+      "pe_ttm": 75.205072,
+      "pb": 4.882552,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "002185": {
+      "name": "",
+      "pe_ttm": 58.00656,
+      "pb": 2.654895,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "002273": {
+      "name": "",
+      "pe_ttm": 32.833123,
+      "pb": 3.944802,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "002281": {
+      "name": "",
+      "pe_ttm": 69.479466,
+      "pb": 6.511541,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "002402": {
+      "name": "",
+      "pe_ttm": 50.476464,
+      "pb": 5.877982,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "002414": {
+      "name": "",
+      "pe_ttm": 743.139464,
+      "pb": 9.067517,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "002429": {
+      "name": "",
+      "pe_ttm": 37.610529,
+      "pb": 2.820029,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "002436": {
+      "name": "",
+      "pe_ttm": -1232.876685,
+      "pb": 8.047076,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "002465": {
+      "name": "",
+      "pe_ttm": -138.984443,
+      "pb": 3.546024,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "002583": {
+      "name": "",
+      "pe_ttm": -5.70177,
+      "pb": 7.922399,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "002841": {
+      "name": "",
+      "pe_ttm": 27.010138,
+      "pb": 1.865541,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "003031": {
+      "name": "",
+      "pe_ttm": 59.85531,
+      "pb": 5.832996,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "300037": {
+      "name": "",
+      "pe_ttm": 37.745599,
+      "pb": 4.135373,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "300054": {
+      "name": "",
+      "pe_ttm": 60.698002,
+      "pb": 8.133472,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "300073": {
+      "name": "",
+      "pe_ttm": 56.099147,
+      "pb": 1.965848,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "300115": {
+      "name": "",
+      "pe_ttm": 80.502858,
+      "pb": 5.826695,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "300136": {
+      "name": "",
+      "pe_ttm": 110.029794,
+      "pb": 8.810402,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "300223": {
+      "name": "",
+      "pe_ttm": 186.922146,
+      "pb": 4.786614,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "300346": {
+      "name": "",
+      "pe_ttm": 117.978919,
+      "pb": 10.49575,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "300373": {
+      "name": "",
+      "pe_ttm": 33.429505,
+      "pb": 4.726191,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "300390": {
+      "name": "",
+      "pe_ttm": -873.310393,
+      "pb": 3.427352,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "300458": {
+      "name": "",
+      "pe_ttm": 120.629964,
+      "pb": 10.109303,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "300474": {
+      "name": "",
+      "pe_ttm": -134.448028,
+      "pb": 5.043018,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "300570": {
+      "name": "",
+      "pe_ttm": 77.962543,
+      "pb": 17.645251,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "300623": {
+      "name": "",
+      "pe_ttm": 53.408152,
+      "pb": 4.411186,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "300627": {
+      "name": "",
+      "pe_ttm": 40.56883,
+      "pb": 6.938946,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "300679": {
+      "name": "",
+      "pe_ttm": 30.129371,
+      "pb": 3.213067,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "300735": {
+      "name": "",
+      "pe_ttm": 56.219511,
+      "pb": 3.708629,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "300857": {
+      "name": "",
+      "pe_ttm": 104.747972,
+      "pb": 22.195177,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "300919": {
+      "name": "",
+      "pe_ttm": 43.48306,
+      "pb": 2.687953,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "301308": {
+      "name": "",
+      "pe_ttm": 189.788777,
+      "pb": 16.498948,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "301358": {
+      "name": "",
+      "pe_ttm": 67.015701,
+      "pb": 4.083012,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "301536": {
+      "name": "",
+      "pe_ttm": 124.806824,
+      "pb": 10.474497,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "301611": {
+      "name": "",
+      "pe_ttm": 156.708963,
+      "pb": 29.919124,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600188": {
+      "name": "",
+      "pe_ttm": 20.526337,
+      "pb": 3.872309,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "601088": {
+      "name": "",
+      "pe_ttm": 16.774953,
+      "pb": 2.190821,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "601225": {
+      "name": "",
+      "pe_ttm": 13.872684,
+      "pb": 2.586224,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "601898": {
+      "name": "",
+      "pe_ttm": 13.518156,
+      "pb": 1.476978,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "000983": {
+      "name": "",
+      "pe_ttm": 24.26822,
+      "pb": 1.121429,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600348": {
+      "name": "",
+      "pe_ttm": 23.767971,
+      "pb": 1.31715,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600546": {
+      "name": "",
+      "pe_ttm": 18.989488,
+      "pb": 1.429656,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600985": {
+      "name": "",
+      "pe_ttm": 20.487325,
+      "pb": 0.88412,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "601001": {
+      "name": "",
+      "pe_ttm": 14.834903,
+      "pb": 1.525953,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "601666": {
+      "name": "",
+      "pe_ttm": 37.48802,
+      "pb": 0.95368,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "601699": {
+      "name": "",
+      "pe_ttm": 35.506453,
+      "pb": 0.915433,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "601918": {
+      "name": "",
+      "pe_ttm": 10.101802,
+      "pb": 1.269007,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "000937": {
+      "name": "",
+      "pe_ttm": 51.156226,
+      "pb": 1.07714,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "002128": {
+      "name": "",
+      "pe_ttm": 15.004662,
+      "pb": 2.038945,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600233": {
+      "name": "",
+      "pe_ttm": 16.418027,
+      "pb": 1.947852,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "002352": {
+      "name": "",
+      "pe_ttm": 17.036948,
+      "pb": 1.883751,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "002120": {
+      "name": "",
+      "pe_ttm": 15.762393,
+      "pb": 0.957174,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600377": {
+      "name": "",
+      "pe_ttm": 12.993759,
+      "pb": 1.504461,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "001965": {
+      "name": "",
+      "pe_ttm": 12.620659,
+      "pb": 0.977001,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "000429": {
+      "name": "",
+      "pe_ttm": 14.073255,
+      "pb": 2.336435,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600406": {
+      "name": "",
+      "pe_ttm": 29.673803,
+      "pb": 4.815451,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600570": {
+      "name": "",
+      "pe_ttm": 49.435785,
+      "pb": 5.755868,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600588": {
+      "name": "",
+      "pe_ttm": -22.625451,
+      "pb": 6.120606,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600845": {
+      "name": "",
+      "pe_ttm": 45.316118,
+      "pb": 5.905882,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "688111": {
+      "name": "",
+      "pe_ttm": 70.260971,
+      "pb": 10.675872,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "688256": {
+      "name": "",
+      "pe_ttm": 239.18097,
+      "pb": 43.543625,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "002230": {
+      "name": "",
+      "pe_ttm": 144.119147,
+      "pb": 6.779048,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "300442": {
+      "name": "",
+      "pe_ttm": 31.076534,
+      "pb": 11.42652,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "301236": {
+      "name": "",
+      "pe_ttm": 230.691801,
+      "pb": 4.525165,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "301269": {
+      "name": "",
+      "pe_ttm": 863.518779,
+      "pb": 9.970045,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600131": {
+      "name": "",
+      "pe_ttm": 35.250923,
+      "pb": 3.831209,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600536": {
+      "name": "",
+      "pe_ttm": -213.054724,
+      "pb": 10.827806,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600602": {
+      "name": "",
+      "pe_ttm": 143.06951,
+      "pb": 5.617189,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "603927": {
+      "name": "",
+      "pe_ttm": 62.395738,
+      "pb": 4.739593,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "688018": {
+      "name": "",
+      "pe_ttm": 51.851119,
+      "pb": 5.979369,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "688052": {
+      "name": "",
+      "pe_ttm": -103.20267,
+      "pb": 4.234749,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "688099": {
+      "name": "",
+      "pe_ttm": 42.380556,
+      "pb": 5.148417,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "688188": {
+      "name": "",
+      "pe_ttm": 38.333297,
+      "pb": 7.06602,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "688213": {
+      "name": "",
+      "pe_ttm": 36.029803,
+      "pb": 7.313595,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "688318": {
+      "name": "",
+      "pe_ttm": 93.275661,
+      "pb": 7.929973,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "688561": {
+      "name": "",
+      "pe_ttm": -17.58547,
+      "pb": 2.726497,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "688568": {
+      "name": "",
+      "pe_ttm": 1996.000966,
+      "pb": 16.049485,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "688615": {
+      "name": "",
+      "pe_ttm": 60.961029,
+      "pb": 9.862734,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "688692": {
+      "name": "",
+      "pe_ttm": 51.253281,
+      "pb": 7.570394,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "688702": {
+      "name": "",
+      "pe_ttm": -530.823323,
+      "pb": 33.480913,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "688777": {
+      "name": "",
+      "pe_ttm": 132.856393,
+      "pb": 5.862246,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "000997": {
+      "name": "",
+      "pe_ttm": 20.992883,
+      "pb": 3.23997,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "002065": {
+      "name": "",
+      "pe_ttm": 78.378344,
+      "pb": 2.314873,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "002153": {
+      "name": "",
+      "pe_ttm": -155.143641,
+      "pb": 4.313459,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "002261": {
+      "name": "",
+      "pe_ttm": -6712.460112,
+      "pb": 17.15273,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "002410": {
+      "name": "",
+      "pe_ttm": 59.712772,
+      "pb": 3.495311,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "002439": {
+      "name": "",
+      "pe_ttm": -71.802063,
+      "pb": 1.488048,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "300017": {
+      "name": "",
+      "pe_ttm": 51.09655,
+      "pb": 4.342157,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "300339": {
+      "name": "",
+      "pe_ttm": 276.819652,
+      "pb": 9.915368,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "300383": {
+      "name": "",
+      "pe_ttm": 165.005103,
+      "pb": 2.123068,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "300454": {
+      "name": "",
+      "pe_ttm": 70.114073,
+      "pb": 5.359853,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "300496": {
+      "name": "",
+      "pe_ttm": 62.953564,
+      "pb": 3.028245,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600415": {
+      "name": "",
+      "pe_ttm": 18.478106,
+      "pb": 3.500032,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "601888": {
+      "name": "",
+      "pe_ttm": 46.521982,
+      "pb": 2.840906,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "002027": {
+      "name": "",
+      "pe_ttm": 17.694189,
+      "pb": 5.832177,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600153": {
+      "name": "",
+      "pe_ttm": 13.257389,
+      "pb": 0.484691,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "000785": {
+      "name": "",
+      "pe_ttm": 40.576417,
+      "pb": 0.857794,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "002131": {
+      "name": "",
+      "pe_ttm": 118.641412,
+      "pb": 4.384481,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "300058": {
+      "name": "",
+      "pe_ttm": -273.86349,
+      "pb": 7.530254,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600489": {
+      "name": "",
+      "pe_ttm": 34.970772,
+      "pb": 5.296332,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600547": {
+      "name": "",
+      "pe_ttm": 44.605662,
+      "pb": 7.100089,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "601899": {
+      "name": "",
+      "pe_ttm": 21.986532,
+      "pb": 5.972541,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "603993": {
+      "name": "",
+      "pe_ttm": 24.779099,
+      "pb": 6.232105,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "000975": {
+      "name": "",
+      "pe_ttm": 29.618478,
+      "pb": 5.965745,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600988": {
+      "name": "",
+      "pe_ttm": 28.21427,
+      "pb": 6.122809,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "601168": {
+      "name": "",
+      "pe_ttm": 24.598031,
+      "pb": 4.374051,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "601958": {
+      "name": "",
+      "pe_ttm": 25.321471,
+      "pb": 4.465546,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "000426": {
+      "name": "",
+      "pe_ttm": 56.975247,
+      "pb": 9.917025,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "002155": {
+      "name": "",
+      "pe_ttm": 47.674108,
+      "pb": 7.549931,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600519": {
+      "name": "",
+      "pe_ttm": 19.460489,
+      "pb": 6.815172,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600600": {
+      "name": "",
+      "pe_ttm": 18.093215,
+      "pb": 2.673259,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600809": {
+      "name": "",
+      "pe_ttm": 15.469019,
+      "pb": 4.905358,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "603369": {
+      "name": "",
+      "pe_ttm": 12.618953,
+      "pb": 2.19782,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "605499": {
+      "name": "",
+      "pe_ttm": 30.210893,
+      "pb": 15.040089,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "000568": {
+      "name": "",
+      "pe_ttm": 12.100523,
+      "pb": 3.0793,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "000596": {
+      "name": "",
+      "pe_ttm": 12.429075,
+      "pb": 2.309423,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "000858": {
+      "name": "",
+      "pe_ttm": 13.849397,
+      "pb": 2.763515,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "002304": {
+      "name": "",
+      "pe_ttm": 36.953644,
+      "pb": 1.574904,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600132": {
+      "name": "",
+      "pe_ttm": 22.038061,
+      "pb": 13.545165,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "603156": {
+      "name": "",
+      "pe_ttm": 23.376067,
+      "pb": 4.19224,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "603589": {
+      "name": "",
+      "pe_ttm": 14.498141,
+      "pb": 1.504254,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "000729": {
+      "name": "",
+      "pe_ttm": 23.676489,
+      "pb": 2.296937,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "002461": {
+      "name": "",
+      "pe_ttm": 23.020661,
+      "pb": 1.876112,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "002568": {
+      "name": "",
+      "pe_ttm": 28.503856,
+      "pb": 4.166936,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600803": {
+      "name": "",
+      "pe_ttm": 15.122775,
+      "pb": 2.821628,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "601139": {
+      "name": "",
+      "pe_ttm": 14.334839,
+      "pb": 1.276916,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600875": {
+      "name": "",
+      "pe_ttm": 44.726066,
+      "pb": 3.282809,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "601100": {
+      "name": "",
+      "pe_ttm": 50.876247,
+      "pb": 8.364364,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "002050": {
+      "name": "",
+      "pe_ttm": 49.574664,
+      "pb": 6.330306,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "601615": {
+      "name": "",
+      "pe_ttm": 149.841736,
+      "pb": 1.722518,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "603298": {
+      "name": "",
+      "pe_ttm": 16.381875,
+      "pb": 3.163088,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "603699": {
+      "name": "",
+      "pe_ttm": 29.83308,
+      "pb": 10.29729,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "688017": {
+      "name": "",
+      "pe_ttm": 312.588645,
+      "pb": 11.136676,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "001696": {
+      "name": "",
+      "pe_ttm": 32.115549,
+      "pb": 4.849087,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "002202": {
+      "name": "",
+      "pe_ttm": 44.583141,
+      "pb": 3.079448,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "300024": {
+      "name": "",
+      "pe_ttm": -100.987914,
+      "pb": 5.958881,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "300718": {
+      "name": "",
+      "pe_ttm": 89.374574,
+      "pb": 13.217667,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600887": {
+      "name": "",
+      "pe_ttm": 20.269942,
+      "pb": 2.883506,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "603288": {
+      "name": "",
+      "pe_ttm": 30.730616,
+      "pb": 5.323189,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600298": {
+      "name": "",
+      "pe_ttm": 24.157874,
+      "pb": 3.10497,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600299": {
+      "name": "",
+      "pe_ttm": 32.932139,
+      "pb": 2.319896,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600873": {
+      "name": "",
+      "pe_ttm": 8.31559,
+      "pb": 1.94538,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "300146": {
+      "name": "",
+      "pe_ttm": 27.765458,
+      "pb": 1.696923,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "601006": {
+      "name": "",
+      "pe_ttm": 15.700128,
+      "pb": 0.628356,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "601816": {
+      "name": "",
+      "pe_ttm": 18.81284,
+      "pb": 1.20134,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "601333": {
+      "name": "",
+      "pe_ttm": 16.635811,
+      "pb": 0.771579,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "001213": {
+      "name": "",
+      "pe_ttm": 32.54381,
+      "pb": 0.961877,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "601058": {
+      "name": "",
+      "pe_ttm": 13.149649,
+      "pb": 2.303603,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600143": {
+      "name": "",
+      "pe_ttm": 39.472833,
+      "pb": 2.49453,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "601966": {
+      "name": "",
+      "pe_ttm": 17.738387,
+      "pb": 0.920874,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "603049": {
+      "name": "",
+      "pe_ttm": 11.023831,
+      "pb": 1.865756,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "603806": {
+      "name": "",
+      "pe_ttm": 60.836034,
+      "pb": 2.820994,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "000887": {
+      "name": "",
+      "pe_ttm": 17.47232,
+      "pb": 1.865733,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "002372": {
+      "name": "",
+      "pe_ttm": 21.378796,
+      "pb": 3.834694,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "002984": {
+      "name": "",
+      "pe_ttm": 13.536172,
+      "pb": 1.476164,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "300677": {
+      "name": "",
+      "pe_ttm": 17.803198,
+      "pb": 1.66898,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "601318": {
+      "name": "",
+      "pe_ttm": 8.013362,
+      "pb": 1.139614,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "601319": {
+      "name": "",
+      "pe_ttm": 6.986661,
+      "pb": 1.187019,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "601336": {
+      "name": "",
+      "pe_ttm": 5.937584,
+      "pb": 2.268863,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "601601": {
+      "name": "",
+      "pe_ttm": 7.229498,
+      "pb": 1.331753,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "601628": {
+      "name": "",
+      "pe_ttm": 7.078796,
+      "pb": 1.925328,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "002423": {
+      "name": "",
+      "pe_ttm": -249.953273,
+      "pb": 1.131519,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "601360": {
+      "name": "",
+      "pe_ttm": -125.789175,
+      "pb": 2.730436,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "300413": {
+      "name": "",
+      "pe_ttm": 44.795475,
+      "pb": 1.810346,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "300418": {
+      "name": "",
+      "pe_ttm": -40.482766,
+      "pb": 4.70935,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "603000": {
+      "name": "",
+      "pe_ttm": 126.076889,
+      "pb": 6.410277,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "603444": {
+      "name": "",
+      "pe_ttm": 18.538098,
+      "pb": 5.173079,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "002195": {
+      "name": "",
+      "pe_ttm": 351.057169,
+      "pb": 6.071908,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "002517": {
+      "name": "",
+      "pe_ttm": 23.820692,
+      "pb": 4.50486,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "002558": {
+      "name": "",
+      "pe_ttm": 38.762351,
+      "pb": 4.524793,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "002624": {
+      "name": "",
+      "pe_ttm": -166.77853,
+      "pb": 5.49162,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "300002": {
+      "name": "",
+      "pe_ttm": 25.999571,
+      "pb": 2.736713,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "601607": {
+      "name": "",
+      "pe_ttm": 11.186671,
+      "pb": 0.833347,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "000963": {
+      "name": "",
+      "pe_ttm": 16.037955,
+      "pb": 2.457371,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600655": {
+      "name": "",
+      "pe_ttm": -12.634781,
+      "pb": 0.557714,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "603233": {
+      "name": "",
+      "pe_ttm": 19.691092,
+      "pb": 3.182101,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "603939": {
+      "name": "",
+      "pe_ttm": 17.152955,
+      "pb": 2.571725,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "300972": {
+      "name": "",
+      "pe_ttm": 35.044132,
+      "pb": 18.269649,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "601808": {
+      "name": "",
+      "pe_ttm": 24.214908,
+      "pb": 2.054988,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600339": {
+      "name": "",
+      "pe_ttm": 51.106542,
+      "pb": 1.004479,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600583": {
+      "name": "",
+      "pe_ttm": 16.839296,
+      "pb": 1.261504,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600871": {
+      "name": "",
+      "pe_ttm": 121.114991,
+      "pb": 7.923245,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600968": {
+      "name": "",
+      "pe_ttm": 13.915952,
+      "pb": 1.857789,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "603979": {
+      "name": "",
+      "pe_ttm": 19.908596,
+      "pb": 4.279632,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "002683": {
+      "name": "",
+      "pe_ttm": 39.657025,
+      "pb": 5.363016,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "603259": {
+      "name": "",
+      "pe_ttm": 18.398615,
+      "pb": 3.888029,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "300347": {
+      "name": "",
+      "pe_ttm": 79.850608,
+      "pb": 2.308258,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "300759": {
+      "name": "",
+      "pe_ttm": 32.677097,
+      "pb": 3.382121,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "000876": {
+      "name": "",
+      "pe_ttm": 36.344606,
+      "pb": 1.762966,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "000895": {
+      "name": "",
+      "pe_ttm": 17.878108,
+      "pb": 4.546232,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "002311": {
+      "name": "",
+      "pe_ttm": 17.53652,
+      "pb": 3.485697,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "300999": {
+      "name": "",
+      "pe_ttm": 49.351382,
+      "pb": 1.617436,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600737": {
+      "name": "",
+      "pe_ttm": 23.794217,
+      "pb": 2.882787,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "603345": {
+      "name": "",
+      "pe_ttm": 22.05944,
+      "pb": 2.022884,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "002299": {
+      "name": "",
+      "pe_ttm": 15.981383,
+      "pb": 2.11106,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "002385": {
+      "name": "",
+      "pe_ttm": 37.933367,
+      "pb": 2.042759,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "301498": {
+      "name": "",
+      "pe_ttm": 34.927494,
+      "pb": 5.20816,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "002714": {
+      "name": "",
+      "pe_ttm": 12.10503,
+      "pb": 3.539451,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "300498": {
+      "name": "",
+      "pe_ttm": 20.438341,
+      "pb": 2.484073,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "002157": {
+      "name": "",
+      "pe_ttm": -384.596351,
+      "pb": 2.489755,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "300015": {
+      "name": "",
+      "pe_ttm": 29.491063,
+      "pb": 4.231691,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600763": {
+      "name": "",
+      "pe_ttm": 41.221519,
+      "pb": 4.907744,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "002044": {
+      "name": "",
+      "pe_ttm": 80.950095,
+      "pb": 3.167858,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "300033": {
+      "name": "",
+      "pe_ttm": 70.517384,
+      "pb": 22.355485,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "300803": {
+      "name": "",
+      "pe_ttm": 296.312637,
+      "pb": 24.211367,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600390": {
+      "name": "",
+      "pe_ttm": 590.255628,
+      "pb": 0.586686,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600517": {
+      "name": "",
+      "pe_ttm": 17.898784,
+      "pb": 1.819825,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600816": {
+      "name": "",
+      "pe_ttm": 421.946726,
+      "pb": 1.922077,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "000009": {
+      "name": "",
+      "pe_ttm": 327.533081,
+      "pb": 2.290491,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "000563": {
+      "name": "",
+      "pe_ttm": 12.494273,
+      "pb": 0.944856,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "000987": {
+      "name": "",
+      "pe_ttm": 12.775844,
+      "pb": 1.447241,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "300251": {
+      "name": "",
+      "pe_ttm": 23.720317,
+      "pb": 4.781924,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600977": {
+      "name": "",
+      "pe_ttm": -2952.284014,
+      "pb": 2.335523,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "002739": {
+      "name": "",
+      "pe_ttm": -53.749239,
+      "pb": 2.802079,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "300979": {
+      "name": "",
+      "pe_ttm": 15.764805,
+      "pb": 3.472429,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600008": {
+      "name": "",
+      "pe_ttm": 13.510979,
+      "pb": 1.103497,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "000598": {
+      "name": "",
+      "pe_ttm": 10.288079,
+      "pb": 1.058394,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600177": {
+      "name": "",
+      "pe_ttm": 12.265634,
+      "pb": 0.746173,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600398": {
+      "name": "",
+      "pe_ttm": 13.976388,
+      "pb": 1.639857,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600511": {
+      "name": "",
+      "pe_ttm": 11.097396,
+      "pb": 1.236971,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600704": {
+      "name": "",
+      "pe_ttm": 7.541504,
+      "pb": 0.700195,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600739": {
+      "name": "",
+      "pe_ttm": 21.133994,
+      "pb": 0.619833,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600998": {
+      "name": "",
+      "pe_ttm": 9.355151,
+      "pb": 0.984602,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "601061": {
+      "name": "",
+      "pe_ttm": 25.281501,
+      "pb": 3.044607,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "000034": {
+      "name": "",
+      "pe_ttm": 51.387797,
+      "pb": 2.448915,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "000062": {
+      "name": "",
+      "pe_ttm": 78.733021,
+      "pb": 3.524343,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600598": {
+      "name": "",
+      "pe_ttm": 26.732275,
+      "pb": 3.575662,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "601118": {
+      "name": "",
+      "pe_ttm": 108.35028,
+      "pb": 3.226765,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600673": {
+      "name": "",
+      "pe_ttm": 117.518072,
+      "pb": 11.683837,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600688": {
+      "name": "",
+      "pe_ttm": -243.878911,
+      "pb": 1.503124,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "000723": {
+      "name": "",
+      "pe_ttm": -19.198415,
+      "pb": 1.772896,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600720": {
+      "name": "",
+      "pe_ttm": 10.743684,
+      "pb": 1.07211,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "601965": {
+      "name": "",
+      "pe_ttm": 17.996279,
+      "pb": 2.545591,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "688248": {
+      "name": "",
+      "pe_ttm": 69.797752,
+      "pb": 9.193663,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "300012": {
+      "name": "",
+      "pe_ttm": 26.608309,
+      "pb": 3.473374,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "300676": {
+      "name": "",
+      "pe_ttm": -23.229619,
+      "pb": 2.010693,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "600754": {
+      "name": "",
+      "pe_ttm": 51.63005,
+      "pb": 1.797246,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "601019": {
+      "name": "",
+      "pe_ttm": 11.812301,
+      "pb": 1.172722,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "601098": {
+      "name": "",
+      "pe_ttm": 11.884443,
+      "pb": 1.194812,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "601921": {
+      "name": "",
+      "pe_ttm": 13.531999,
+      "pb": 1.27571,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "601928": {
+      "name": "",
+      "pe_ttm": 12.545956,
+      "pb": 1.221208,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "601233": {
+      "name": "",
+      "pe_ttm": 30.436116,
+      "pb": 1.401325,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "603225": {
+      "name": "",
+      "pe_ttm": 25.315968,
+      "pb": 1.768487,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "688065": {
+      "name": "",
+      "pe_ttm": 65.91716,
+      "pb": 2.119036,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "688295": {
+      "name": "",
+      "pe_ttm": 282.128159,
+      "pb": 5.814441,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "000703": {
+      "name": "",
+      "pe_ttm": 201.429225,
+      "pb": 2.024046,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "002064": {
+      "name": "",
+      "pe_ttm": 35.637051,
+      "pb": 2.204087,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "300699": {
+      "name": "",
+      "pe_ttm": 52.126681,
+      "pb": 5.676175,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "601567": {
+      "name": "",
+      "pe_ttm": 19.057744,
+      "pb": 3.025448,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "300567": {
+      "name": "",
+      "pe_ttm": -514.485381,
+      "pb": 11.611098,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "601598": {
+      "name": "",
+      "pe_ttm": 11.050532,
+      "pb": 1.047783,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "603568": {
+      "name": "",
+      "pe_ttm": 17.540324,
+      "pb": 3.294923,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "002266": {
+      "name": "",
+      "pe_ttm": 27.978632,
+      "pb": 2.22715,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "300070": {
+      "name": "",
+      "pe_ttm": 675.378622,
+      "pb": 0.543645,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "300140": {
+      "name": "",
+      "pe_ttm": 29.399848,
+      "pb": 1.723491,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "603816": {
+      "name": "",
+      "pe_ttm": 17.150124,
+      "pb": 2.651145,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "603833": {
+      "name": "",
+      "pe_ttm": 13.833488,
+      "pb": 1.753127,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "603899": {
+      "name": "",
+      "pe_ttm": 18.147469,
+      "pb": 2.689007,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "688281": {
+      "name": "",
+      "pe_ttm": 77.944222,
+      "pb": 5.244592,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "000032": {
+      "name": "",
+      "pe_ttm": 143.953244,
+      "pb": 3.704613,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "000039": {
+      "name": "",
+      "pe_ttm": 26.784127,
+      "pb": 1.49363,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "000657": {
+      "name": "",
+      "pe_ttm": 137.069646,
+      "pb": 14.855425,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "001221": {
+      "name": "",
+      "pe_ttm": 39.388787,
+      "pb": 9.554063,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "002318": {
+      "name": "",
+      "pe_ttm": 19.44565,
+      "pb": 4.070304,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "002444": {
+      "name": "",
+      "pe_ttm": 15.909982,
+      "pb": 2.122383,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "002850": {
+      "name": "",
+      "pe_ttm": 26.324185,
+      "pb": 3.454047,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "000415": {
+      "name": "",
+      "pe_ttm": -15.02081,
+      "pb": 1.071526,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "002078": {
+      "name": "",
+      "pe_ttm": 14.170575,
+      "pb": 1.530982,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "002831": {
+      "name": "",
+      "pe_ttm": 19.697414,
+      "pb": 2.524409,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "002340": {
+      "name": "",
+      "pe_ttm": 38.110561,
+      "pb": 2.262465,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "002607": {
+      "name": "",
+      "pe_ttm": 164.096269,
+      "pb": 21.606512,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "003035": {
+      "name": "",
+      "pe_ttm": 256.86867,
+      "pb": 4.868649,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "300144": {
+      "name": "",
+      "pe_ttm": 26.327048,
+      "pb": 2.498887,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    },
+    "300888": {
+      "name": "",
+      "pe_ttm": 22.445786,
+      "pb": 1.707938,
+      "market_cap_yi": null,
+      "is_st": false,
+      "source": "baostock"
+    }
+  }
+}

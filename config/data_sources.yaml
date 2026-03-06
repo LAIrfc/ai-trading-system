@@ -1,6 +1,17 @@
 # 策略数据源配置（V3.3）
 # 占位 [指定数据商] 在接入前可替换为 akshare / tushare / Wind 等
 
+# 日线 K 线主备顺序：策略/回测/采集器统一通过 DataProvider.get_kline 获取，换源仅改此处
+kline:
+  # 股票数据源顺序（普通股票）
+  sources: [sina, eastmoney, tencent, tushare]
+  # ETF 数据源顺序（自动判断 ETF 时使用，优先级高于 sources）
+  # local_cache: 本地缓存（mycache/etf_kline, mydate/backtest_kline）— 优先级最高
+  # akshare_etf: akshare 的新浪/网易/东方财富三源轮询
+  # push2his_etf: 东方财富 push2his 直接接口
+  # baostock_etf: baostock ETF 数据（部分 ETF 支持）
+  etf_sources: [local_cache, akshare_etf, push2his_etf, baostock_etf]
+
 sentiment:
   # 情绪因子所需指标，缺项权重置 0 并归一化
   advance_decline_ratio:   # 涨跌家数比，日频

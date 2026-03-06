@@ -219,7 +219,7 @@ class MyStrategy(BaseStrategy):
 
 def test_strategy():
     """测试策略"""
-    from src.data.realtime_data import MarketDataManager
+    from src.data import MarketDataManager
     from loguru import logger
     
     print("\n" + "="*60)

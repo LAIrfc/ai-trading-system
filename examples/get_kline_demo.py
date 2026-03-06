@@ -8,7 +8,7 @@ import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from src.data.realtime_data import RealtimeDataFetcher, MarketDataManager
+from src.data import RealtimeDataFetcher, MarketDataManager
 import pandas as pd
 from datetime import datetime
 

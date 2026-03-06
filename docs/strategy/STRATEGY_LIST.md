@@ -84,6 +84,7 @@
 
 ## 七、文档索引
 
+- **策略所需指标与接口**：见 [数据接口与容错获取规范](../data/API_INTERFACES_AND_FETCHERS.md) 第「〇、策略视角」
 - 设计规格： [V33_DESIGN_SPEC](V33_DESIGN_SPEC.md)
 - 落地与状态： [V33_落地与状态](V33_落地与状态.md)
 - 情绪技术说明： [SENTIMENT_TECH](SENTIMENT_TECH.md)

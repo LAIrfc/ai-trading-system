@@ -51,7 +51,7 @@ class AkShareCollector(BaseDataCollector):
                       start_date: str, 
                       end_date: str) -> pd.DataFrame:
         """
-        获取日线数据
+        获取日线数据（统一走 DataProvider，主备由 config 决定）。
         
         Args:
             stock_code: 股票代码，如 '000001'
@@ -59,25 +59,19 @@ class AkShareCollector(BaseDataCollector):
             end_date: 结束日期 'YYYYMMDD'
             
         Returns:
-            日线数据DataFrame
+            日线数据 DataFrame，列含 date/open/high/low/close/volume
         """
         try:
-            # 转换股票代码格式
             symbol = self._format_stock_code(stock_code)
-            
-            df = self.ak.stock_zh_a_hist(
-                symbol=symbol,
-                start_date=start_date,
-                end_date=end_date,
-                adjust="qfq"  # 前复权
+            from src.data.provider.data_provider import get_default_kline_provider
+            df = get_default_kline_provider().get_kline(
+                symbol=symbol, start_date=start_date, end_date=end_date, min_bars=1
             )
-            
-            # 标准化列名
-            df = self._standardize_columns(df)
-            
-            logger.debug(f"获取{stock_code}日线数据成功，共{len(df)}条")
-            return df
-            
+            if df is not None and not df.empty:
+                df = self._standardize_columns(df)
+                logger.debug(f"获取{stock_code}日线数据成功，共{len(df)}条")
+                return df
+            return pd.DataFrame()
         except Exception as e:
             logger.error(f"获取{stock_code}日线数据失败: {e}")
             return pd.DataFrame()
@@ -235,17 +229,18 @@ class TushareCollector(BaseDataCollector):
     def get_daily_bars(self, stock_code: str, 
                       start_date: str, 
                       end_date: str) -> pd.DataFrame:
-        """获取日线数据"""
+        """获取日线数据（统一走 DataProvider，主备由 config 决定）。"""
         try:
-            df = self.pro.daily(
-                ts_code=stock_code,
-                start_date=start_date,
-                end_date=end_date
+            # ts_code 如 000001.SZ -> 转成 000001 给 provider
+            symbol = stock_code.split(".")[0] if "." in stock_code else stock_code
+            from src.data.provider.data_provider import get_default_kline_provider
+            df = get_default_kline_provider().get_kline(
+                symbol=symbol, start_date=start_date, end_date=end_date, min_bars=1
             )
-            
-            logger.debug(f"获取{stock_code}日线数据成功，共{len(df)}条")
-            return df
-            
+            if df is not None and not df.empty:
+                logger.debug(f"获取{stock_code}日线数据成功，共{len(df)}条")
+                return df
+            return pd.DataFrame()
         except Exception as e:
             logger.error(f"获取{stock_code}日线数据失败: {e}")
             return pd.DataFrame()

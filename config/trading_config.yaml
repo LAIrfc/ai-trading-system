@@ -53,6 +53,8 @@ market:
 data:
   # 数据源
   source: "akshare"  # akshare / tushare / baostock
+  # 日线/情绪备用：tushare token（可选，不填则用环境变量 TUSHARE_TOKEN）
+  tushare_token: ""  # 如 "your_tushare_pro_token"
   
   # 数据频率
   frequency: "daily"  # daily(日线) / minute(分钟)

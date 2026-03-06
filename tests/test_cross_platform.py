@@ -64,7 +64,7 @@ def test_data_fetcher():
     print("="*60 + "\n")
     
     try:
-        from src.data.realtime_data import RealtimeDataFetcher
+        from src.data import RealtimeDataFetcher
         
         print("创建数据获取器...")
         fetcher = RealtimeDataFetcher()

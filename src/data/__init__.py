@@ -8,13 +8,14 @@
 """
 
 # 向后兼容：保持旧的导入路径可用
-from .fetchers.market_data import MarketData
+from .fetchers.market_data import MarketData, ETF_POOL
 from .fetchers.realtime_data import RealtimeDataFetcher, MarketDataManager
 from .fetchers.fundamental_fetcher import FundamentalFetcher, create_mock_fundamental_data
 from .fetchers.etf_data_fetcher import ETFDataFetcher
 
 __all__ = [
     'MarketData',
+    'ETF_POOL',
     'RealtimeDataFetcher',
     'MarketDataManager',
     'FundamentalFetcher',

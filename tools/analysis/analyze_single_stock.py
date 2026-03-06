@@ -39,6 +39,7 @@ from src.strategies.ensemble import (
 )
 from src.data.fetchers.fundamental_fetcher import FundamentalFetcher
 from src.data.fetchers.market_data import MarketData
+from src.data.provider.data_provider import get_default_kline_provider
 import akshare as ak
 import baostock as bs
 
@@ -289,49 +290,47 @@ def analyze_stock(code: str, name: str = None):
     fetcher = FundamentalFetcher()
     bs.login()
     
-    # 获取历史数据（优先baostock，失败则用akshare）
+    # 获取历史数据（使用 UnifiedDataProvider 统一多源获取）
     print("📡 正在获取历史数据...")
+    is_etf = (code.startswith('5') or code.startswith('159')) and len(code) == 6
+    
     df = None
-    try:
-        df = get_stock_data_bs(code)
-        if df is not None and len(df) >= 60:
-            print("  ✅ 使用baostock获取数据")
-    except Exception:
-        pass
-    
-    if df is None or len(df) < 60:
-        print("  ⚠️  baostock数据不足，尝试akshare...")
+    # 先尝试 baostock（股票）
+    if not is_etf:
         try:
-            df = get_stock_data_akshare(code)
+            df = get_stock_data_bs(code)
             if df is not None and len(df) >= 60:
-                print("  ✅ 使用akshare获取数据")
+                print("  ✅ 使用baostock获取数据")
+        except Exception:
+            pass
+    
+    # 使用 UnifiedDataProvider 多源获取
+    if df is None or len(df) < 60:
+        if is_etf:
+            print("  ⚠️  baostock数据不足，尝试 ETF 专用接口...")
+        try:
+            provider = get_default_kline_provider()
+            df = provider.get_kline(
+                symbol=code,
+                datalen=800,
+                min_bars=60,
+                retries=2,
+                timeout=10,
+                is_etf=is_etf
+            )
+            if df is not None and len(df) >= 60:
+                source = df['data_source'].iloc[0] if 'data_source' in df.columns else 'provider'
+                print(f"  ✅ 使用 {source} 获取数据成功")
         except Exception as e:
-            print(f"  ⚠️  akshare获取失败: {str(e)[:50]}")
+            print(f"  ⚠️  UnifiedDataProvider 失败: {str(e)[:50]}")
     
     if df is None or len(df) < 60:
-        if (code.startswith('5') and len(code) == 6) or code.startswith('159'):
-            print("  ⚠️  尝试 ETF 专用接口...")
-            try:
-                df = get_etf_data_akshare(code)
-                if df is not None and len(df) >= 60:
-                    print("  ✅ ETF 接口(akshare)获取数据成功")
-            except Exception as e:
-                print(f"  ⚠️  ETF akshare 失败: {str(e)[:50]}")
-            if df is None or len(df) < 60:
-                df = get_etf_data_marketdata(code)
-                if df is not None and len(df) >= 60:
-                    print("  ✅ ETF 接口(MarketData/push2his)获取数据成功")
-            if df is None or len(df) < 60:
-                df = get_etf_data_direct(code)
-                if df is not None and len(df) >= 60:
-                    print("  ✅ ETF 接口(直接 push2his)获取数据成功")
-        if df is None or len(df) < 60:
-            print("  ❌ 历史数据不足，无法运行策略分析")
-            try:
-                bs.logout()
-            except Exception:
-                pass
-            return
+        print("  ❌ 所有数据源均失败，历史数据不足，无法运行策略分析")
+        try:
+            bs.logout()
+        except Exception:
+            pass
+        return
     
     print(f"  ✅ 历史数据: {len(df)}条 ({df['date'].iloc[0].strftime('%Y-%m-%d')} ~ {df['date'].iloc[-1].strftime('%Y-%m-%d')})")
     

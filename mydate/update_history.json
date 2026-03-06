@@ -1,0 +1,18 @@
+{
+  "updates": [
+    {
+      "date": "2026-03-06 11:01:52",
+      "type": "quarterly_update",
+      "index_updated": true
+    },
+    {
+      "date": "2026-03-06 15:30:34",
+      "type": "quarterly_update",
+      "index_updated": true,
+      "sectors_updated": true,
+      "fundamental_count": 0,
+      "merged": true
+    }
+  ],
+  "last_update": "2026-03-06"
+}

@@ -57,6 +57,7 @@ from src.strategies.fundamental_pe import PEStrategy
 from src.strategies.fundamental_pb import PBStrategy
 from src.data.fetchers.fundamental_fetcher import FundamentalFetcher
 from src.data.fetchers.market_data import MarketData
+from src.data.provider.data_provider import get_default_kline_provider
 import akshare as ak
 import baostock as bs
 import time
@@ -258,35 +259,68 @@ def main():
         
         print()
         
-        # 获取历史数据（股票用 baostock，失败且为 ETF 时用 ETF 专用接口）
-        df = get_stock_data_bs(code)
+        # 获取历史数据（多层容错：baostock -> UnifiedDataProvider -> 旧版 ETF 函数）
+        is_etf = (code.startswith('5') or code.startswith('159')) and len(code) == 6
+        
+        df = None
+        
+        # 第1层：本地缓存（ETF 优先）
+        if is_etf:
+            df = load_etf_cache(code)
+            if df is not None and len(df) >= 60:
+                print(f"  ✅ 使用本地缓存 ETF 数据（{len(df)} 条）")
+        
+        # 第2层：baostock（股票）
         if df is None or len(df) < 60:
-            if (code.startswith('5') and len(code) == 6) or code.startswith('159'):
-                print("  ⚠️  baostock 数据不足，尝试 ETF 专用接口...")
-                df = load_etf_cache(code)
+            if not is_etf:
+                df = get_stock_data_bs(code)
                 if df is not None and len(df) >= 60:
-                    print(f"  ✅ 使用本地缓存 ETF 数据（{len(df)} 条）")
-                if df is None or len(df) < 60:
-                    df = get_etf_data_akshare(code)
-                    if df is not None and len(df) >= 60:
+                    print(f"  ✅ 使用 baostock 获取数据")
+        
+        # 第3层：UnifiedDataProvider（统一多源）
+        if df is None or len(df) < 60:
+            if is_etf:
+                print("  ⚠️  baostock 数据不足，尝试 ETF 专用接口...")
+            try:
+                provider = get_default_kline_provider()
+                df = provider.get_kline(
+                    symbol=code,
+                    datalen=800,
+                    min_bars=60,
+                    retries=2,
+                    timeout=10,
+                    is_etf=is_etf
+                )
+                if df is not None and len(df) >= 60:
+                    source = df['data_source'].iloc[0] if 'data_source' in df.columns else 'provider'
+                    print(f"  ✅ 使用 {source} 获取数据成功")
+                    if is_etf:
                         save_etf_cache(code, df)
-                        print(f"  ✅ ETF 接口(akshare)获取 {code} 数据成功")
-                if df is None or len(df) < 60:
-                    df = get_etf_data_marketdata(code)
-                    if df is not None and len(df) >= 60:
-                        save_etf_cache(code, df)
-                        print(f"  ✅ ETF 接口(MarketData/push2his)获取 {code} 数据成功")
-                if df is None or len(df) < 60:
-                    df = get_etf_data_direct(code)
-                    if df is not None and len(df) >= 60:
-                        save_etf_cache(code, df)
-                        print(f"  ✅ ETF 接口(直接 push2his)获取 {code} 数据成功")
-                if df is None or len(df) < 60:
-                    print("  ⚠️  历史数据不足，无法运行策略分析\n")
-                    continue
-            else:
-                print("  ⚠️  历史数据不足，无法运行策略分析\n")
-                continue
+            except Exception as e:
+                print(f"  ⚠️  UnifiedDataProvider 失败: {str(e)[:50]}")
+        
+        # 第4层：旧版 ETF 专用函数（最后备用）
+        if (df is None or len(df) < 60) and is_etf:
+            print("  ⚠️  尝试旧版 ETF 接口...")
+            df = get_etf_data_akshare(code)
+            if df is not None and len(df) >= 60:
+                save_etf_cache(code, df)
+                print(f"  ✅ 旧版 ETF 接口(akshare)获取成功")
+            if df is None or len(df) < 60:
+                df = get_etf_data_marketdata(code)
+                if df is not None and len(df) >= 60:
+                    save_etf_cache(code, df)
+                    print(f"  ✅ 旧版 ETF 接口(MarketData)获取成功")
+            if df is None or len(df) < 60:
+                df = get_etf_data_direct(code)
+                if df is not None and len(df) >= 60:
+                    save_etf_cache(code, df)
+                    print(f"  ✅ 旧版 ETF 接口(直接 push2his)获取成功")
+        
+        # 数据不足则跳过
+        if df is None or len(df) < 60:
+            print("  ⚠️  所有数据源均失败，历史数据不足，无法运行策略分析\n")
+            continue
 
         print(f"📊 历史数据: {len(df)}条 ({df['date'].iloc[0].strftime('%Y-%m-%d')} ~ {df['date'].iloc[-1].strftime('%Y-%m-%d')})")
         

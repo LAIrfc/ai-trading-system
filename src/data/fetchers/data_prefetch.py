@@ -1,7 +1,7 @@
 """
 统一数据预取与主备接口封装（对齐 docs/data/API_INTERFACES_AND_FETCHERS.md）
 
-- 基础日线：主 Sina K线 → 备1 东方财富(akshare) → 备2 腾讯财经；timeout=10，异常不中断。
+- 基础日线：主 Sina → 备1 东方财富(akshare) → 备2 腾讯 → 备3 tushare；token 取自 config 或 TUSHARE_TOKEN；timeout=10，异常不中断。
 - 实时快照：Sina hq.sinajs.cn/list=、东方财富 push2.eastmoney.com/api/qt/stock/get（预留）。
 - 所有请求统一超时/重试/日志，便于回测预取与实盘熔断扩展。
 """
@@ -30,7 +30,16 @@ STOCK_DAILY_RETRIES = 3
 CIRCUIT_FAIL_THRESHOLD = 3
 CIRCUIT_OPEN_SECONDS = 300
 # 各数据源熔断状态：(连续失败次数, 最后失败时间戳)
-_circuit_state = {"sina": [0, 0.0], "eastmoney": [0, 0.0], "tencent": [0, 0.0]}
+_circuit_state = {
+    "sina": [0, 0.0], 
+    "eastmoney": [0, 0.0], 
+    "tencent": [0, 0.0], 
+    "tushare": [0, 0.0],
+    "akshare_etf": [0, 0.0],
+    "push2his_etf": [0, 0.0],
+    "baostock_etf": [0, 0.0],
+    "local_cache": [0, 0.0],
+}
 # 日线内存缓存：key=(code, datalen), value=(df, ts)；与文档 3.3 一致，日频可短期复用
 DAILY_CACHE_TTL_SECONDS = 300
 _daily_cache: dict = {}  # (code, datalen) -> (pd.DataFrame, float)
@@ -143,6 +152,57 @@ def _fetch_eastmoney_akshare(code: str, datalen: int) -> pd.DataFrame:
         return pd.DataFrame()
 
 
+# ------ 备用3：tushare 个股日线（与情绪一致：config 或 TUSHARE_TOKEN）------
+def _get_tushare_token() -> Optional[str]:
+    """与 sentiment_index 一致：先 config.data.tushare_token，再环境变量 TUSHARE_TOKEN，再 ts.token。"""
+    try:
+        import yaml
+        from pathlib import Path
+        for base in [Path(__file__).resolve().parents[3], Path.cwd()]:
+            cfg = base / "config" / "trading_config.yaml"
+            if cfg.is_file():
+                with open(cfg, "r", encoding="utf-8") as f:
+                    data = yaml.safe_load(f)
+                if isinstance(data, dict) and isinstance(data.get("data"), dict):
+                    tok = (data["data"].get("tushare_token") or "").strip()
+                    if tok:
+                        return tok
+    except Exception:
+        pass
+    return __import__("os").environ.get("TUSHARE_TOKEN") or None
+
+
+def _fetch_tushare_kline(code: str, datalen: int, timeout: int = STOCK_DAILY_TIMEOUT) -> pd.DataFrame:
+    """tushare 个股日线：pro.daily。token 取自 config 或 TUSHARE_TOKEN（与 akshare/tushare 配置一致）。"""
+    try:
+        import tushare as ts
+        code = code.strip()
+        ts_code = f"{code}.SH" if code.startswith(("5", "6")) else f"{code}.SZ"
+        end_d = datetime.now()
+        start_d = end_d - timedelta(days=min(datalen + 60, 800))
+        start_str = start_d.strftime("%Y%m%d")
+        end_str = end_d.strftime("%Y%m%d")
+        pro = getattr(ts, "pro_api", None)
+        if pro is None:
+            token = getattr(ts, "token", None) or _get_tushare_token()
+            if not token:
+                return pd.DataFrame()
+            pro = ts.pro_api(token)
+        df = pro.daily(ts_code=ts_code, start_date=start_str, end_date=end_str)
+        if df is None or df.empty:
+            return pd.DataFrame()
+        df = df.rename(columns={"trade_date": "date", "vol": "volume"})
+        df["date"] = pd.to_datetime(df["date"])
+        for c in ["open", "high", "low", "close", "volume"]:
+            if c in df.columns:
+                df[c] = pd.to_numeric(df[c], errors="coerce")
+        df = df[["date", "open", "high", "low", "close", "volume"]].dropna(subset=["close"]).sort_values("date").tail(datalen).reset_index(drop=True)
+        return df
+    except Exception as e:
+        logger.debug("tushare 日线 %s 失败: %s", code, e)
+        return pd.DataFrame()
+
+
 # ------ 备用2：腾讯财经日线（文档 qt.gtimg.cn 日线）------
 def _fetch_tencent_kline(code: str, datalen: int, timeout: int = STOCK_DAILY_TIMEOUT) -> pd.DataFrame:
     """腾讯日线：web.ifzq.gtimg.cn kline。"""
@@ -207,8 +267,8 @@ def fetch_stock_daily(
     min_bars: int = 100,
 ) -> pd.DataFrame:
     """
-    个股日线：主 Sina K线 → 备1 东方财富(akshare) → 备2 腾讯。
-    带 (code,datalen) 内存缓存 TTL=300s；重试指数退避；熔断 3 次/300s。
+    个股日线：统一走 DataProvider，主备顺序由 config/data_sources.yaml kline.sources 决定。
+    带 (code,datalen) 内存缓存 TTL=300s；熔断/重试在 provider 内完成。
     与 docs/data/API_INTERFACES_AND_FETCHERS.md 一致。
     """
     key = (code.strip(), datalen)
@@ -219,70 +279,19 @@ def fetch_stock_daily(
             return cached_df.copy()  # 已含 data_source、fetched_at
         del _daily_cache[key]
 
-    primary_err = None
-    t0 = time.time()
-    # 主源 Sina，带指数退避重试
-    if _circuit_allow("sina"):
-        for attempt in range(retries):
-            try:
-                df = _fetch_sina_kline(code, datalen, timeout)
-                if df is not None and not df.empty and len(df) >= min_bars:
-                    _circuit_record("sina", True)
-                    record_fetch("sina", True, time.time() - t0, used_backup=False)
-                    out = _tag_df_source(df, "sina")
-                    _daily_cache[key] = (out.copy(), time.time())
-                    return out
-                primary_err = "返回空或数据不足"
-            except (TimeoutError, ConnectionError, requests.exceptions.Timeout, requests.exceptions.ConnectionError) as e:
-                primary_err = repr(e)
-                logger.warning(
-                    "[data_prefetch] 标的=%s 主接口Sina异常(%s) 第%d次重试",
-                    code, primary_err, attempt + 1,
-                )
-            except Exception as e:
-                primary_err = repr(e)
-                logger.warning("[data_prefetch] 标的=%s 主接口Sina异常: %s", code, primary_err)
-            if attempt < retries - 1:
-                time.sleep(2 ** attempt)  # 指数退避 1s, 2s, 4s
-        _circuit_record("sina", False)
-        record_fetch("sina", False, time.time() - t0, used_backup=False)
-    else:
-        primary_err = "Sina熔断中"
-        logger.debug("[data_prefetch] 标的=%s 跳过Sina(熔断)", code)
+    from src.data.provider.data_provider import get_default_kline_provider
 
-    # 备用1 东方财富
-    t1 = time.time()
-    if _circuit_allow("eastmoney"):
-        df = _fetch_eastmoney_akshare(code, datalen)
-        if df is not None and not df.empty and len(df) >= min_bars:
-            _circuit_record("eastmoney", True)
-            record_fetch("eastmoney", True, time.time() - t1, used_backup=True)
-            out = _tag_df_source(df, "eastmoney")
-            _daily_cache[key] = (out.copy(), time.time())
-            logger.info("[data_prefetch] 标的=%s 主接口失败(%s)，已用备用东方财富成功", code, primary_err)
-            return out
-        _circuit_record("eastmoney", False)
-        record_fetch("eastmoney", False, time.time() - t1, used_backup=True)
-
-    # 备用2 腾讯（文档 2.1：连续 3 自然日失败则暂时移除并告警）
-    t2 = time.time()
-    if _circuit_allow("tencent") and _tencent_allow_by_3day():
-        df = _fetch_tencent_kline(code, datalen, timeout)
-        if df is not None and not df.empty and len(df) >= min_bars:
-            _circuit_record("tencent", True)
-            record_fetch("tencent", True, time.time() - t2, used_backup=True)
-            out = _tag_df_source(df, "tencent")
-            _daily_cache[key] = (out.copy(), time.time())
-            logger.info("[data_prefetch] 标的=%s 主接口失败(%s)，已用备用腾讯成功", code, primary_err)
-            return out
-        _circuit_record("tencent", False)
-        _tencent_record_fail()
-        record_fetch("tencent", False, time.time() - t2, used_backup=True)
-
-    logger.warning(
-        "[data_prefetch] 标的=%s 时间=%s 主接口(%s)及备用均失败或熔断",
-        code, datetime.now().isoformat(), primary_err,
+    provider = get_default_kline_provider()
+    df = provider.get_kline(
+        symbol=code,
+        datalen=datalen,
+        min_bars=min_bars,
+        retries=retries,
+        timeout=timeout,
     )
+    if df is not None and not df.empty and len(df) >= min_bars:
+        _daily_cache[key] = (df.copy(), time.time())
+        return df
     return pd.DataFrame()
 
 

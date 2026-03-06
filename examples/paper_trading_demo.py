@@ -14,7 +14,7 @@ from loguru import logger
 
 from src.core.simulator.paper_trading import PaperTradingAccount
 from src.core.strategy.strategy_library import strategy_library
-from src.data.realtime_data import MarketDataManager
+from src.data import MarketDataManager
 
 
 def demo_manual_trading():

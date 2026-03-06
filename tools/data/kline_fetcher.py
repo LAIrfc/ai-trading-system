@@ -13,7 +13,7 @@ import pandas as pd
 from datetime import datetime, timedelta
 from loguru import logger
 
-from src.data.realtime_data import RealtimeDataFetcher
+from src.data import RealtimeDataFetcher
 
 
 def print_kline_data(stock_code: str, period='daily', days=30):

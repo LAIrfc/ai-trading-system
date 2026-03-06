@@ -63,3 +63,11 @@ docs/_build/
 *.exe
 *.msi
 *.dmg
+
+# 缓存和临时文件（自动生成）
+mycache/**/*.csv
+mycache/**/*.parquet
+mydate/temp_*.json
+mylog/*.log
+*.pyc
+__pycache__/

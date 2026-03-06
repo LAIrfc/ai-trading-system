@@ -175,8 +175,6 @@ ai-trading-system/
 │   └── start_windows.bat             # Windows启动脚本
 │
 ├── 📚 docs/                           # 文档目录（目录结构见本文件）
-│   ├── DESIGN.md                      # 系统设计文档
-│   │
 │   ├── setup/                         # 安装和快速开始指南
 │   │   ├── QUICK_START.md            # 通用快速开始
 │   │   ├── WINDOWS_GUIDE.md          # Windows完整指南
@@ -295,7 +293,6 @@ ai-trading-system/
 | 文档 | 路径 | 说明 |
 |------|------|------|
 | 项目说明 | `README.md` | 功能、快速开始、使用指南 |
-| 系统设计 | `docs/DESIGN.md` | 架构设计、模块说明 |
 | 目录结构 | 本文件 `DIRECTORY_OVERVIEW.md` | 项目结构详细说明（原 STRUCTURE 已合并） |
 | Windows指南 | `docs/setup/WINDOWS_GUIDE.md` | Windows完整使用指南 |
 | 策略快速开始 | `docs/strategy/STRATEGY_QUICKSTART.md` | 策略开发快速开始 |

@@ -10,7 +10,7 @@ from typing import Dict, List, Optional, Tuple
 from dataclasses import dataclass, field
 from loguru import logger
 
-from src.data.market_data import ETF_POOL
+from src.data import ETF_POOL
 
 
 @dataclass

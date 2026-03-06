@@ -12,7 +12,7 @@ from loguru import logger
 
 from src.core.signal_engine import Signal
 from src.core.portfolio import Portfolio
-from src.data.market_data import ETF_POOL
+from src.data import ETF_POOL
 
 
 DAILY_LOG_DIR = os.path.join(os.path.dirname(__file__), '..', '..', 'mydate', 'daily_reports')

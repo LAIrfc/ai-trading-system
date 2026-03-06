@@ -491,10 +491,21 @@ def main():
 
     ensemble_key = 'V33组合' if use_v33 else 'Ensemble'
     local_kline_dir = getattr(args, 'local_kline', None)
+    auto_kline_n = 0
+    if not local_kline_dir:
+        default_kline_dir = os.path.join(base_dir, 'mydate', 'backtest_kline')
+        if os.path.isdir(default_kline_dir):
+            parquets = [f for f in os.listdir(default_kline_dir) if f.endswith('.parquet')]
+            if parquets:
+                local_kline_dir = default_kline_dir
+                auto_kline_n = len(parquets)
     if local_kline_dir and not os.path.isabs(local_kline_dir):
         local_kline_dir = os.path.join(base_dir, local_kline_dir)
     if local_kline_dir:
-        print(f'本地 K 线: {local_kline_dir}（缺失则走网络）')
+        if auto_kline_n:
+            print(f'本地 K 线: {local_kline_dir}（自动使用预取数据，共 {auto_kline_n} 只；缺失则走网络）')
+        else:
+            print(f'本地 K 线: {local_kline_dir}（缺失则走网络）')
     local_aux_dir = getattr(args, 'local_aux', None)
     if local_aux_dir:
         if not os.path.isabs(local_aux_dir):

@@ -238,8 +238,7 @@ for log in logs:
 | 文档 | 说明 |
 |------|------|
 | [README.md](../README.md) | 项目总览 |
-| [DESIGN.md](DESIGN.md) | 系统设计 |
-| [STRATEGY_EXECUTION_GUIDE.md](STRATEGY_EXECUTION_GUIDE.md) | 策略执行详解 |
+| [STRATEGY_EXECUTION_GUIDE.md](../strategy/STRATEGY_EXECUTION_GUIDE.md) | 策略执行详解 |
 | [WEB_TRADING_GUIDE.md](WEB_TRADING_GUIDE.md) | 网页交易指南 |
 
 ## 获取帮助
@@ -258,8 +257,6 @@ for log in logs:
 - **想快速测试？** → 继续使用 `web_trading_demo.py`
 - **想理解规则？** → 运行 `strict_execution_demo.py`
 - **想开发策略？** → 查看 `src/core/strategy/example_strategy.py`
-- **想了解设计？** → 阅读 `docs/DESIGN.md`
-
 **记住：策略的价值在于严格执行，而非频繁调整！** 📈
 
 祝交易顺利！🚀

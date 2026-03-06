@@ -4,6 +4,63 @@
 
 ---
 
+## 〇、策略视角：各策略所需指标、接口与实现
+
+各策略需要哪些指标、用了哪些接口、数据层与策略层如何对应。
+
+### 各策略需要的指标/数据
+
+| 策略 | 需要的指标/数据 |
+|------|------------------|
+| **MA** | 日线：open, high, low, close, volume（均线、乖离、量比） |
+| **MACD** | 同上（close 算 DIF/DEA/柱） |
+| **RSI** | 同上（close 算 RSI） |
+| **BOLL** | 同上（close 算布林带） |
+| **KDJ** | 同上（high, low, close 算 KDJ） |
+| **DUAL** | 同上（动量/相对强度） |
+| **PE** | 日线 + **PE 序列**（历史分位数）；可选 ROE/行业（baostock/akshare） |
+| **PB** | 日线 + **PB 序列**（同上） |
+| **Sentiment** | 日线(close/high/low 做趋势过滤) + **市场情绪指数 S、S_low、S_high**（多指标合成） |
+| **NewsSentiment** | 日线(close 做预期差) + **个股新闻情感 S_news、篇数 N、来源权重** |
+| **PolicyEvent** | **政策情感、是否重大利空、影响力** + 情绪 S_high + 指数涨跌幅(如沪深300) |
+| **MoneyFlow** | **龙虎榜**（席位、净买/卖、占比）+ **大宗**（折价、买卖方、金额） |
+
+归纳：技术 6 个 + DUAL 只需**个股日线**（OHLCV）；PE/PB 需日线 + **基本面 PE/PB/市值**；Sentiment 需日线 + **市场情绪指数**；NewsSentiment 需日线 + **个股新闻情感**；PolicyEvent 需**政策事件情感** + 情绪 + 指数；MoneyFlow 需**龙虎榜 + 大宗**。
+
+### 按数据类型用的接口（主→备顺序）
+
+| 数据类型 | 主→备顺序 | 接口 |
+|----------|-----------|------|
+| **个股日线 K 线** | 主→备1→备2→备3 | **Sina**（money.finance.sina getKLineData）→ **东方财富/akshare**（stock_zh_a_hist）→ **腾讯**（web.ifzq.gtimg.cn kline）→ **tushare**（pro.daily，config/TUSHARE_TOKEN） |
+| **情绪指数** | 主→备→备2 | **akshare**（指数/截面）→ **tushare**（index_daily 等）→ **JoinQuant**（jqdatasdk 指数） |
+| **个股新闻** | 主→备1→备2→备3 | **akshare**（stock_news_em）→ **东方财富搜索**（push2）→ **财联社**（CLS_API_KEY）→ **同花顺**（10JQKA_COOKIE） |
+| **政策事件** | 主→备 | **政府网/发改委/央行**（爬虫）→ **财联社/同花顺** 政策 |
+| **龙虎榜** | 主→备 | **akshare/东方财富** 龙虎榜 → **同花顺**（10JQKA_COOKIE） |
+| **大宗交易** | 东方财富等 | 东方财富大宗接口 |
+| **PE/PB/市值/ROE** | 主→备 | **baostock**（日 K 基本面、行业）→ **akshare**（财务指标等） |
+| **指数日线**（沪深300 等） | 主→备→备2 | **akshare** → **tushare** → **JoinQuant** |
+
+### 实现方式（数据层 → 策略层）
+
+- **日线**：`data_prefetch.fetch_stock_daily()`，Sina → 东方财富(akshare) → 腾讯 → tushare；回测用 `load_kline_for_backtest()`，优先 `--local-kline` 下 parquet。
+- **情绪**：`src/data/sentiment/sentiment_index` 合成 S/S_low/S_high；`SentimentStrategy` 用该序列 + 个股日线做趋势过滤。
+- **新闻**：`src/data/news/news_fetcher`（akshare → 东方财富 → 财联社 → 同花顺）；`NewsSentimentStrategy` 调 `get_news_sentiment_v33(symbol)`。
+- **政策**：`src/data/policy/policy_news`；`PolicyEventStrategy` 调 `get_policy_sentiment_v33()`，结合情绪 S_high、指数涨幅。
+- **龙虎榜/大宗**：`src/data/money_flow/lhb`、`dzjy`；`MoneyFlowStrategy` 调 `get_lhb_signal`/`get_dzjy_signal`。
+- **PE/PB**：`FundamentalFetcher`（baostock 为主，akshare 备用）；`PEStrategy`/`PBStrategy` 在回测里 merge 基本面到日线后算分位数。
+- **回测本地化**：日线用 `--local-kline` + `backtest_prefetch.py`；新闻/政策/龙虎榜用 `BACKTEST_PREFETCH_DIR` + `backtest_prefetch_aux.py`。
+
+### 统一数据接入层（DataProvider）
+
+日线已抽象为 **DataProvider + 适配器**，策略/回测/采集器只调统一接口，换源或调主备仅改配置：
+
+- **接口**：`get_default_kline_provider().get_kline(symbol, start_date=..., end_date=..., datalen=...)`，返回统一 schema：`date, open, high, low, close, volume`（及可选 `data_source`、`fetched_at`）。
+- **适配器**：`SinaKlineAdapter`、`EastMoneyKlineAdapter`、`TencentKlineAdapter`、`TushareKlineAdapter`（见 `src/data/provider/adapters.py`），各封装单一数据源。
+- **配置**：`config/data_sources.yaml` 的 `kline.sources: [sina, eastmoney, tencent, tushare]`，或 `config/trading_config.yaml` 的 `data.kline_sources`。调整顺序即调整主备，无需改策略代码。
+- **调用方**：`data_prefetch.fetch_stock_daily`、`RealtimeDataFetcher.get_historical_data`（日线）、`AkShareCollector.get_daily_bars`、`TushareCollector.get_daily_bars` 均经 DataProvider 获取日线。
+
+---
+
 ## 一、各类策略具体接口明细
 
 ### 1.1 基础数据接口（对应 fetch_sina / 指数日线）
@@ -180,7 +237,8 @@
 
 | 文档模块 | 项目位置 |
 |----------|----------|
-| 基础日线 fetch_sina | `tools/backtest/batch_backtest.py` 中 `fetch_sina`；`src/data/fetchers/data_prefetch.py` 统一封装 |
+| 统一日线 DataProvider | `src/data/provider/`（`base.py`、`adapters.py`、`data_provider.py`）；`fetch_stock_daily` 内部调用 `get_default_kline_provider().get_kline()` |
+| 基础日线 fetch_sina | `tools/backtest/batch_backtest.py` 中 `fetch_sina`；`src/data/fetchers/data_prefetch.py` 统一封装（经 DataProvider） |
 | 情绪指数 | `src/data/sentiment/sentiment_index.py`（akshare + tushare 备用） |
 | 新闻/政策/龙虎榜 | `src/data/news/`、`src/data/policy/`、`src/data/money_flow/`；策略内 try/except + 备用 + 回测预取占位 |
 | 回测预取与 BACKTEST_MODE | `src/strategies/base.py` 中 `_BACKTEST_ACTIVE`；各策略 `prepare_backtest` 与预取缓存 |

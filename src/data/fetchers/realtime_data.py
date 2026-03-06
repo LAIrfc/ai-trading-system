@@ -120,7 +120,7 @@ class RealtimeDataFetcher:
                            end_date: Optional[str] = None,
                            period: str = 'daily') -> Optional[pd.DataFrame]:
         """
-        获取历史数据
+        获取历史数据。日线走统一 DataProvider（主备由 config 决定），周/月线仍用 akshare。
         
         Args:
             stock_code: 股票代码
@@ -129,50 +129,47 @@ class RealtimeDataFetcher:
             period: 周期 ('daily', 'weekly', 'monthly')
             
         Returns:
-            DataFrame包含OHLCV数据
+            DataFrame 含 date/open/high/low/close/volume，日线时 index=date
         """
         try:
-            if self.data_source == 'akshare' and self.ak:
-                # 默认获取最近100个交易日数据
+            if period == 'daily':
                 if not start_date:
                     start_date = (datetime.now() - timedelta(days=150)).strftime('%Y%m%d')
                 if not end_date:
                     end_date = datetime.now().strftime('%Y%m%d')
-                
-                # 获取历史数据
-                if period == 'daily':
-                    df = self.ak.stock_zh_a_hist(
-                        symbol=stock_code,
-                        period='daily',
-                        start_date=start_date,
-                        end_date=end_date,
-                        adjust='qfq'  # 前复权
-                    )
-                else:
-                    df = self.ak.stock_zh_a_hist(
-                        symbol=stock_code,
-                        period=period,
-                        start_date=start_date,
-                        end_date=end_date,
-                        adjust='qfq'
-                    )
-                
+                from src.data.provider.data_provider import get_default_kline_provider
+                code = stock_code.replace('SH', '').replace('SZ', '').replace('sh', '').replace('sz', '').strip()
+                df = get_default_kline_provider().get_kline(
+                    symbol=code, start_date=start_date, end_date=end_date, min_bars=1
+                )
                 if df is not None and not df.empty:
-                    # 统一列名
-                    df.columns = ['date', 'open', 'close', 'high', 'low', 'volume', 
+                    df = df.copy()
+                    if 'date' in df.columns:
+                        df['date'] = pd.to_datetime(df['date'])
+                        df.set_index('date', inplace=True)
+                    return df
+                return None
+            if self.data_source == 'akshare' and self.ak:
+                if not start_date:
+                    start_date = (datetime.now() - timedelta(days=150)).strftime('%Y%m%d')
+                if not end_date:
+                    end_date = datetime.now().strftime('%Y%m%d')
+                df = self.ak.stock_zh_a_hist(
+                    symbol=stock_code,
+                    period=period,
+                    start_date=start_date,
+                    end_date=end_date,
+                    adjust='qfq'
+                )
+                if df is not None and not df.empty:
+                    df.columns = ['date', 'open', 'close', 'high', 'low', 'volume',
                                  'amount', 'amplitude', 'change_pct', 'change_amount', 'turnover']
-                    
-                    # 转换数据类型
                     for col in ['open', 'close', 'high', 'low', 'volume', 'amount']:
                         df[col] = pd.to_numeric(df[col], errors='coerce')
-                    
                     df['date'] = pd.to_datetime(df['date'])
                     df.set_index('date', inplace=True)
-                    
                     return df
-            
             return None
-            
         except Exception as e:
             logger.error(f"获取历史数据失败 {stock_code}: {e}")
             return None

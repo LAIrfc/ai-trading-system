@@ -9,7 +9,7 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from src.data.etf_data_fetcher import ETFDataFetcher
+from src.data import ETFDataFetcher
 from src.core.strategy.dual_momentum_strategy import DualMomentumStrategy
 from loguru import logger
 from datetime import datetime
