@@ -380,39 +380,3 @@ def fetch_eastmoney_lhb(
         return []
 
 
-def fetch_eastmoney_stock_news(
-    code: str,
-    pn: int = 1,
-    pz: int = 20,
-    timeout: int = 10,
-) -> List[dict]:
-    """
-    文档 1.3.1 备2：东方财富个股新闻列表。
-    https://push2.eastmoney.com/api/qt/ulist.np/get
-    secid=1.600519（沪）/0.000001（深）；返回列表含 f1~f16 等字段。
-    """
-    try:
-        secid = _eastmoney_secid(code)
-        url = "https://push2.eastmoney.com/api/qt/ulist.np/get"
-        params = {
-            "secid": secid,
-            "pn": str(pn),
-            "pz": str(pz),
-            "fields": "f1,f2,f3,f12,f13,f14,f15,f16",
-        }
-        r = requests.get(
-            url,
-            params=params,
-            headers={"User-Agent": "Mozilla/5.0 (X11; Linux x86_64)"},
-            timeout=timeout,
-        )
-        data = r.json() if r.text else None
-        if not data or "data" not in data:
-            return []
-        d = data["data"]
-        if not d or "diff" not in d:
-            return []
-        return d.get("diff") or []
-    except Exception as e:
-        logger.debug("东方财富个股新闻 %s 请求失败: %s", code, e)
-        return []

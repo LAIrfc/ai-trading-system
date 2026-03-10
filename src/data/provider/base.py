@@ -5,13 +5,16 @@
 """
 
 from abc import ABC, abstractmethod
-from typing import List, Optional
+from typing import List, Optional, Dict
 
 import pandas as pd
 
 
 # 日线标准列名，各适配器输出必须统一为此 schema
 KLINE_COLUMNS = ["date", "open", "high", "low", "close", "volume"]
+
+# 板块成分股标准列名
+SECTOR_STOCKS_COLUMNS = ["code", "name", "market_cap_yi"]
 
 
 class KlineAdapter(ABC):
@@ -44,5 +47,36 @@ class KlineAdapter(ABC):
 
         Returns:
             标准化 DataFrame，列含 KLINE_COLUMNS；失败或无数据返回空 DataFrame。
+        """
+        pass
+
+
+class SectorAdapter(ABC):
+    """板块/概念数据源适配器抽象：获取板块成分股列表。"""
+
+    @property
+    @abstractmethod
+    def source_id(self) -> str:
+        """数据源标识，如 akshare / eastmoney / sina / baostock。"""
+        pass
+
+    @abstractmethod
+    def get_sector_stocks(
+        self,
+        sector_code: str,
+        limit: Optional[int] = None,
+        **kwargs,
+    ) -> List[Dict[str, any]]:
+        """
+        获取板块成分股列表，返回统一格式。
+
+        Args:
+            sector_code: 板块代码或名称，如 "光伏概念"、"BK1031"、"new_ysjs"。
+            limit: 返回数量限制。
+            **kwargs: 其他参数，如 timeout 等。
+
+        Returns:
+            List[Dict]: 每个元素包含 code, name, market_cap_yi 等字段。
+            失败或无数据返回空列表。
         """
         pass

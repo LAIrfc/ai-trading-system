@@ -3,7 +3,7 @@
 通用股票池加载器
 
 支持三种格式:
-  1. sectors格式 (stock_pool.json / stock_pool_600.json)
+  1. sectors格式 (stock_pool.json)
   2. 综合格式 (stock_pool_all.json): stocks + etf 分区
   3. ETF格式 (etf_pool.json): categories分区
 
@@ -67,7 +67,7 @@ def load_pool(pool_file: str,
                         'type': 'ETF',
                     })
 
-    # 格式2: sectors格式 (stock_pool.json / stock_pool_600.json)
+    # 格式2: sectors格式 (stock_pool.json)
     elif 'sectors' in pool:
         for sec_name, sec_stocks in pool['sectors'].items():
             if sector and sector not in sec_name:

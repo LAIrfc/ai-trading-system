@@ -30,7 +30,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../..'))
 base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 DATA_DIR = os.path.join(base_dir, 'mydate')
 POOL_100_FILE = os.path.join(DATA_DIR, 'stock_pool.json')
-POOL_600_FILE = os.path.join(DATA_DIR, 'stock_pool_600.json')
+POOL_ALL_FILE = os.path.join(DATA_DIR, 'stock_pool_all.json')
 ETF_POOL_FILE = os.path.join(DATA_DIR, 'etf_pool.json')
 OUTPUT_FILE = os.path.join(DATA_DIR, 'stock_pool_all.json')
 
@@ -112,83 +112,300 @@ def fetch_realtime_info(codes: list, session=None) -> dict:
 # ============================================================
 
 SECTOR_BOARDS = {
-    '光伏':     {'concept': 'BK1031', 'industry': 'BK1315', 'target': 15},
-    '机器人':   {'concept': 'BK1090', 'industry': 'BK1408', 'target': 15},
-    '半导体':   {'concept': 'BK0917', 'industry': 'BK1325', 'target': 15},
-    '有色金属': {'concept': None,     'industry': 'BK0478', 'target': 15},
-    '证券':     {'concept': 'BK0711', 'industry': 'BK0473', 'target': 14},
-    '创新药':   {'concept': 'BK1106', 'industry': None,     'target': 14},
-    '商业航天': {'concept': 'BK0963', 'industry': 'BK1232', 'target': 13},
+    '光伏': {
+        'akshare': ['光伏概念'],  # akshare概念板块（优先）
+        'eastmoney': ['BK1031'],  # 东方财富概念板块
+        'sina': [],  # 新浪没有独立光伏板块
+        'baostock': [],  # baostock没有光伏行业
+        'keywords': ['光伏', '太阳能', '隆基', '通威', '阳光', '晶科', '晶澳', '天合', '协鑫', '福莱特', '福斯特', '中来', '爱旭', '捷佳', '迈为'],
+        'target': 15
+    },
+    '机器人': {
+        'akshare': ['机器人概念'],
+        'eastmoney': ['BK1090'],
+        'sina': [],
+        'baostock': [],
+        'keywords': ['机器人', '埃斯顿', '汇川', '绿的', '双环', '拓斯达', '克来', '智能', '自动化', '伺服', '减速'],
+        'target': 15
+    },
+    '半导体': {
+        'akshare': ['半导体概念', '芯片概念'],
+        'eastmoney': ['BK0917'],
+        'sina': ['new_dzqj', 'new_dzxx'],  # 电子器件+电子信息
+        'baostock': [],
+        'keywords': ['半导体', '芯片', '集成', '微电子', '中芯', '华创', '长电', '韦尔', '兆易', '卓胜', '北方华创'],
+        'target': 15
+    },
+    '有色金属': {
+        'akshare': [],
+        'eastmoney': [],
+        'sina': ['new_ysjs'],  # 有色金属（稳定）
+        'baostock': ['有色'],
+        'keywords': [],
+        'target': 15
+    },
+    '证券': {
+        'akshare': ['券商概念'],
+        'eastmoney': ['BK0711'],
+        'sina': ['new_jrhy'],  # 金融行业
+        'baostock': ['证券'],
+        'keywords': ['证券'],
+        'target': 14
+    },
+    '创新药': {
+        'akshare': ['创新药', 'CXO概念'],
+        'eastmoney': ['BK1106'],
+        'sina': ['new_swzz', 'new_ylqx'],  # 生物制药+医疗器械
+        'baostock': ['医药'],
+        'keywords': ['恒瑞', '药明', '迈瑞', '爱尔', '泰格', '凯莱英', '康龙', '昭衍', '生物', 'CXO', '医疗'],
+        'target': 14
+    },
+    '商业航天': {
+        'akshare': ['航天概念'],
+        'eastmoney': ['BK0963'],
+        'sina': ['new_fjzz'],  # 飞机制造
+        'baostock': ['航空航天'],
+        'keywords': ['航天', '卫星', '航空', '火箭', '飞机'],
+        'target': 13
+    },
 }
 
 
-def fetch_board_stocks(board_code, limit=30):
-    """从东方财富获取板块成分股（按市值排序）"""
-    session = _eastmoney_session()
+def fetch_board_stocks_akshare(concept_name, limit=30):
+    """从akshare获取概念板块成分股"""
     try:
-        url = 'http://push2.eastmoney.com/api/qt/clist/get'
+        import akshare as ak
+        
+        # 获取概念板块成分股
+        df = ak.stock_board_concept_cons_em(symbol=concept_name)
+        if df is None or len(df) == 0:
+            return []
+        
+        stocks = []
+        for _, row in df.iterrows():
+            code = str(row.get('代码', ''))
+            name = str(row.get('名称', ''))
+            market_cap = row.get('市值', 0)
+            
+            if name and 'ST' not in name and '*' not in name:
+                stocks.append({
+                    'code': code,
+                    'name': name,
+                    'market_cap_yi': round(market_cap / 1e8, 1) if market_cap else 0,
+                })
+        
+        # 按市值排序
+        stocks.sort(key=lambda x: x['market_cap_yi'], reverse=True)
+        return stocks[:limit]
+    
+    except Exception as e:
+        print(f"    ⚠️ akshare {concept_name} 失败: {e}")
+        return []
+
+
+def fetch_board_stocks_baostock(industry_code, limit=30):
+    """从baostock获取行业成分股"""
+    try:
+        import baostock as bs
+        
+        bs.login()
+        
+        # 获取行业成分股
+        rs = bs.query_stock_industry()
+        stocks = []
+        
+        while rs.error_code == '0' and rs.next():
+            row = rs.get_row_data()
+            code_full = row[0]  # 格式: sh.600000
+            code = code_full.split('.')[1] if '.' in code_full else code_full
+            name = row[1]
+            industry = row[2]
+            
+            # 简单的行业匹配（可以优化）
+            if industry_code.lower() in industry.lower():
+                if name and 'ST' not in name and '*' not in name:
+                    stocks.append({
+                        'code': code,
+                        'name': name,
+                        'market_cap_yi': 0,  # baostock不提供市值
+                    })
+        
+        bs.logout()
+        return stocks[:limit]
+    
+    except Exception as e:
+        print(f"    ⚠️ baostock {industry_code} 失败: {e}")
+        return []
+
+
+def fetch_board_stocks_eastmoney(board_code, limit=30, max_retries=2):
+    """从东方财富获取板块成分股（按市值排序，带重试）"""
+    for attempt in range(max_retries):
+        session = _eastmoney_session()
+        try:
+            url = 'http://push2.eastmoney.com/api/qt/clist/get'
+            params = {
+                'pn': 1, 'pz': limit, 'po': 1, 'np': 1, 'fltt': 2, 'invt': 2,
+                'fid': 'f20', 'fs': f'b:{board_code}',
+                'fields': 'f12,f14,f2,f3,f20,f6,f9',
+            }
+            resp = session.get(url, params=params, timeout=15)
+            data = resp.json()
+            stocks = []
+            if data.get('data') and data['data'].get('diff'):
+                for item in data['data']['diff']:
+                    code = item.get('f12', '')
+                    name = item.get('f14', '')
+                    price = item.get('f2', 0)
+                    cap = item.get('f20', 0)
+                    pe = item.get('f9', '-')
+                    if name and 'ST' not in name and '*' not in name \
+                       and price and price != '-' and cap and cap > 1e9:
+                        stocks.append({
+                            'code': code, 'name': name,
+                            'market_cap_yi': round(cap / 1e8, 1),
+                        })
+            return stocks
+        except Exception as e:
+            if attempt < max_retries - 1:
+                time.sleep(1)
+            else:
+                print(f"    ⚠️ 东方财富 {board_code} 失败: {e}")
+                return []
+        finally:
+            session.close()
+    return []
+
+
+def fetch_board_stocks_sina(sector_code, limit=30):
+    """从新浪财经获取板块成分股（按市值排序）"""
+    try:
+        url = 'http://vip.stock.finance.sina.com.cn/quotes_service/api/json_v2.php/Market_Center.getHQNodeData'
         params = {
-            'pn': 1, 'pz': limit, 'po': 1, 'np': 1, 'fltt': 2, 'invt': 2,
-            'fid': 'f20', 'fs': f'b:{board_code}',
-            'fields': 'f12,f14,f2,f3,f20,f6,f9',
+            'page': 1, 'num': limit, 'sort': 'mktcap', 'asc': 0, 'node': sector_code,
         }
-        resp = session.get(url, params=params, timeout=15)
+        resp = requests.get(url, params=params, timeout=15)
+        if resp.status_code != 200:
+            return []
+        
         data = resp.json()
         stocks = []
-        if data.get('data') and data['data'].get('diff'):
-            for item in data['data']['diff']:
-                code = item.get('f12', '')
-                name = item.get('f14', '')
-                price = item.get('f2', 0)
-                cap = item.get('f20', 0)
-                pe = item.get('f9', '-')
-                if name and 'ST' not in name and '*' not in name \
-                   and price and price != '-' and cap and cap > 1e9:
-                    stocks.append({
-                        'code': code, 'name': name,
-                        'market_cap_yi': round(cap / 1e8, 1),
-                    })
+        for item in data:
+            code = item.get('code', '')
+            name = item.get('name', '')
+            mktcap = item.get('mktcap', 0)
+            if name and 'ST' not in name and '*' not in name and mktcap:
+                stocks.append({
+                    'code': code, 'name': name,
+                    'market_cap_yi': round(mktcap / 10000, 1),
+                })
         return stocks
     except Exception as e:
-        print(f"  ⚠️ 请求 {board_code} 失败: {e}")
+        print(f"    ⚠️ 新浪 {sector_code} 失败: {e}")
         return []
-    finally:
-        session.close()
+
+
+def fetch_board_stocks_local(keywords, limit=30):
+    """从本地股票池按关键词匹配（兜底方案）"""
+    try:
+        # 加载本地股票池
+        pool_all_file = os.path.join(base_dir, 'mydate', 'stock_pool_all.json')
+        if not os.path.exists(pool_all_file):
+            return []
+        
+        with open(pool_all_file, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        
+        # 加载市值缓存
+        cache_file = os.path.join(base_dir, 'mydate', 'market_fundamental_cache.json')
+        market_cap_cache = {}
+        if os.path.exists(cache_file):
+            with open(cache_file, 'r', encoding='utf-8') as f:
+                market_cap_cache = json.load(f)
+        
+        # 提取所有股票
+        all_stocks = []
+        if 'stocks' in data and isinstance(data['stocks'], dict):
+            for industry, stock_list in data['stocks'].items():
+                if isinstance(stock_list, list):
+                    for stock in stock_list:
+                        code = stock['code']
+                        name = stock['name']
+                        market_cap = market_cap_cache.get(code, {}).get('market_cap_yi', 0)
+                        all_stocks.append({
+                            'code': code,
+                            'name': name,
+                            'market_cap_yi': market_cap
+                        })
+        
+        # 关键词匹配
+        matched = []
+        for stock in all_stocks:
+            name_lower = stock['name'].lower()
+            for kw in keywords:
+                if kw.lower() in name_lower:
+                    matched.append(stock)
+                    break
+        
+        # 按市值排序
+        matched.sort(key=lambda x: x['market_cap_yi'], reverse=True)
+        return matched[:limit]
+    
+    except Exception as e:
+        print(f"    ⚠️ 本地数据匹配失败: {e}")
+        return []
+
+
+def fetch_board_stocks(board_code, limit=30):
+    """多数据源获取板块成分股（自动切换）"""
+    # 已弃用，保留兼容性
+    return fetch_board_stocks_eastmoney(board_code, limit)
 
 
 def refresh_sector_pool():
-    """刷新7大赛道龙头池"""
-    print("📡 从东方财富获取7大赛道龙头...")
+    """刷新7大赛道龙头池（使用统一数据层）"""
+    print("📡 刷新7大赛道龙头池（统一数据层）...")
+    print("  数据源优先级: akshare > 东方财富 > 新浪 > baostock > 本地数据\n")
+    
+    # 导入统一数据层
+    sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../..'))
+    from src.data.provider.data_provider import get_default_kline_provider
+    
+    provider = get_default_kline_provider()
+    
     pool = {
         'created_at': time.strftime('%Y-%m-%d'),
-        'description': '7大热门赛道精选龙头股票池',
+        'description': '7大热门赛道精选龙头股票池（统一数据层）',
         'total': 0,
         'sectors': {},
     }
     seen = set()
 
-    for sector, info in SECTOR_BOARDS.items():
-        stocks = []
-        for key in ['concept', 'industry']:
-            if info[key]:
-                s = fetch_board_stocks(info[key], info['target'] * 2)
-                stocks.extend(s)
-                time.sleep(2)
-
+    for sector, config in SECTOR_BOARDS.items():
+        print(f"\n【{sector}】获取中...")
+        target = config['target']
+        
+        # 使用统一数据层获取板块成分股
+        stocks_list = provider.get_sector_stocks(
+            sector_config=config,
+            target=target
+        )
+        
+        # 选取前N只（去重）
         selected = []
-        for s in stocks:
-            if s['code'] not in seen and len(selected) < info['target']:
+        for s in stocks_list:
+            if s['code'] not in seen and len(selected) < target:
                 selected.append({'code': s['code'], 'name': s['name']})
                 seen.add(s['code'])
-
+        
         pool['sectors'][sector] = selected
-        print(f"  {sector}: {len(selected)} 只")
+        print(f"  ✅ {sector}: {len(selected)} 只")
 
     pool['total'] = sum(len(v) for v in pool['sectors'].values())
 
     with open(POOL_100_FILE, 'w', encoding='utf-8') as f:
         json.dump(pool, f, ensure_ascii=False, indent=2)
-    print(f"  ✅ 已更新 {POOL_100_FILE}，共 {pool['total']} 只")
+    print(f"\n✅ 已更新 {POOL_100_FILE}，共 {pool['total']} 只")
     return pool
 
 
@@ -299,8 +516,8 @@ def merge_all_pools(do_filter=True, min_pe=0, max_pe=100, min_cap=30):
         print(f"  赛道龙头池: +{len([s for s in all_stocks if s['source']=='sector_100'])} 只")
 
     # 2. 加载指数成分股池
-    if os.path.exists(POOL_600_FILE):
-        with open(POOL_600_FILE, 'r', encoding='utf-8') as f:
+    if os.path.exists(POOL_ALL_FILE):
+        with open(POOL_ALL_FILE, 'r', encoding='utf-8') as f:
             p2 = json.load(f)
         count_before = len(all_stocks)
         for sector, stocks in p2.get('sectors', {}).items():
@@ -561,7 +778,9 @@ def main():
             min_cap=args.min_cap,
         )
     else:
-        # 默认：合并现有池 + 过滤
+        # 默认：刷新赛道龙头 + 合并现有池 + 过滤
+        print("\n🔄 默认模式: 刷新赛道龙头 + 合并股票池\n")
+        refresh_sector_pool()
         merge_all_pools(
             do_filter=not args.no_filter,
             min_pe=args.min_pe,

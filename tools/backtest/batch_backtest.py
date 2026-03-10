@@ -429,7 +429,7 @@ def print_summary(summary: dict, strategy_names: list, elapsed: float,
 
 def main():
     parser = argparse.ArgumentParser(description='大规模回测验证')
-    parser.add_argument('--pool', default='mydate/stock_pool_600.json',
+    parser.add_argument('--pool', default='mydate/stock_pool_all.json',
                         help='股票池JSON文件')
     parser.add_argument('--count', type=int, default=500,
                         help='测试股票数量')

@@ -12,7 +12,23 @@
       "sectors_updated": true,
       "fundamental_count": 0,
       "merged": true
+    },
+    {
+      "date": "2026-03-06 18:25:39",
+      "type": "quarterly_update",
+      "index_updated": true,
+      "sectors_updated": true,
+      "fundamental_count": 0,
+      "merged": true
+    },
+    {
+      "date": "2026-03-10 16:22:20",
+      "type": "quarterly_update",
+      "index_updated": true,
+      "sectors_updated": true,
+      "fundamental_count": 815,
+      "merged": true
     }
   ],
-  "last_update": "2026-03-06"
+  "last_update": "2026-03-10"
 }

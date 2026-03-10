@@ -11,6 +11,12 @@ from dataclasses import dataclass, field
 from loguru import logger
 
 from src.data import ETF_POOL
+from src.core.momentum_math import (
+    calc_absolute_momentum,
+    calc_relative_momentum,
+    check_stop_loss,
+    check_market_crash,
+)
 
 
 @dataclass
@@ -118,9 +124,7 @@ class DualMomentumEngine:
                 continue
 
             info = ETF_POOL.get(code, {'name': code, 'short': code})
-            current_price = float(df['close'].iloc[-1])
-            ma_n = float(df['close'].tail(self.N).mean())
-            above_ma = current_price > ma_n
+            current_price, ma_n, above_ma = calc_absolute_momentum(df['close'], self.N)
 
             analysis['absolute_momentum'][code] = {
                 'name': info['short'],
@@ -146,8 +150,7 @@ class DualMomentumEngine:
                 continue
 
             current_price = float(df['close'].iloc[-1])
-            past_price = float(df['close'].iloc[-self.M])
-            momentum = (current_price / past_price - 1) * 100  # 百分比
+            momentum = calc_relative_momentum(df['close'], self.M) or 0.0
 
             # 流动性检查
             avg_amount = float(df['amount'].tail(20).mean())
@@ -197,8 +200,8 @@ class DualMomentumEngine:
             current_holding_data = all_data.get(state.holding_code)
             if current_holding_data is not None and len(current_holding_data) > 0:
                 current_price = float(current_holding_data['close'].iloc[-1])
-                pnl_pct = (current_price - state.holding_price) / state.holding_price
-                if pnl_pct <= self.stop_loss:
+                triggered, pnl_pct = check_stop_loss(current_price, state.holding_price, self.stop_loss)
+                if triggered:
                     risk_ok = False
                     risk_reasons.append(
                         f"触发止损: {state.holding_name} 亏损 {pnl_pct*100:.1f}% "
@@ -208,10 +211,8 @@ class DualMomentumEngine:
         # 黑天鹅检查 (用沪深300近似大盘)
         hs300_data = all_data.get('510300')
         if hs300_data is not None and len(hs300_data) >= 2:
-            last_close = float(hs300_data['close'].iloc[-1])
-            prev_close = float(hs300_data['close'].iloc[-2])
-            daily_return = (last_close - prev_close) / prev_close
-            if daily_return <= self.crash_threshold:
+            crash, daily_return = check_market_crash(hs300_data['close'], self.crash_threshold)
+            if crash:
                 risk_ok = False
                 risk_reasons.append(
                     f"黑天鹅警报: 沪深300单日跌幅 {daily_return*100:.2f}% "

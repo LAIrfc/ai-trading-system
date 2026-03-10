@@ -24,7 +24,7 @@ from loguru import logger
 from typing import Dict, List
 
 from src.data.fetchers.etf_data_fetcher import ETFDataFetcher
-from src.core.strategy.dual_momentum_strategy import DualMomentumStrategy
+from src.core.dual_momentum_strategy import DualMomentumStrategy
 
 
 # 设置中文字体（避免图表乱码）

@@ -25,9 +25,9 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from loguru import logger
 from src.data import MarketData, ETF_POOL
-from src.core.signal_engine import DualMomentumEngine, Signal
-from src.core.portfolio import Portfolio
-from src.core.trade_journal import generate_daily_report
+from src.etf_rotation.signal_engine import DualMomentumEngine, Signal
+from src.etf_rotation.portfolio import Portfolio
+from src.etf_rotation.trade_journal import generate_daily_report
 
 
 def run_daily_analysis(config: dict = None):

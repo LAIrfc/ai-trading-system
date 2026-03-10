@@ -13,7 +13,7 @@ from datetime import datetime
 from loguru import logger
 
 from src.core.simulator.paper_trading import PaperTradingAccount
-from src.core.strategy.strategy_library import strategy_library
+from src.strategies import STRATEGY_REGISTRY
 from src.data import MarketDataManager
 
 
@@ -211,7 +211,7 @@ def demo_strategy_trading():
     strategy_map = {'1': 'MA', '2': 'MACD', '3': 'RSI'}
     strategy_name = strategy_map.get(strategy_choice, 'MA')
     
-    strategy = strategy_library.get_strategy(strategy_name)
+    strategy = STRATEGY_REGISTRY.get(strategy_name, STRATEGY_REGISTRY['MA'])()
     print(f"\n✅ 策略已选择: {strategy_name}\n")
     
     # 选择股票

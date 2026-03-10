@@ -13,7 +13,7 @@ from loguru import logger
 
 from .strategy_rule_engine import StrategyRuleEngine, RuleViolation
 from .strategy_document import StrategyDocument
-from ..risk.risk_manager import RiskManager
+from .risk.risk_manager import RiskManager
 
 
 class ExecutionStatus(Enum):
@@ -532,7 +532,7 @@ class StrategyExecutor:
 if __name__ == '__main__':
     from .strategy_document import StrategyDocument
     from .strategy_rule_engine import StrategyRuleEngine, StrategyRule, RuleType
-    from ..risk.risk_manager import RiskManager
+    from .risk.risk_manager import RiskManager
     
     # 初始化组件
     strategy_doc = StrategyDocument("test_strategy")

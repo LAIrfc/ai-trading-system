@@ -65,8 +65,63 @@
 
 ---
 
-## 五、相关文档
+## 五、使用示例
 
-- [FUNDAMENTAL_STRATEGY_GUIDE](FUNDAMENTAL_STRATEGY_GUIDE.md) — 基本面策略指南  
-- [FUNDAMENTAL_REAL_TRADING_STANDARDS](FUNDAMENTAL_REAL_TRADING_STANDARDS.md) — 实盘标准  
-- [TURNOVER_RATE_ANALYSIS](TURNOVER_RATE_ANALYSIS.md) — 换手率分析  
+### 单股测试
+
+```python
+from src.data.fetchers.fundamental_fetcher import FundamentalFetcher
+from src.strategies.fundamental_pe import PEStrategy
+
+# 获取日线数据
+daily_df = fetch_sina('600000', 800)
+
+# 合并基本面数据（真实数据）
+fetcher = FundamentalFetcher(source='tushare')
+fund_df = fetcher.get_daily_basic('600000', start_date='20200101', end_date='20231231')
+df = fetcher.merge_to_daily(daily_df, fund_df)
+
+# 运行PE策略
+pe_strategy = PEStrategy()
+signal = pe_strategy.analyze(df)
+print(f"{signal.action} | conf={signal.confidence}")
+```
+
+### 模拟数据（仅用于测试流程）
+
+```python
+from src.data.fetchers.fundamental_fetcher import create_mock_fundamental_data
+
+fund_df = create_mock_fundamental_data(daily_df, pe_range=(5, 50), pb_range=(0.5, 5.0))
+```
+
+⚠️ `create_mock_fundamental_data` 基于整个 DataFrame 生成，隐含未来信息，**仅用于测试流程，不可用于真实回测**。
+
+### 数据源配置
+
+```bash
+# tushare（推荐，数据质量高）
+export TUSHARE_TOKEN='your_token'
+```
+
+akshare 免费无需 token，但日频基本面接口不稳定，建议使用 tushare。
+
+---
+
+## 六、扩展新基本面策略
+
+1. 参考 `src/strategies/fundamental_pe.py` 创建策略类，继承 `FundamentalQuantileBase`
+2. 在 `src/strategies/__init__.py` 的 `STRATEGY_REGISTRY` 中注册
+3. 在 `src/data/fetchers/fundamental_fetcher.py` 中添加对应数据获取方法
+
+注意事项：
+- 只能使用**已发布的财报数据**（按 ann_date 对齐，不按 end_date）
+- 基本面数据用 `ffill` 前向填充，不能用未来数据
+- 分位数计算支持全历史（默认）和滚动窗口（`rolling_window=1260` 即 5 年）
+
+---
+
+## 七、相关文档
+
+- [FUNDAMENTAL_REAL_TRADING_STANDARDS](FUNDAMENTAL_REAL_TRADING_STANDARDS.md) — 实盘标准与已知缺口  
+- [TURNOVER_VALIDATION_RESULTS](TURNOVER_VALIDATION_RESULTS.md) — 换手率过滤验证结果  

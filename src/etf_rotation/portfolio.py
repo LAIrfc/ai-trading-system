@@ -10,7 +10,7 @@ from typing import Dict, List, Optional
 from dataclasses import dataclass, asdict
 from loguru import logger
 
-from src.core.signal_engine import Signal, StrategyState
+from src.etf_rotation.signal_engine import Signal, StrategyState
 
 
 # 持仓文件路径（使用 mydate 目录）

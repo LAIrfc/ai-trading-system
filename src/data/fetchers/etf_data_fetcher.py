@@ -19,20 +19,17 @@ from typing import List, Dict, Optional
 from loguru import logger
 import time
 
+from src.data.fetchers.market_data import ETF_POOL as _CORE_ETF_POOL
 
-# ETF名称映射
-ETF_NAME_MAP = {
-    '510300': '沪深300ETF',
-    '159949': '创业板50ETF',
-    '513100': '纳指ETF',
-    '518880': '黄金ETF',
-    '511520': '国债ETF',
+# ETF名称映射：核心5只从 ETF_POOL 读取，扩展ETF单独补充
+ETF_NAME_MAP = {code: info['name'] for code, info in _CORE_ETF_POOL.items()}
+ETF_NAME_MAP.update({
     '510050': '上证50ETF',
     '510500': '中证500ETF',
     '159915': '创业板ETF',
     '510880': '红利ETF',
     '512000': '券商ETF',
-}
+})
 
 # ETF模拟参数（基于真实历史特征）
 ETF_SIM_PARAMS = {

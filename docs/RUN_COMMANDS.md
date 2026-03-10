@@ -181,3 +181,18 @@ python3 tools/validation/test_fundamental.py
 | 5. 查某只历史价格 | `python3 tools/data/view_backtest_kline.py 000425` 或 `--csv` |
 
 更多说明见 `tools/README.md` 与各脚本 `--help`。
+
+---
+
+## 七、Windows vs Linux 路径差异
+
+| 操作 | Windows | Linux/macOS |
+|------|---------|-------------|
+| 路径分隔符 | `\` | `/` |
+| Python 命令 | `python` | `python3` |
+| 批量回测 | `python tools\backtest\batch_backtest.py` | `python3 tools/backtest/batch_backtest.py` |
+| 策略测试 | `python tools\validation\strategy_tester.py` | `python3 tools/validation/strategy_tester.py` |
+| K线获取 | `python tools\data\kline_fetcher.py 600519` | `python3 tools/data/kline_fetcher.py 600519` |
+| 启动脚本 | `scripts\start_windows.bat` | `bash scripts/start.sh` |
+
+Windows 用户也可直接双击 `scripts/start_windows.bat`。详见 `docs/setup/WINDOWS_GUIDE.md`。

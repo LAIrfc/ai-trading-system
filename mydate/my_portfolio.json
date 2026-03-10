@@ -1,11 +1,11 @@
 {
-  "updated": "2026-03-02",
+  "updated": "2026-03-10",
   "note": "持仓数据来自券商实盘，成本为持仓均价",
   "holdings": [
     {
       "code": "600118",
       "name": "中国卫星",
-      "avg_cost": 102.681,
+      "avg_cost": 100.424,
       "market_value_ref": 0,
       "shares": 300
     },
@@ -17,19 +17,18 @@
       "shares": 2500
     },
     {
-      "code": "002281",
-      "name": "光迅科技",
-      "avg_cost": 75.10,
-      "market_value_ref": 7750,
-      "shares": 100
+      "code": "159599",
+      "name": "芯片指数ETF",
+      "avg_cost": 1.636,
+      "market_value_ref": 0,
+      "shares": 4700
     },
     {
-      "code": "512980",
-      "name": "传媒ETF",
-      "avg_cost": 1.167,
+      "code": "159880",
+      "name": "有色ETF",
+      "avg_cost": 2.317,
       "market_value_ref": 0,
-      "shares": 0,
-      "comment": "2026-03-02 清仓, 亏¥348"
+      "shares": 3500
     },
     {
       "code": "159770",
@@ -44,6 +43,22 @@
       "avg_cost": 1.638,
       "market_value_ref": 27370,
       "shares": 16500
+    },
+    {
+      "code": "002281",
+      "name": "光迅科技",
+      "avg_cost": 75.10,
+      "market_value_ref": 7750,
+      "shares": 0,
+      "comment": "2026-03-10 已清仓"
+    },
+    {
+      "code": "512980",
+      "name": "传媒ETF",
+      "avg_cost": 1.167,
+      "market_value_ref": 0,
+      "shares": 0,
+      "comment": "2026-03-02 清仓, 亏¥348"
     },
     {
       "code": "513399",

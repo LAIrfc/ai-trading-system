@@ -17,7 +17,6 @@ from .data_prefetch import (
     get_realtime_snapshot_sina,
     get_realtime_snapshot_eastmoney,
     fetch_eastmoney_lhb,
-    fetch_eastmoney_stock_news,
 )
 
 try:
@@ -37,7 +36,6 @@ __all__ = [
     'get_realtime_snapshot_sina',
     'get_realtime_snapshot_eastmoney',
     'fetch_eastmoney_lhb',
-    'fetch_eastmoney_stock_news',
     'get_default_kline_provider',
     'UnifiedDataProvider',
 ]

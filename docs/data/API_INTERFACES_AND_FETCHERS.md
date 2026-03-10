@@ -286,7 +286,79 @@ python3 tools/backtest/batch_backtest.py --local-kline /path/to/backtest_kline -
 
 ---
 
-## 八、文档与实现差异（待办）
+## 八、K 线数据源配置与熔断机制
+
+### 8.1 数据源配置（`config/data_sources.yaml`）
+
+```yaml
+kline:
+  sources: [sina, eastmoney, tencent, tushare]          # 股票数据源顺序
+  etf_sources: [local_cache, akshare_etf, push2his_etf, baostock_etf]  # ETF 数据源顺序
+```
+
+| 数据源 | 适配器类 | 说明 | 优先级 |
+|--------|----------|------|--------|
+| sina | SinaKlineAdapter | 新浪财经，速度快 | 1（主） |
+| eastmoney | EastMoneyKlineAdapter | 东方财富 akshare | 2 |
+| tencent | TencentKlineAdapter | 腾讯财经 | 3 |
+| tushare | TushareKlineAdapter | tushare（需 token） | 4 |
+| local_cache | LocalCacheAdapter | 本地缓存（ETF 最高优先） | 1（ETF） |
+| akshare_etf | AkshareETFAdapter | akshare 三源轮询（新浪→网易→东方财富） | 2（ETF） |
+| push2his_etf | Push2hisETFAdapter | 东方财富 push2his 直接接口 | 3（ETF） |
+| baostock_etf | BaostockETFAdapter | baostock ETF（部分支持） | 4（ETF） |
+
+### 8.2 熔断机制
+
+- **触发条件**：数据源连续失败 3 次
+- **熔断时长**：300 秒（5 分钟）；`local_cache` 不受熔断限制
+- **腾讯特殊规则**：连续 3 个自然日失败则暂时移除并触发 `TENCENT_3DAY_ALERT_CALLBACK`
+- **内存缓存**：同一标的 5 分钟内重复请求直接返回缓存（key: `(code, datalen)`）
+
+熔断状态位于 `src/data/fetchers/data_prefetch.py`：
+
+```python
+_circuit_state = {
+    "sina": [0, 0.0],       # [连续失败次数, 最后失败时间戳]
+    "eastmoney": [0, 0.0],
+    "tencent": [0, 0.0],
+    "tushare": [0, 0.0],
+    "akshare_etf": [0, 0.0],
+    "push2his_etf": [0, 0.0],
+    "baostock_etf": [0, 0.0],
+    "local_cache": [0, 0.0],
+}
+```
+
+### 8.3 本地缓存目录
+
+| 目录 | 用途 | 格式 |
+|------|------|------|
+| `mycache/etf_kline/` | ETF 日线缓存 | `{code}_{YYYYMMDD}.csv` |
+| `mydate/backtest_kline/` | 回测数据缓存 | `{code}.parquet` |
+| `mycache/market_data/` | MarketData 自动缓存 | `{code}_{days}_{YYYYMMDD}.csv` |
+
+缓存有效期：交易时间内（9:00-16:00）1 小时；非交易时间 12 小时。
+
+### 8.4 故障排查
+
+**所有数据源均失败**：检查网络 → 查看熔断状态 → 确认本地缓存 → 等待 5 分钟或重启进程。
+
+**ETF 数据获取失败**：确认代码格式（6 位，5/159 开头）→ 检查 `mycache/etf_kline/{code}_*.csv` → 手动预热：
+```bash
+python3 tools/data/prefetch_etf_cache.py --from-portfolio
+python3 tools/data/prefetch_etf_cache.py --codes 512480,159770,510300
+```
+
+### 8.5 扩展新数据源
+
+1. 在 `src/data/provider/adapters.py` 中创建适配器类（继承 `KlineAdapter`）
+2. 注册到 `KLINE_ADAPTER_REGISTRY`
+3. 在 `config/data_sources.yaml` 的 `kline.sources` 中配置
+4. 在 `data_prefetch.py` 的 `_circuit_state` 中添加熔断状态
+
+---
+
+## 九、文档与实现差异（待办）
 
 以下为文档一～五中已规划、当前代码尚未完全落地的部分，便于按优先级补齐。
 

@@ -28,7 +28,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../..'))
 base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 DATA_DIR = os.path.join(base_dir, 'mydate')
 CACHE_FILE = os.path.join(DATA_DIR, 'market_fundamental_cache.json')
-POOL_FILE = os.path.join(DATA_DIR, 'stock_pool_600.json')
+POOL_FILE = os.path.join(DATA_DIR, 'stock_pool_all.json')
 
 
 def fetch_fundamental_sina(codes: List[str], timeout: int = 10) -> Dict[str, dict]:

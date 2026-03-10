@@ -294,4 +294,34 @@
 - **敏感性**：`python3 tools/optimization/v33_sensitivity.py --stocks 10`
 - **政策覆盖**：编辑 `config/policy_overrides.yaml` 的 `overrides`，策略会先查覆盖再自动标注
 
-**相关文档**：[V33_DESIGN_SPEC](V33_DESIGN_SPEC.md) | [BACKTEST_AND_LIVE_SPEC](BACKTEST_AND_LIVE_SPEC.md) | [STRATEGY_OPTIMIZATION_ROADMAP](STRATEGY_OPTIMIZATION_ROADMAP.md)
+**相关文档**：[BACKTEST_AND_LIVE_SPEC](BACKTEST_AND_LIVE_SPEC.md) | [STRATEGY_DETAIL](STRATEGY_DETAIL.md)
+
+---
+
+## 六、后续优化方向
+
+V3.3 全部 Phase 已完成，以下为可进一步探索的方向：
+
+### 6.1 组合策略融合方式
+
+**方式 1：直接加入投票池**（当前实现）
+- 情绪、消息、政策策略与技术/基本面策略共同投票，总数 11 个。
+- 保守组合 >70% 看多才买入；均衡组合 >50%；激进组合加权投票。
+
+**方式 2：作为条件过滤器**（可扩展）
+- 情绪指数处于非极端区间时，才考虑技术面信号。
+- 政策面有重大利好时，对所有买入信号进行置信度强化。
+
+**方式 3：动态权重调整**（已部分实现于 V33EnsembleStrategy）
+- 消息密集期（如财报季）→ 提高新闻策略权重。
+- 政策敏感期 → 提高政策策略权重。
+- 根据震荡市/趋势市动态调整各策略权重。
+
+### 6.2 其他待探索方向
+
+| 方向 | 说明 |
+|------|------|
+| 行业市值接口 | 完善重大利空条件中的"行业市值≥5%"判断 |
+| S_intra 盘中估算 | 当前为 T+1 收盘确认，可扩展盘中实时估算 |
+| 新闻/政策 NLP 升级 | 当前为规则+关键词，可引入预训练模型提升准确率 |
+| 回测数据集扩充 | 新闻/政策历史数据预置，提升回测覆盖率 |

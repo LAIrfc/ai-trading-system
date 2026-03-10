@@ -13,7 +13,13 @@ from typing import Dict, List, Tuple
 from datetime import datetime, timedelta
 from loguru import logger
 
-from .base_strategy import BaseStrategy
+from src.core.base_strategy import BaseStrategy
+from src.core.momentum_math import (
+    calc_absolute_momentum,
+    calc_relative_momentum,
+    check_stop_loss,
+    check_market_crash,
+)
 
 
 class DualMomentumStrategy(BaseStrategy):
@@ -92,15 +98,8 @@ class DualMomentumStrategy(BaseStrategy):
             try:
                 # 获取收盘价
                 close_prices = data[code]['close']
-                
-                # 计算N日均线
-                ma_n = close_prices.rolling(window=self.absolute_period).mean()
-                
-                # 当前价格 vs 均线
-                current_price = close_prices.iloc[-1]
-                current_ma = ma_n.iloc[-1]
-                
-                passed = current_price > current_ma
+                current_price, current_ma, passed = calc_absolute_momentum(
+                    close_prices, self.absolute_period)
                 results[code] = passed
                 
                 logger.debug(f"{code} | 当前价格={current_price:.2f}, "
@@ -129,13 +128,8 @@ class DualMomentumStrategy(BaseStrategy):
         for code in candidates:
             try:
                 close_prices = data[code]['close']
-                
-                # 计算M日涨幅
-                current_price = close_prices.iloc[-1]
-                m_days_ago_price = close_prices.iloc[-self.relative_period]
-                
-                momentum = (current_price / m_days_ago_price) - 1
-                scores[code] = momentum
+                momentum = calc_relative_momentum(close_prices, self.relative_period)
+                scores[code] = momentum / 100.0 if momentum is not None else -999
                 
                 logger.debug(f"{code} | {self.relative_period}日涨幅={momentum*100:.2f}%")
                 
@@ -187,12 +181,10 @@ class DualMomentumStrategy(BaseStrategy):
         
         for code, holding in self.current_holdings.items():
             try:
-                current_price = data[code]['close'].iloc[-1]
+                current_price = float(data[code]['close'].iloc[-1])
                 buy_price = holding['price']
-                
-                pnl = (current_price / buy_price) - 1
-                
-                if pnl <= self.stop_loss:
+                triggered, pnl = check_stop_loss(current_price, buy_price, self.stop_loss)
+                if triggered:
                     logger.warning(f"触发止损 | {code} | 买入价={buy_price:.2f}, "
                                  f"当前价={current_price:.2f}, 亏损={pnl*100:.2f}%")
                     to_stop.append(code)
@@ -216,9 +208,8 @@ class DualMomentumStrategy(BaseStrategy):
                 return False
             
             close_prices = data['510300']['close']
-            today_return = (close_prices.iloc[-1] / close_prices.iloc[-2]) - 1
-            
-            if today_return <= self.market_crash_threshold:
+            triggered, today_return = check_market_crash(close_prices, self.market_crash_threshold)
+            if triggered:
                 logger.error(f"市场熔断！单日跌幅 {today_return*100:.2f}% <= {self.market_crash_threshold*100:.2f}%")
                 self.emergency_mode = True
                 self.emergency_until = datetime.now() + timedelta(hours=24)

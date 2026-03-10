@@ -7,32 +7,45 @@
 ```
 tools/
 ├── backtest/              # 回测
-│   ├── batch_backtest.py       # 大规模批量回测（支持 --check-future）
-│   ├── cross_validate.py      # 策略交叉验证
-│   ├── backtest_dual_momentum.py  # 双核动量回测
-│   └── compare_fundamental.py  # 技术 vs 基本面对比
+│   ├── batch_backtest.py           # 大规模批量回测（支持 --check-future、--local-kline）
+│   ├── cross_validate.py           # 策略交叉验证
+│   ├── backtest_dual_momentum.py   # 双核动量 ETF 轮动回测
+│   └── compare_fundamental.py      # 技术 vs 基本面对比
 │
 ├── optimization/          # 参数优化
-│   ├── optimize_macd.py       # MACD 参数优化
-│   └── v33_sensitivity.py     # V3.3 参数敏感性（如新闻阈值）
+│   ├── optimize_macd.py            # MACD 参数优化
+│   └── v33_sensitivity.py          # V3.3 参数敏感性（新闻阈值等）
 │
 ├── analysis/              # 分析报告（策略见 docs/strategy/STRATEGY_LIST.md）
-│   ├── recommend_today.py    # 每日选股推荐（MACD 或 7 策略组合）
-│   ├── analyze_single_stock.py   # 单股 11 大策略分析
+│   ├── recommend_today.py          # 每日选股推荐（MACD 或多策略组合）
+│   ├── analyze_single_stock.py     # 单股 11 大策略分析
 │   ├── portfolio_strategy_analysis.py  # 持仓 11 大策略分析
-│   └── generate_trade_report.py # 双核动量交易报告
+│   └── generate_trade_report.py    # 双核动量交易报告
 │
-├── data/                  # 数据
-│   ├── kline_fetcher.py       # K 线获取
-│   ├── refresh_stock_pool.py  # 股票池刷新（含基本面过滤）
-│   └── quarterly_update.py   # 季度更新（指数成分+龙头+基本面）
+├── data/                  # 数据获取与管理
+│   ├── backtest_prefetch.py        # 回测日线预取（存/更新 parquet）
+│   ├── backtest_prefetch_aux.py    # 回测辅助数据预取（新闻/政策/龙虎榜）
+│   ├── view_backtest_kline.py      # 查看本地回测数据（历史价格/失败列表）
+│   ├── prefetch_etf_cache.py       # ETF 缓存预热
+│   ├── kline_fetcher.py            # K 线获取（单只）
+│   ├── refresh_stock_pool.py       # 综合股票池刷新（含基本面过滤，统一接口层多源切换）
+│   ├── update_fundamental_cache.py # 更新基本面缓存（市值/PE/PB）
+│   ├── test_data_sources.py        # 数据源可用性测试
+│   └── quarterly_update.py         # 季度更新（指数成分+龙头+基本面）
 │
 ├── portfolio/             # 持仓
-│   └── daily_check.py        # 每日持仓检查
+│   └── daily_check.py              # 每日持仓检查
 │
 └── validation/            # 验证与手工测试（与 tests/ 单元测试区分）
-    ├── test_fundamental.py   # 基本面策略测试
-    └── strategy_tester.py    # 策略测试器
+    ├── strategy_tester.py          # 策略测试器（交互式）
+    ├── test_fundamental.py         # PE 策略测试
+    ├── test_all_fundamental.py     # 全部基本面策略测试
+    ├── test_industry_pe.py         # 行业 PE 测试
+    ├── test_pb_strategy.py         # PB 策略测试
+    ├── test_turnover_helper.py     # 换手率辅助单元测试
+    ├── test_turnover_integration.py # 换手率集成测试
+    ├── validate_turnover_effect.py  # 换手率效果回测验证
+    └── validate_unified_data_layer.py # 统一数据层验证
 ```
 
 ## 使用说明
@@ -128,9 +141,19 @@ python3 tools/data/quarterly_update.py --check
 ### 验证工具
 
 ```bash
-# 测试基本面策略
-python3 tools/validation/test_fundamental.py
+# 策略测试器（交互式）
+python3 tools/validation/strategy_tester.py --interactive
 
-# 策略测试器
-python3 tools/validation/strategy_tester.py
+# 基本面策略测试
+python3 tools/validation/test_fundamental.py
+python3 tools/validation/test_all_fundamental.py
+
+# 换手率效果验证
+python3 tools/validation/validate_turnover_effect.py
+
+# 统一数据层验证
+python3 tools/validation/validate_unified_data_layer.py
+
+# 数据源可用性测试
+python3 tools/data/test_data_sources.py
 ```

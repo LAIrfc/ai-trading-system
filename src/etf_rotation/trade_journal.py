@@ -10,8 +10,8 @@ from datetime import datetime
 from typing import Dict
 from loguru import logger
 
-from src.core.signal_engine import Signal
-from src.core.portfolio import Portfolio
+from src.etf_rotation.signal_engine import Signal
+from src.etf_rotation.portfolio import Portfolio
 from src.data import ETF_POOL
 
 

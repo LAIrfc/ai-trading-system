@@ -1,254 +1,157 @@
 """
-AI量化交易系统主入口
+AI量化交易系统 - 统一CLI入口
+
+用法:
+    python src/main.py etf                          # ETF轮动日常分析（同 run_daily.py）
+    python src/main.py etf --status                 # 查看ETF轮动持仓状态
+
+    python src/main.py recommend                    # 从股票池选股推荐
+    python src/main.py recommend --pool mydate/stock_pool.json --top 20
+
+    python src/main.py analyze 600519               # 单股全策略分析
+    python src/main.py analyze 600519 --name 贵州茅台
+
+    python src/main.py portfolio                    # 分析实盘持仓
+
+    python src/main.py backtest etf                 # 双核动量ETF回测
+    python src/main.py backtest batch               # 批量策略回测
+    python src/main.py backtest compare             # 基本面对比回测
+
+    python src/main.py strategies                   # 列出所有可用策略
 """
 
-import argparse
 import sys
+import argparse
 from pathlib import Path
-from datetime import datetime
-import yaml
-from loguru import logger
 
-# 添加项目根目录到Python路径
 PROJECT_ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
 
-def setup_logging(config: dict):
-    """
-    配置日志系统
-    
-    Args:
-        config: 日志配置
-    """
-    log_config = config.get('logging', {})
-    log_level = log_config.get('level', 'INFO')
-    log_dir = PROJECT_ROOT / log_config.get('log_dir', 'logs')
-    log_dir.mkdir(exist_ok=True)
-    
-    # 移除默认的logger
-    logger.remove()
-    
-    # 添加控制台输出
-    logger.add(
-        sys.stdout,
-        level=log_level,
-        format="<green>{time:YYYY-MM-DD HH:mm:ss}</green> | <level>{level: <8}</level> | <cyan>{name}</cyan>:<cyan>{function}</cyan> - <level>{message}</level>"
-    )
-    
-    # 添加文件输出
-    logger.add(
-        log_dir / "trading_{time:YYYY-MM-DD}.log",
-        rotation="00:00",  # 每天午夜轮转
-        retention="30 days",  # 保留30天
-        level=log_level,
-        format="{time:YYYY-MM-DD HH:mm:ss} | {level: <8} | {name}:{function}:{line} - {message}"
-    )
-    
-    logger.info("=" * 50)
-    logger.info("AI量化交易系统启动")
-    logger.info(f"日志级别: {log_level}")
-    logger.info("=" * 50)
+def cmd_etf(args):
+    """ETF轮动日常分析"""
+    import run_daily
+    if args.status:
+        run_daily.show_status()
+    else:
+        run_daily.main()
 
 
-def load_config(config_path: str) -> dict:
-    """
-    加载配置文件
-    
-    Args:
-        config_path: 配置文件路径
-        
-    Returns:
-        配置字典
-    """
-    config_file = PROJECT_ROOT / config_path
-    
-    if not config_file.exists():
-        logger.error(f"配置文件不存在: {config_file}")
+def cmd_recommend(args):
+    """从股票池选股推荐"""
+    import subprocess
+    cmd = [sys.executable, str(PROJECT_ROOT / 'tools/analysis/recommend_today.py')]
+    if args.pool:
+        cmd += ['--pool', args.pool]
+    if args.top:
+        cmd += ['--top', str(args.top)]
+    if args.strategy:
+        cmd += ['--strategy', args.strategy]
+    subprocess.run(cmd)
+
+
+def cmd_analyze(args):
+    """单股全策略分析"""
+    import subprocess
+    cmd = [sys.executable, str(PROJECT_ROOT / 'tools/analysis/analyze_single_stock.py'), args.code]
+    if args.name:
+        cmd += ['--name', args.name]
+    subprocess.run(cmd)
+
+
+def cmd_portfolio(args):
+    """分析实盘持仓"""
+    import subprocess
+    subprocess.run([sys.executable, str(PROJECT_ROOT / 'tools/analysis/portfolio_strategy_analysis.py')])
+
+
+def cmd_backtest(args):
+    """回测"""
+    import subprocess
+    script_map = {
+        'etf':     'tools/backtest/backtest_dual_momentum.py',
+        'batch':   'tools/backtest/batch_backtest.py',
+        'compare': 'tools/backtest/compare_fundamental.py',
+        'cross':   'tools/backtest/cross_validate.py',
+    }
+    script = script_map.get(args.target)
+    if not script:
+        print(f"未知回测目标: {args.target}，可选: {list(script_map.keys())}")
         sys.exit(1)
-    
-    with open(config_file, 'r', encoding='utf-8') as f:
-        config = yaml.safe_load(f)
-    
-    logger.info(f"配置文件加载成功: {config_file}")
-    return config
+    subprocess.run([sys.executable, str(PROJECT_ROOT / script)])
 
 
-def run_backtest(args):
-    """
-    运行回测
-    
-    Args:
-        args: 命令行参数
-    """
-    logger.info("=" * 50)
-    logger.info("回测模式")
-    logger.info(f"策略: {args.strategy}")
-    logger.info(f"开始日期: {args.start}")
-    logger.info(f"结束日期: {args.end}")
-    logger.info("=" * 50)
-    
-    # 加载配置
-    trading_config = load_config('config/trading_config.yaml')
-    risk_config = load_config('config/risk_config.yaml')
-    
-    # TODO: 实现回测逻辑
-    logger.warning("⚠️ 回测功能正在开发中...")
-    
-    # 示例：加载数据
-    from src.data.collectors.market_data_collector import DataCollectorFactory
-    
-    data_source = trading_config['data']['source']
-    collector = DataCollectorFactory.create_collector(data_source, trading_config)
-    
-    # 获取股票列表
-    stock_list = collector.get_stock_list()
-    logger.info(f"股票池数量: {len(stock_list)}")
-    
-    # 示例：获取沪深300成分股的历史数据
-    # TODO: 实现完整的回测流程
-    
-    logger.info("回测完成")
-
-
-def run_live_trading(args):
-    """
-    运行实盘交易
-    
-    Args:
-        args: 命令行参数
-    """
-    logger.critical("=" * 50)
-    logger.critical("⚠️ 实盘交易模式 - 请谨慎操作！")
-    logger.critical(f"策略: {args.strategy}")
-    logger.critical("=" * 50)
-    
-    # 二次确认
-    if not args.confirm:
-        logger.error("实盘交易需要 --confirm 参数确认")
-        logger.error("示例: python src/main.py --mode live --strategy your_strategy --confirm")
-        sys.exit(1)
-    
-    # 加载配置
-    trading_config = load_config('config/trading_config.yaml')
-    risk_config = load_config('config/risk_config.yaml')
-    
-    # 检查是否为模拟模式
-    mode = trading_config['account'].get('mode', 'simulation')
-    if mode != 'live':
-        logger.warning(f"当前配置为 {mode} 模式，不会进行真实交易")
-    
-    # TODO: 实现实盘交易逻辑
-    logger.warning("⚠️ 实盘交易功能正在开发中...")
-    
-    # 实盘交易主循环
-    # 1. 连接券商API
-    # 2. 获取账户信息
-    # 3. 启动策略
-    # 4. 风控监控
-    # 5. 信号执行
-    # 6. 持仓管理
-    
-    logger.info("实盘交易系统已启动")
-
-
-def run_data_download(args):
-    """
-    下载历史数据
-    
-    Args:
-        args: 命令行参数
-    """
-    logger.info("=" * 50)
-    logger.info("数据下载模式")
-    logger.info(f"开始日期: {args.start}")
-    logger.info(f"结束日期: {args.end}")
-    logger.info("=" * 50)
-    
-    # 加载配置
-    trading_config = load_config('config/trading_config.yaml')
-    
-    from src.data.collectors.market_data_collector import DataCollectorFactory
-    
-    data_source = trading_config['data']['source']
-    collector = DataCollectorFactory.create_collector(data_source, trading_config)
-    
-    # 获取股票列表
-    logger.info("获取股票列表...")
-    stock_list = collector.get_stock_list()
-    logger.info(f"共{len(stock_list)}只股票")
-    
-    # TODO: 批量下载数据并保存
-    logger.warning("⚠️ 数据下载功能正在开发中...")
-    
-    logger.info("数据下载完成")
+def cmd_strategies(args):
+    """列出所有可用策略"""
+    from src.strategies import list_strategies
+    strategies = list_strategies()
+    print(f"\n{'='*60}")
+    print(f"共 {len(strategies)} 个可用策略")
+    print(f"{'='*60}")
+    for s in strategies:
+        print(f"\n  [{s['name']:12s}] {s['description']}")
+        print(f"    最少K线: {s['min_bars']} 根")
+        if s['param_ranges']:
+            for param, (lo, default, hi, step) in s['param_ranges'].items():
+                print(f"    参数 {param}: 默认={default}, 范围=[{lo}, {hi}], 步长={step}")
+    print()
 
 
 def main():
-    """主函数"""
-    parser = argparse.ArgumentParser(description='AI量化交易系统')
-    
-    # 运行模式
-    parser.add_argument('--mode', type=str, required=True,
-                       choices=['backtest', 'live', 'download'],
-                       help='运行模式: backtest(回测) / live(实盘) / download(下载数据)')
-    
-    # 策略参数
-    parser.add_argument('--strategy', type=str,
-                       help='策略名称')
-    
-    # 日期参数
-    parser.add_argument('--start', type=str,
-                       help='开始日期 YYYYMMDD')
-    
-    parser.add_argument('--end', type=str,
-                       help='结束日期 YYYYMMDD')
-    
-    # 实盘确认
-    parser.add_argument('--confirm', action='store_true',
-                       help='确认执行实盘交易')
-    
-    # 配置文件
-    parser.add_argument('--config', type=str,
-                       default='config/trading_config.yaml',
-                       help='配置文件路径')
-    
+    parser = argparse.ArgumentParser(
+        description='AI量化交易系统',
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog=__doc__
+    )
+    subparsers = parser.add_subparsers(dest='command', metavar='command')
+
+    # etf
+    p_etf = subparsers.add_parser('etf', help='ETF轮动日常分析')
+    p_etf.add_argument('--status', action='store_true', help='查看持仓状态')
+    p_etf.set_defaults(func=cmd_etf)
+
+    # recommend
+    p_rec = subparsers.add_parser('recommend', help='从股票池选股推荐')
+    p_rec.add_argument('--pool', type=str, default='mydate/stock_pool.json', help='股票池文件')
+    p_rec.add_argument('--top', type=int, default=20, help='推荐数量')
+    p_rec.add_argument('--strategy', type=str, default='ensemble', help='使用的策略')
+    p_rec.set_defaults(func=cmd_recommend)
+
+    # analyze
+    p_ana = subparsers.add_parser('analyze', help='单股全策略分析')
+    p_ana.add_argument('code', type=str, help='股票代码，如 600519')
+    p_ana.add_argument('--name', type=str, help='股票名称（可选）')
+    p_ana.set_defaults(func=cmd_analyze)
+
+    # portfolio
+    p_port = subparsers.add_parser('portfolio', help='分析实盘持仓')
+    p_port.set_defaults(func=cmd_portfolio)
+
+    # backtest
+    p_bt = subparsers.add_parser('backtest', help='回测')
+    p_bt.add_argument('target', choices=['etf', 'batch', 'compare', 'cross'],
+                      help='回测目标: etf=ETF轮动, batch=批量, compare=基本面对比, cross=交叉验证')
+    p_bt.set_defaults(func=cmd_backtest)
+
+    # strategies
+    p_st = subparsers.add_parser('strategies', help='列出所有可用策略')
+    p_st.set_defaults(func=cmd_strategies)
+
     args = parser.parse_args()
-    
-    # 加载配置并设置日志
-    try:
-        config = load_config(args.config)
-        setup_logging(config)
-    except Exception as e:
-        print(f"配置加载失败: {e}")
-        sys.exit(1)
-    
-    # 根据模式执行
-    try:
-        if args.mode == 'backtest':
-            if not args.strategy or not args.start or not args.end:
-                logger.error("回测模式需要 --strategy, --start, --end 参数")
-                sys.exit(1)
-            run_backtest(args)
-            
-        elif args.mode == 'live':
-            if not args.strategy:
-                logger.error("实盘模式需要 --strategy 参数")
-                sys.exit(1)
-            run_live_trading(args)
-            
-        elif args.mode == 'download':
-            if not args.start or not args.end:
-                logger.error("下载模式需要 --start, --end 参数")
-                sys.exit(1)
-            run_data_download(args)
-            
-    except KeyboardInterrupt:
-        logger.warning("用户中断程序")
+
+    if not args.command:
+        parser.print_help()
         sys.exit(0)
-        
+
+    try:
+        args.func(args)
+    except KeyboardInterrupt:
+        print("\n用户中断")
+        sys.exit(0)
     except Exception as e:
-        logger.exception(f"程序运行出错: {e}")
+        print(f"错误: {e}")
+        import traceback
+        traceback.print_exc()
         sys.exit(1)
 
 

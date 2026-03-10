@@ -14,7 +14,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from typing import Dict, List
 import pandas as pd
-from src.core.strategy.base_strategy import BaseStrategy
+from src.core.base_strategy import BaseStrategy
 
 
 class MyStrategy(BaseStrategy):

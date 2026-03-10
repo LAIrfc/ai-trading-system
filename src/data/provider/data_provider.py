@@ -1,17 +1,18 @@
 """
-统一数据提供层：按配置主备切换，策略层仅调用 get_kline，无需关心底层数据源。
+统一数据提供层：按配置主备切换，策略层仅调用 get_kline/get_sector_stocks，无需关心底层数据源。
 """
 
 import logging
 import time
 from pathlib import Path
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Dict
 
 import pandas as pd
 import yaml
 
-from .base import KlineAdapter, KLINE_COLUMNS
+from .base import KlineAdapter, SectorAdapter, KLINE_COLUMNS
 from .adapters import KLINE_ADAPTER_REGISTRY
+from .sector_adapters import SECTOR_ADAPTER_REGISTRY
 
 logger = logging.getLogger(__name__)
 
@@ -117,6 +118,15 @@ class UnifiedDataProvider:
                 self._etf_adapters.append(KLINE_ADAPTER_REGISTRY[name]())
             else:
                 logger.warning("[UnifiedDataProvider] 未知 ETF 数据源 %s，已忽略", name)
+        
+        # 初始化板块数据适配器（默认顺序）
+        self._sector_adapters: List[SectorAdapter] = []
+        sector_order = ['akshare', 'eastmoney', 'sina', 'baostock', 'local']
+        for name in sector_order:
+            if name in SECTOR_ADAPTER_REGISTRY:
+                self._sector_adapters.append(SECTOR_ADAPTER_REGISTRY[name]())
+            else:
+                logger.warning("[UnifiedDataProvider] 未知板块数据源 %s，已忽略", name)
 
     def get_kline(
         self,
@@ -253,6 +263,96 @@ class UnifiedDataProvider:
             code, primary_err,
         )
         return pd.DataFrame()
+
+    def get_sector_stocks(
+        self,
+        sector_config: Dict[str, any],
+        target: int = 15,
+    ) -> List[Dict[str, any]]:
+        """
+        获取板块成分股，按配置的数据源顺序自动切换。
+        
+        Args:
+            sector_config: 板块配置，包含各数据源的板块代码/名称
+                {
+                    'akshare': ['光伏概念'],
+                    'eastmoney': ['BK1031'],
+                    'sina': ['new_xxx'],
+                    'baostock': ['有色'],
+                    'keywords': ['关键词1', '关键词2', ...],
+                }
+            target: 目标数量
+        
+        Returns:
+            List[Dict]: 成分股列表，每个元素包含 code, name, market_cap_yi
+        """
+        all_stocks = []
+        
+        # 按适配器顺序尝试
+        for adapter in self._sector_adapters:
+            sid = adapter.source_id
+            
+            # 获取该数据源的配置
+            source_codes = sector_config.get(sid, [])
+            if not source_codes:
+                continue
+            
+            logger.info(f"[UnifiedDataProvider] 尝试 {sid} 获取板块数据...")
+            
+            # 尝试该数据源的所有板块代码
+            for sector_code in source_codes:
+                try:
+                    kwargs = {}
+                    if sid == 'local':
+                        kwargs['keywords'] = sector_config.get('keywords', [])
+                    
+                    stocks = adapter.get_sector_stocks(
+                        sector_code=sector_code,
+                        limit=target * 3,
+                        **kwargs
+                    )
+                    
+                    if stocks:
+                        logger.info(f"[UnifiedDataProvider] {sid} {sector_code} 成功: {len(stocks)}只")
+                        all_stocks.extend(stocks)
+                        
+                        # 如果已经获取足够数据，提前返回
+                        if len(all_stocks) >= target:
+                            break
+                    
+                except Exception as e:
+                    logger.warning(f"[UnifiedDataProvider] {sid} {sector_code} 失败: {e}")
+                
+                time.sleep(1)
+            
+            # 如果已经获取足够数据，不再尝试下一个数据源
+            if len(all_stocks) >= target:
+                break
+        
+        # 去重并按市值排序
+        unique_stocks = {}
+        for s in all_stocks:
+            code = s['code']
+            if code not in unique_stocks:
+                unique_stocks[code] = s
+        
+        stocks_list = list(unique_stocks.values())
+        stocks_list.sort(key=lambda x: x.get('market_cap_yi', 0), reverse=True)
+        
+        # 关键词过滤（如果有）
+        keywords = sector_config.get('keywords', [])
+        if keywords:
+            filtered = []
+            for s in stocks_list:
+                name_lower = s['name'].lower()
+                for kw in keywords:
+                    if kw.lower() in name_lower:
+                        filtered.append(s)
+                        break
+            stocks_list = filtered
+        
+        # 返回前N只
+        return stocks_list[:target]
 
 
 _default_provider: Optional[UnifiedDataProvider] = None

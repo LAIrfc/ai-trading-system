@@ -48,7 +48,7 @@ from .policy_event import PolicyEventStrategy
 from .money_flow import MoneyFlowStrategy
 
 try:
-    from src.core.v33_weights import (
+    from src.strategies.v33_weights import (
         fetch_index_for_state,
         get_market_state,
         should_trigger_adjustment,

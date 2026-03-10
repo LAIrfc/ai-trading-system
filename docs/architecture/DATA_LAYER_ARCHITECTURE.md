@@ -696,3 +696,39 @@ elif source == 'eastmoney':
 ---
 
 **结论**: 我们的系统已经实现了**高质量的数据接口层抽象**，策略层与数据源基本解耦，符合工业级标准。少量遗留的直接调用可以通过重构逐步消除。
+
+---
+
+## 📦 板块适配器（Sector Adapters）
+
+除 K 线适配器外，系统还实现了板块成分股适配器，供 `refresh_stock_pool.py` 使用：
+
+| 适配器类 | 数据源 | 说明 |
+|----------|--------|------|
+| `AkshareSectorAdapter` | akshare 概念板块 | 优先级最高，数据最全 |
+| `EastMoneySectorAdapter` | 东方财富板块 API | 概念板块细分，但不稳定 |
+| `SinaSectorAdapter` | 新浪行业板块 | 接口稳定，传统行业覆盖好 |
+| `BaostockSectorAdapter` | baostock 行业 | 本地库，无网络限制 |
+| `LocalSectorAdapter` | 本地关键词匹配 | 100% 可用，兜底方案 |
+
+**调用示例**:
+
+```python
+from src.data.provider.data_provider import get_default_kline_provider
+
+provider = get_default_kline_provider()
+
+# 获取光伏板块成分股（5层自动切换）
+stocks = provider.get_sector_stocks(
+    sector_config={
+        'akshare': ['光伏概念'],
+        'eastmoney': ['BK1031'],
+        'sina': [],
+        'baostock': [],
+        'keywords': ['光伏', '太阳能', '隆基', '通威', ...],
+    },
+    target=15
+)
+```
+
+详细的板块数据源配置（7大赛道 `SECTOR_BOARDS` 完整配置）见 `docs/data/DATA_SOURCE_PRIORITY.md`。

@@ -35,6 +35,7 @@ import math
 import pandas as pd
 import numpy as np
 from .base import Strategy, StrategySignal
+from src.core.momentum_math import calc_absolute_momentum, calc_relative_momentum
 
 
 class DualMomentumSingleStrategy(Strategy):
@@ -126,15 +127,8 @@ class DualMomentumSingleStrategy(Strategy):
     def analyze(self, df: pd.DataFrame) -> StrategySignal:
         close = df['close']
 
-        ma_n = float(close.rolling(self.abs_period).mean().iloc[-1])
-        cur_price = float(close.iloc[-1])
-        above_ma = cur_price > ma_n
-
-        if len(close) >= self.rel_period:
-            past_price = float(close.iloc[-self.rel_period])
-            momentum = (cur_price / past_price - 1) * 100
-        else:
-            momentum = 0.0
+        cur_price, ma_n, above_ma = calc_absolute_momentum(close, self.abs_period)
+        momentum = calc_relative_momentum(close, self.rel_period) or 0.0
 
         expected_std = self._calc_expected_mom_std(close)
 

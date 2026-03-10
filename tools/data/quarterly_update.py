@@ -35,7 +35,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../..'))
 base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 DATA_DIR = os.path.join(base_dir, 'mydate')
 LOG_DIR = os.path.join(base_dir, 'mylog')
-POOL_600_FILE = os.path.join(DATA_DIR, 'stock_pool_600.json')
+POOL_ALL_FILE = os.path.join(DATA_DIR, 'stock_pool_all.json')
 UPDATE_LOG_FILE = os.path.join(DATA_DIR, 'update_history.json')
 
 # 季度调整月份（3/6/9/12月的第二个周五后生效）
@@ -150,7 +150,7 @@ def update_index_constituents():
         'date': today,
         'sectors': sectors,
     }
-    with open(POOL_600_FILE, 'w', encoding='utf-8') as f:
+    with open(POOL_ALL_FILE, 'w', encoding='utf-8') as f:
         json.dump(pool, f, ensure_ascii=False, indent=2)
 
     total = sum(len(v) for v in sectors.values())
@@ -168,7 +168,7 @@ def update_fundamental_cache():
     all_codes = set()
     for pool_file in [
         os.path.join(DATA_DIR, 'stock_pool.json'),
-        os.path.join(DATA_DIR, 'stock_pool_600.json'),
+        os.path.join(DATA_DIR, 'stock_pool_all.json'),
     ]:
         if os.path.exists(pool_file):
             with open(pool_file, 'r', encoding='utf-8') as f:

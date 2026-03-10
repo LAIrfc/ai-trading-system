@@ -421,6 +421,34 @@ def get_sentiment_series_v2(
     return out
 
 
+def get_sentiment_series(
+    start_date: str,
+    end_date: str,
+    index_symbol: str = "000300",
+    momentum_days: int = 20,
+    lookback_days: int = 60,
+) -> pd.DataFrame:
+    """
+    向后兼容接口：返回旧版格式（date, sentiment_index, momentum_pct）。
+
+    内部调用 get_sentiment_series_v2，将 S 线性映射到 0~100 的 sentiment_index。
+    原 market_sentiment.py 的调用方可直接切换到此函数。
+    """
+    df = get_sentiment_series_v2(start_date, end_date, index_symbol=index_symbol, window=lookback_days)
+    if df.empty:
+        return pd.DataFrame()
+    # S 是 Z-score 合成值，通过 S_low/S_high 分位映射到 0~100
+    s_min = df["S"].min()
+    s_max = df["S"].max()
+    span = s_max - s_min
+    if span < 1e-8:
+        df["sentiment_index"] = 50.0
+    else:
+        df["sentiment_index"] = ((df["S"] - s_min) / span * 100).clip(0, 100)
+    df["momentum_pct"] = float("nan")
+    return df[["date", "sentiment_index", "momentum_pct"]].copy()
+
+
 def get_s_low_s_high_latest(lookback_days: int = 80) -> Optional[Tuple[float, float, float]]:
     """
     获取最近一日的 S、S_low、S_high，供策略使用。

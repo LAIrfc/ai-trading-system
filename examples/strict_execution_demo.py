@@ -11,9 +11,9 @@ PROJECT_ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
 from datetime import datetime
-from src.core.strategy.strategy_document import StrategyDocument, StrategyVersion, StrategyPerformance
-from src.core.strategy.strategy_rule_engine import StrategyRuleEngine, StrategyRule, RuleType
-from src.core.strategy.strategy_executor import StrategyExecutor
+from src.core.strategy_document import StrategyDocument, StrategyVersion, StrategyPerformance
+from src.core.strategy_rule_engine import StrategyRuleEngine, StrategyRule, RuleType
+from src.core.strategy_executor import StrategyExecutor
 from src.core.risk.risk_manager import RiskManager
 
 
