@@ -4,16 +4,21 @@
 
 功能:
 1. 对股票池中所有股票获取最新数据
-2. 策略模式: macd(单MACD) | ensemble(7策略) | full_11(11大策略，与持仓分析一致)
+2. 策略模式: macd(单MACD) | ensemble(9策略加权投票，推荐) | full_11(11大策略)
 3. 输出：该买哪些、该卖哪些、观望哪些；每只附带信号强度、建议仓位、理由
 
 用法:
-    python3 tools/analysis/recommend_today.py --strategy full_11 --pool stock_pool_all.json --top 10
-    python3 tools/analysis/recommend_today.py --pool stock_pool.json  # 默认池可选
-    python3 tools/analysis/recommend_today.py --strategy ensemble --fast 12 --slow 30 --signal 9
+    # 推荐：9策略 Ensemble（技术6+基本面3，BOLL/MACD高权重）
+    python3 tools/analysis/recommend_today.py --pool mydate/stock_pool_all.json --strategy ensemble --top 20
 
-11策略: MA | MACD | RSI | BOLL | KDJ | DUAL | Sentiment | NewsSentiment | PolicyEvent | MoneyFlow | PE | PB
-默认池: stock_pool_all.json（812只），可 --pool stock_pool.json（100只）缩小范围。
+    # 单 MACD 快速筛选
+    python3 tools/analysis/recommend_today.py --pool mydate/stock_pool.json --strategy macd --top 10
+
+    # 11大策略（含情绪/新闻/政策/龙虎榜）
+    python3 tools/analysis/recommend_today.py --strategy full_11 --pool mydate/stock_pool_all.json --top 10
+
+9策略: MA | MACD | RSI | BOLL | KDJ | DUAL（技术面6） | PE | PB | PEPB（基本面3）
+默认池: stock_pool_all.json（723只），可 --pool stock_pool.json（48只）缩小范围。
 
 输出:
     终端报告 + output/daily_recommendation_YYYY-MM-DD.md
@@ -440,7 +445,7 @@ def main():
     parser.add_argument('--max-pool', type=int, default=0, help='最多扫描池内前 N 只（0=全部）')
     parser.add_argument('--strategy', type=str, default='full_11',
                         choices=['macd', 'ensemble', 'full_11'],
-                        help='策略: macd | ensemble(7策略) | full_11(11大策略)')
+                        help='策略: macd | ensemble(9策略加权投票，推荐) | full_11(11大策略)')
     parser.add_argument('--fast', type=int, default=12, help='MACD快线(仅macd模式)')
     parser.add_argument('--slow', type=int, default=30, help='MACD慢线(仅macd模式)')
     parser.add_argument('--signal', type=int, default=9, help='MACD信号线(仅macd模式)')
@@ -574,8 +579,8 @@ def main():
 
     # ---------- 原有 macd / ensemble 模式 ----------
     if args.strategy == 'ensemble':
-        strat = EnsembleStrategy(mode='majority', buy_threshold=0.5, sell_threshold=0.5)
-        strategy_name = '7策略组合(MA+MACD+RSI+BOLL+KDJ+DUAL+PE)'
+        strat = EnsembleStrategy()  # 使用默认参数：9策略加权投票，BOLL/MACD高权重
+        strategy_name = '9策略Ensemble(技术6+基本面3，加权投票)'
     else:
         strat = MACDStrategy(fast_period=args.fast, slow_period=args.slow,
                              signal_period=args.signal)
