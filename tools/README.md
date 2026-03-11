@@ -18,8 +18,8 @@ tools/
 │
 ├── analysis/              # 分析报告（策略见 docs/strategy/STRATEGY_LIST.md）
 │   ├── recommend_today.py          # 每日选股推荐（MACD 或多策略组合）
-│   ├── analyze_single_stock.py     # 单股 11 大策略分析
-│   ├── portfolio_strategy_analysis.py  # 持仓 11 大策略分析
+│   ├── analyze_single_stock.py     # 单股 9 大策略分析
+│   ├── portfolio_strategy_analysis.py  # 持仓 9 大策略分析
 │   └── generate_trade_report.py    # 双核动量交易报告
 │
 ├── data/                  # 数据获取与管理
@@ -53,8 +53,8 @@ tools/
 ### 回测工具
 
 ```bash
-# 大规模回测（500只股票，3年数据）
-python3 tools/backtest/batch_backtest.py --count 500
+# 大规模回测（9策略 Ensemble，300只股票，3年数据）
+python3 tools/backtest/batch_backtest.py --pool mydate/stock_pool_all.json --count 300 --local-kline mydate/backtest_kline
 
 # 策略交叉验证
 python3 tools/backtest/cross_validate.py
@@ -63,12 +63,17 @@ python3 tools/backtest/cross_validate.py
 **回测数据：存 + 更新，再用最新数据验证策略**  
 慢的主要原因是每只股票都从网络拉日线；存到本地后，还需**定期更新**拉取新数据，再用更新后的数据跑回测验证策略。
 
-- **首次：存股票池里的数据**（预取到本地）：
+- **首次：存 K 线数据**（预取到本地）：
   ```bash
   python3 tools/data/backtest_prefetch.py --pool mydate/stock_pool_all.json --all --out-dir mydate/backtest_kline --workers 4
   ```
   会在 `mydate/backtest_kline` 下生成每只 `{code}.parquet` 和 `manifest.json`。
-- **定期：更新拉取新数据**（在已有缓存上覆盖为最新日线，便于验证策略）：
+- **首次/更新：存 PE/PB 数据**（基本面策略需要）：
+  ```bash
+  python3 tools/data/prefetch_pe_cache.py --update
+  ```
+  会在 `mydate/pe_cache/` 下生成每只 `{code}.parquet`，详见 [PE_CACHE_GUIDE.md](../docs/data/PE_CACHE_GUIDE.md)。
+- **定期：更新 K 线数据**（在已有缓存上追加最新日线）：
   ```bash
   python3 tools/data/backtest_prefetch.py --update --out-dir mydate/backtest_kline --datalen 800 --workers 4
   ```
@@ -77,7 +82,6 @@ python3 tools/backtest/cross_validate.py
   ```bash
   python3 tools/backtest/batch_backtest.py --pool mydate/stock_pool_all.json --count 300 --local-kline mydate/backtest_kline
   ```
-- 使用 V3.3 时还可预取/更新新闻/政策/龙虎榜，回测时加 `--local-aux mydate/backtest_aux`。
 
 ### 参数优化
 
@@ -89,15 +93,15 @@ python3 tools/optimization/optimize_macd.py
 ### 分析报告
 
 ```bash
-# 每日选股推荐（默认 MACD；可选 --strategy ensemble 使用 7 策略组合）
-python3 tools/analysis/recommend_today.py
+# 每日选股推荐（9策略 Ensemble，综合技术面+基本面）
 python3 tools/analysis/recommend_today.py --pool mydate/stock_pool_all.json --strategy ensemble
+python3 tools/analysis/recommend_today.py --pool mydate/stock_pool.json --strategy macd --top 10
 
-# 单股多策略分析（11 大策略：技术+情绪+消息+政策+龙虎榜+PE/PB）
+# 单股多策略分析（9 大策略：技术6+基本面3）
 python3 tools/analysis/analyze_single_stock.py 002015
 python3 tools/analysis/analyze_single_stock.py 002015 --name "协鑫能科"
 
-# 持仓多策略分析（同上 11 大策略）
+# 持仓多策略分析（同上 9 大策略）
 python3 tools/analysis/portfolio_strategy_analysis.py
 
 # 双核动量交易报告（ETF 轮动）

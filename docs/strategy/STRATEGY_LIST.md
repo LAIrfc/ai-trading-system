@@ -114,13 +114,13 @@
 
 | 工具 | 路径 | 使用的策略 |
 |------|------|------------|
-| 单股多策略分析 | `tools/analysis/analyze_single_stock.py` | 11 大单策略：MA, MACD, RSI, BOLL, KDJ, DUAL, Sentiment, NewsSentiment, PolicyEvent, MoneyFlow, PE, PB（共 12 项展示，PE/PB 各 1） |
-| 持仓多策略分析 | `tools/analysis/portfolio_strategy_analysis.py` | 同上 11 大策略 |
-| 每日选股推荐 | `tools/analysis/recommend_today.py` | 单 MACD 或 7 策略组合（EnsembleStrategy：MA+MACD+RSI+BOLL+KDJ+DUAL+PE），不含情绪/消息/政策/龙虎榜；可选 PB 过滤 |
+| 单股多策略分析 | `tools/analysis/analyze_single_stock.py` | 9 大单策略：MA, MACD, RSI, BOLL, KDJ, DUAL（技术面6）+ PE, PB, PEPB（基本面3） |
+| 持仓多策略分析 | `tools/analysis/portfolio_strategy_analysis.py` | 同上 9 大策略 |
+| 每日选股推荐 | `tools/analysis/recommend_today.py` | 单 MACD 或 9 策略 EnsembleStrategy（技术6+基本面3，加权投票） |
 | 交易报告生成 | `tools/analysis/generate_trade_report.py` | 双核动量轮动（ETF 轮动），非单股策略库 |
 | 批量回测 | `tools/backtest/batch_backtest.py` | 可配置策略；支持 `--check-future` 未来函数校验 |
 
-若要在「每日推荐」中使用 V33 组合（11 策略 + 情绪/消息/政策/龙虎榜），需在 `recommend_today.py` 中增加对 `V33EnsembleStrategy(symbol=code)` 的调用或选项。
+若要在「每日推荐」中使用 V33 组合（含情绪/消息/政策/龙虎榜），需在 `recommend_today.py` 中增加对 `V33EnsembleStrategy(symbol=code)` 的调用或选项。
 
 ---
 

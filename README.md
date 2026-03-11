@@ -1,32 +1,29 @@
 # AI量化交易系统（A股）
 
-## 项目简介
-
-基于人工智能的A股量化交易系统，支持策略选股、回测、实盘交易和风险控制。
+基于多策略组合的A股量化交易系统，支持策略选股、回测验证、持仓分析和实盘自动化交易。
 
 **跨平台支持**：Windows 和 Linux 自动兼容，无需手动修改，开箱即用。
 
-详见：[跨平台兼容说明](docs/setup/CROSS_PLATFORM.md) | [Windows完整指南](docs/setup/WINDOWS_GUIDE.md)
+---
 
 ## ⚠️ 风险警告
 
 **本系统涉及真实资金交易，使用前请务必：**
-- 充分理解股票交易风险
-- 在模拟环境充分测试
-- 设置严格的风控参数
-- 遵守相关法律法规
+- 充分理解股票交易风险，在模拟环境充分测试
+- 设置严格的风控参数，遵守相关法律法规
+- 本项目仅供学习和研究使用，使用者需自行承担一切交易风险
 
 ---
 
-## 系统特性
+## 系统概览
 
-- **9 单策略 + 5 组合**：MA/MACD/RSI/BOLL/KDJ/DUAL（技术面 6 个）、PE/PB/PEPB（基本面 3 个）；情绪/新闻/政策/资金流（V3.3 扩展 4 个）；EnsembleStrategy（9 子策略加权投票）/保守/均衡/激进/V33 组合
-- **策略选股**：多策略组合从股票池挑选优质股票，综合评分排序
-- **单股/持仓分析**：跑遍 11 单策略 + PE/PB + 5 组合，给出买卖建议
-- **双核动量 ETF 轮动**：完整实现，含回测、可视化、月度调仓
-- **策略回测引擎**：支持大规模批量回测、本地数据预取、未来函数检查
-- **多层风控**：账户/策略/个股/系统四层风控
-- **自动化交易（可选）**：支持同花顺桌面客户端和网页自动化
+| 模块 | 说明 |
+|------|------|
+| **策略选股** | 9策略 Ensemble 从 723 只股票池中筛选买入机会，综合评分排序 |
+| **持仓分析** | 对当前持仓跑全策略信号，给出操作建议和风险提示 |
+| **策略回测** | 大规模批量回测（235只股票 × 3年），支持本地数据缓存加速 |
+| **ETF轮动** | 双核动量 ETF 轮动策略，含完整回测、可视化、月度调仓 |
+| **自动化交易** | 同花顺桌面/网页自动化，可选功能 |
 
 ---
 
@@ -35,122 +32,174 @@
 ### 安装依赖
 
 ```bash
-# 策略选股（最小依赖）
-pip3 install --user pandas numpy akshare loguru
+# 核心依赖（策略选股 + 回测）
+pip3 install --user pandas numpy akshare baostock loguru
 
-# 桌面自动化（可选）
+# 桌面自动化（可选，仅自动交易需要）
 sudo apt-get install python3-tk python3-dev -y
 pip3 install --user pyautogui psutil pillow pyyaml
 ```
 
 Windows 用户：双击 `scripts\start_windows.bat`，选择 `6` 安装依赖。
 
-### 核心功能入口
+### 日常使用流程
 
 ```bash
-# 策略选股（从股票池选出 TOP 20）
-python3 tools/analysis/recommend_today.py --pool mydate/stock_pool.json --strategy ensemble --top 20
+# 第一步：更新本地数据缓存（每周/每月执行一次）
+python3 tools/data/backtest_prefetch.py --update --out-dir mydate/backtest_kline --workers 4
+python3 tools/data/prefetch_pe_cache.py --update
 
-# 单股多策略分析（11 单策略 + PE/PB + 5 组合）
-python3 tools/analysis/analyze_single_stock.py 600519 --name "贵州茅台"
-
-# 持仓分析
-python3 tools/analysis/portfolio_strategy_analysis.py
-
-# ETF 轮动回测
-python3 tools/backtest/backtest_dual_momentum.py
-```
-
----
-
-## 🎯 策略选股系统
-
-系统核心功能：**根据多策略组合从股票池中挑选优质股票**。
-
-### 支持的策略
-
-**技术面（6 个）**：MA（均线交叉）、MACD、RSI、BOLL（布林带）、KDJ、DUAL（双核动量单股）
-
-**基本面（3 个）**：PE（历史 PE 分位数）、PB（历史 PB 分位数）、PEPB（PE+PB 双因子联合低估）
-
-**V3.3 扩展（4 个）**：Sentiment（市场情绪）、NewsSentiment（新闻情感）、PolicyEvent（政策事件）、MoneyFlow（龙虎榜/大宗）
-
-**组合策略（5 个）**：**EnsembleStrategy**（9 子策略加权投票，含持仓成本止损感知）、保守、均衡、激进、**V33**（13 子策略，重大利空优先）
-
-详见 [策略清单](docs/strategy/STRATEGY_LIST.md)。
-
-### 使用方法
-
-```bash
-# 7 策略 Ensemble 选股（MA+MACD+RSI+BOLL+KDJ+DUAL+PE），TOP 20
+# 第二步：今日选股推荐（从 723 只综合池选出 TOP 20）
 python3 tools/analysis/recommend_today.py --pool mydate/stock_pool_all.json --strategy ensemble --top 20
 
-# 单 MACD 策略选股
-python3 tools/analysis/recommend_today.py --pool mydate/stock_pool.json --strategy macd --top 10
-
-# 单股跑遍所有策略
-python3 tools/analysis/analyze_single_stock.py 600519 --name "贵州茅台"
-
-# 持仓多策略分析
+# 第三步：持仓分析（对当前持仓给出操作建议）
 python3 tools/analysis/portfolio_strategy_analysis.py
+
+# 可选：单股深度分析
+python3 tools/analysis/analyze_single_stock.py 600519 --name "贵州茅台"
 ```
-
-### 输出内容
-
-- 每只股票的 11 单策略 + PE/PB + 5 组合信号（买入/卖出/观望）
-- 综合评分和排名
-- 资金流状态
-- 推荐理由和建议仓位
 
 ---
 
-## 📊 股票池管理
+## 🎯 策略体系
 
-股票池文件位于 `mydate/` 目录：
+### 9 个单策略
 
-| 文件 | 说明 |
+**技术面（6个）**
+
+| 策略 | 文件 | 信号逻辑 | 回测夏普 | 回测收益 |
+|------|------|----------|----------|----------|
+| MA | `ma_cross.py` | 短期均线上穿长期均线 | 0.12 | +13.9% |
+| MACD | `macd_cross.py` | MACD 金叉/死叉 + 柱状图变化 | 0.16 | +15.3% |
+| RSI | `rsi_signal.py` | RSI 超卖反弹 / 超买回落 | 0.07 | +10.2% |
+| BOLL | `bollinger_band.py` | 价格触及布林带下轨反弹 | **0.20** | +15.0% |
+| KDJ | `kdj_signal.py` | KDJ 金叉 / 死叉 | 0.15 | +13.5% |
+| DUAL | `dual_momentum.py` | 绝对动量 + 相对动量单股版 | — | — |
+
+> 回测数据：235只股票，3年历史（2022-2025），含手续费。BOLL 综合表现最优（夏普最高、回撤最小13.9%）。
+
+**基本面（3个）**
+
+| 策略 | 文件 | 信号逻辑 | 回测夏普 | 回测收益 |
+|------|------|----------|----------|----------|
+| PE | `fundamental_pe.py` | 当前PE低于历史30%分位数 → 低估买入 | 0.11 | +8.2% |
+| PB | `fundamental_pb.py` | 当前PB低于历史30%分位数 → 低估买入 | — | — |
+| PEPB | `fundamental_pe_pb.py` | PE + PB 双因子同时低估，信号更强 | — | — |
+
+> 基本面数据来源：Baostock，本地缓存于 `mydate/pe_cache/`（779只股票），详见 [PE缓存指南](docs/data/PE_CACHE_GUIDE.md)。
+
+### EnsembleStrategy（主力组合策略）
+
+9个子策略加权投票，综合技术面和基本面信号：
+
+```
+买入条件：加权得分 ≥ 0.45，且至少 2 个策略同时发出买入信号
+卖出条件：加权得分 ≤ -0.45，且至少 2 个策略同时发出卖出信号
+```
+
+**当前权重配置**（基于回测结果优化）：
+
+| 策略 | 权重 | 依据 |
+|------|------|------|
+| BOLL | 1.5 | 夏普最高(0.20)、回撤最小(13.9%) |
+| MACD | 1.3 | 收益最高(+15.3%)，夏普第二(0.16) |
+| KDJ | 1.1 | 夏普第三(0.15)，盈利率70.6% |
+| MA | 1.0 | 收益第三(+13.9%) |
+| DUAL | 0.9 | 保守权重 |
+| RSI | 0.8 | 夏普最低(0.07)，降权 |
+| PEPB | 0.8 | 双因子共振，信号强但数据要求高 |
+| PE | 0.6 | 回撤最小(9%)，辅助过滤 |
+| PB | 0.6 | 单因子PB |
+
+**持仓成本感知**：传入 `avg_cost` 时，自动触发止损（-8%）和预警（-5%）逻辑。
+
+### 其他 4 个组合策略
+
+| 策略 | 说明 |
 |------|------|
-| `stock_pool.json` | 赛道龙头池（光伏/机器人/半导体/有色/证券/创新药/商业航天，约 48 只） |
-| `stock_pool_all.json` | 综合池（沪深300+中证500经基本面过滤，660 只个股 + 57 只 ETF） |
-| `etf_pool.json` | ETF 池（宽基/科技/消费/金融/周期/医药/地产/跨境，57 只） |
+| 保守组合 | 仅技术面，高阈值，低误报 |
+| 均衡组合 | 技术+基本面，默认阈值 |
+| 激进组合 | 低阈值，捕捉更多信号 |
+| V33 | 13子策略，含情绪/新闻/政策/龙虎榜，重大利空优先 |
+
+---
+
+## 📊 股票池
+
+| 文件 | 说明 | 数量 |
+|------|------|------|
+| `mydate/stock_pool_all.json` | 综合池（沪深300+中证500经基本面过滤） | 666只个股 + 57只ETF = **723只** |
+| `mydate/stock_pool.json` | 赛道龙头池（光伏/机器人/半导体/有色/证券/创新药/商业航天） | 约48只 |
+| `mydate/etf_pool.json` | ETF池（宽基/科技/消费/金融/周期/医药/地产/跨境） | 57只 |
+
+**过滤规则**（综合池）：PE 0-100、市值 > 30亿、非ST股票。
 
 ```bash
-# 刷新股票池（含基本面过滤）
+# 刷新综合股票池（重新拉取成分股 + 基本面过滤）
 python3 tools/data/refresh_stock_pool.py
 
 # 季度更新（同步指数成分调整）
 python3 tools/data/quarterly_update.py
 ```
 
-过滤规则：PE 0-100、市值 > 30亿、非ST股票。
-
 ---
 
 ## 📈 策略回测
 
-### 大规模批量回测
+### 最新回测结果（2022-2025，235只股票）
+
+| 策略 | 平均收益 | 夏普比率 | 最大回撤 | 盈利率 |
+|------|----------|----------|----------|--------|
+| BOLL | +15.0% | **0.20** | **13.9%** | 74.0% |
+| MACD | +15.3% | 0.16 | 19.7% | 65.5% |
+| KDJ | +13.5% | 0.15 | 18.6% | 70.6% |
+| MA | +13.9% | 0.12 | 18.8% | 63.8% |
+| RSI | +10.2% | 0.07 | 16.1% | 68.5% |
+| PE | +8.2% | 0.11 | **9.0%** | 56.2% |
+| Ensemble | +9.1% | 0.05 | 17.3% | 63.0% |
+
+> Ensemble 当前权重已基于上表结果优化（BOLL/MACD 提权），下次回测可验证效果。
+
+### 运行批量回测
 
 ```bash
-# 先预取日线到本地（显著提速）
-python3 tools/data/backtest_prefetch.py --pool mydate/stock_pool_all.json --all --out-dir mydate/backtest_kline --workers 4
+# 第一步：预取 K 线数据到本地（首次，约 1-2 小时）
+python3 tools/data/backtest_prefetch.py \
+  --pool mydate/stock_pool_all.json --all \
+  --out-dir mydate/backtest_kline --workers 4
 
-# 再跑回测（自动读本地数据）
-python3 tools/backtest/batch_backtest.py --pool mydate/stock_pool_all.json --count 300 --local-kline mydate/backtest_kline
+# 第二步：预取 PE/PB 数据（基本面策略需要）
+python3 tools/data/prefetch_pe_cache.py --update
+
+# 第三步：跑回测（自动读本地缓存，约 30-60 分钟）
+python3 tools/backtest/batch_backtest.py \
+  --pool mydate/stock_pool_all.json --count 300 \
+  --local-kline mydate/backtest_kline
+
+# 后台运行（防止终端关闭中断）
+nohup python3 tools/backtest/batch_backtest.py \
+  --pool mydate/stock_pool_all.json --count 300 \
+  --local-kline mydate/backtest_kline \
+  > mylog/backtest.log 2>&1 &
+
+# 定期更新 K 线缓存（每周执行）
+python3 tools/data/backtest_prefetch.py \
+  --update --out-dir mydate/backtest_kline --workers 4
 ```
 
-详见 [数据接口与容错](docs/data/API_INTERFACES_AND_FETCHERS.md)。
+回测结果保存至 `mydate/backtest_results_v3.json`。
 
-### 双核动量 ETF 轮动回测
+### ETF 轮动回测
 
 ```bash
 # 完整回测（自动下载数据 + 生成报告 + 绘制图表）
 python3 tools/backtest/backtest_dual_momentum.py
 
-# 快速测试（1 分钟）
+# 快速测试（约 1 分钟）
 python3 tests/test_dual_momentum_quick.py
 ```
 
-策略原理：绝对动量（价格 > 200日均线）+ 相对动量（选涨幅最大的）+ 每月调仓。
+策略原理：绝对动量（价格 > 200日均线）+ 相对动量（选涨幅最大的 ETF）+ 每月调仓。
 
 详见 [双核动量策略指南](docs/strategy/DUAL_MOMENTUM_GUIDE.md)。
 
@@ -158,7 +207,7 @@ python3 tests/test_dual_momentum_quick.py
 
 ## 🤖 自动化交易（可选）
 
-> 自动化交易是可选功能。你也可以只用策略选股功能，根据推荐结果**手动交易**。
+> 自动化交易是可选功能。可以只用策略选股，根据推荐结果**手动交易**。
 
 ### 方式1：桌面客户端自动化（推荐）
 
@@ -211,59 +260,56 @@ ai-trading-system/
 ├── config/                  # 配置文件
 │   ├── trading_config.yaml(.example)
 │   ├── risk_config.yaml(.example)
-│   ├── data_sources.yaml    # 数据源优先级配置
-│   └── news_source_weights.yaml、policy_overrides.yaml 等
+│   └── data_sources.yaml    # 数据源优先级配置
 │
 ├── src/                     # 核心源代码
-│   ├── main.py              # 统一 CLI 入口
-│   ├── strategies/          # 11 单策略 + 5 组合（见 docs/strategy/STRATEGY_LIST.md）
-│   ├── core/                # 核心模块
-│   │   ├── base_strategy.py     # 策略基类（BaseStrategy）
-│   │   ├── dual_momentum_strategy.py  # 双核动量策略
-│   │   ├── momentum_math.py     # 动量计算共用函数
-│   │   ├── strategy_rule_engine.py    # 策略规则引擎
-│   │   ├── strategy_executor.py       # 策略执行器
-│   │   ├── backtest_constraints.py    # 回测未来函数约束
-│   │   ├── risk/            # 风险管理
-│   │   └── simulator/       # 模拟交易
+│   ├── strategies/          # 9 单策略 + 5 组合
+│   │   ├── base.py              # 策略基类（Strategy / StrategySignal）
+│   │   ├── ma_cross.py          # MA 均线交叉
+│   │   ├── macd_cross.py        # MACD
+│   │   ├── rsi_signal.py        # RSI
+│   │   ├── bollinger_band.py    # BOLL 布林带
+│   │   ├── kdj_signal.py        # KDJ
+│   │   ├── dual_momentum.py     # DUAL 双核动量单股
+│   │   ├── fundamental_pe.py    # PE 历史分位数
+│   │   ├── fundamental_pb.py    # PB 历史分位数
+│   │   ├── fundamental_pe_pb.py # PEPB 双因子联合低估
+│   │   └── ensemble.py          # EnsembleStrategy（9子策略加权投票）
+│   ├── core/                # 核心工具模块
+│   │   ├── momentum_math.py         # 动量计算共用函数
+│   │   ├── backtest_constraints.py  # 回测未来函数约束
+│   │   └── dual_momentum_strategy.py # ETF轮动核心逻辑
 │   ├── etf_rotation/        # ETF 轮动系统（信号引擎/持仓/交易日志）
 │   ├── data/                # 数据服务
-│   │   ├── provider/        # 统一数据层（UnifiedDataProvider + 适配器）
-│   │   ├── fetchers/        # 数据获取（行情/基本面/ETF）
-│   │   ├── sentiment/       # 市场情绪指数
-│   │   ├── news/            # 新闻情感
-│   │   ├── policy/          # 政策事件
-│   │   └── money_flow/      # 龙虎榜/大宗交易
+│   │   ├── provider/        # 统一数据层（UnifiedDataProvider + 多源适配器）
+│   │   └── fetchers/        # 数据获取（行情/基本面/ETF）
 │   ├── api/broker/          # 券商自动化（同花顺桌面/网页）
 │   └── config/              # 平台配置
 │
 ├── tools/                   # 工具脚本（详见 tools/README.md）
-├── tests/                   # 测试代码
-├── examples/                # 使用示例
+│   ├── analysis/            # 选股推荐、单股分析、持仓分析
+│   ├── backtest/            # 批量回测、ETF轮动回测、交叉验证
+│   ├── data/                # K线预取、PE缓存、股票池刷新
+│   ├── optimization/        # 参数优化
+│   └── validation/          # 策略验证、数据源测试
+│
+├── tests/                   # 单元测试 + 集成测试
+├── examples/                # 使用示例（模拟交易 / K线获取 / 桌面自动化）
 ├── scripts/                 # Shell/Bat 启动脚本
-├── docs/                    # 文档
-├── mydate/                  # 数据文件（股票池、持仓、回测结果）
-├── mycache/                 # 缓存文件（基本面、K线）
-├── mylog/                   # 日志
+├── docs/                    # 文档（见下方文档索引）
+│
+├── mydate/                  # 数据文件
+│   ├── stock_pool_all.json  # 综合股票池（723只）
+│   ├── stock_pool.json      # 赛道龙头池（48只）
+│   ├── my_portfolio.json    # 当前持仓
+│   ├── backtest_kline/      # K线本地缓存（813只，parquet格式）
+│   ├── pe_cache/            # PE/PB历史数据缓存（779只，parquet格式）
+│   └── backtest_results_v3.json  # 最新回测结果
+│
+├── mycache/                 # 基本面缓存（ROE / 行业PE）
+├── mylog/                   # 运行日志
 └── myoutput/                # 输出（图表、报告）
 ```
-
----
-
-## 策略与设计文档
-
-| 文档 | 说明 |
-|------|------|
-| [V3.3 设计规格](docs/strategy/V33_DESIGN_SPEC.md) | 情绪/消息/政策/龙虎榜完整设计规格与落地状态 |
-| [回测与实盘规范](docs/strategy/BACKTEST_AND_LIVE_SPEC.md) | 未来函数约束、参数敏感性、成本与延迟 |
-| [策略清单](docs/strategy/STRATEGY_LIST.md) | 11 单策略 + 5 组合与工具对应关系 |
-| [策略详解](docs/strategy/STRATEGY_DETAIL.md) | 各策略信号逻辑、参数、置信度映射 |
-| [策略开发快速开始](docs/strategy/STRATEGY_QUICKSTART.md) | 5 分钟上手策略开发 |
-| [双核动量指南](docs/strategy/DUAL_MOMENTUM_GUIDE.md) | ETF 轮动策略完整使用指南 |
-| [策略执行指南](docs/strategy/STRATEGY_EXECUTION_GUIDE.md) | 规则引擎、审批流程、审计日志 |
-| [数据接口与容错](docs/data/API_INTERFACES_AND_FETCHERS.md) | 各策略数据接口、主备切换、回测预取 |
-| [数据层架构](docs/architecture/DATA_LAYER_ARCHITECTURE.md) | 四层架构设计与扩展指南 |
-| [运行命令汇总](docs/RUN_COMMANDS.md) | 常用命令一页汇总 |
 
 ---
 
@@ -276,12 +322,21 @@ from src.strategies.base import Strategy, StrategySignal
 
 class MyStrategy(Strategy):
     def analyze(self, df, **kwargs) -> StrategySignal:
-        # df: date, open, high, low, close, volume, amount
-        # 返回 StrategySignal(action, confidence, position, reason, indicators)
+        # df 列：date, open, high, low, close, volume, amount
+        # 返回 StrategySignal(action='buy'/'sell'/'hold',
+        #                     confidence=0.0~1.0,
+        #                     position=0.0~1.0,
+        #                     reason='信号说明',
+        #                     indicators={})
         pass
 ```
 
-在 `src/strategies/__init__.py` 的 `STRATEGY_REGISTRY` 中注册后即可用于所有工具。
+在 `src/strategies/__init__.py` 的 `STRATEGY_REGISTRY` 中注册后即可用于所有工具：
+
+```python
+from src.strategies import STRATEGY_REGISTRY
+STRATEGY_REGISTRY['MyStrategy'] = MyStrategy
+```
 
 详见 [策略开发快速开始](docs/strategy/STRATEGY_QUICKSTART.md)。
 
@@ -289,25 +344,34 @@ class MyStrategy(Strategy):
 
 ## 风控系统
 
-四层风控：
-1. **账户级**：单日最大亏损、总仓位、现金储备
-2. **策略级**：单策略仓位、回撤控制、夏普比率监控
-3. **个股级**：单股最大仓位、止损止盈、涨跌停限制
-4. **系统级**：交易频率限制、异常检测、紧急熔断
+四层风控，层层把关：
+
+| 层级 | 控制内容 |
+|------|----------|
+| 账户级 | 单日最大亏损、总仓位上限、现金储备比例 |
+| 策略级 | 单策略仓位上限、回撤控制、夏普比率监控 |
+| 个股级 | 单股最大仓位、止损(-8%)止盈、涨跌停限制 |
+| 系统级 | 交易频率限制、异常检测、紧急熔断 |
 
 ---
 
-## 注意事项
+## 文档索引
 
-1. **合规性**：确保交易行为符合监管要求
-2. **资金安全**：建议使用独立账户，设置止损
-3. **测试充分**：实盘前务必充分回测和模拟
-4. **持续监控**：实盘运行时需要密切监控
-
-## 许可证
-
-本项目仅供学习和研究使用，使用者需自行承担一切交易风险。
+| 文档 | 说明 |
+|------|------|
+| [运行命令汇总](docs/RUN_COMMANDS.md) | 常用命令一页汇总，便于复制执行 |
+| [策略清单](docs/strategy/STRATEGY_LIST.md) | 9 单策略 + 5 组合完整清单与工具对应关系 |
+| [策略详解](docs/strategy/STRATEGY_DETAIL.md) | 各策略信号逻辑、参数、置信度映射 |
+| [策略开发快速开始](docs/strategy/STRATEGY_QUICKSTART.md) | 5 分钟上手策略开发 |
+| [双核动量指南](docs/strategy/DUAL_MOMENTUM_GUIDE.md) | ETF 轮动策略完整使用指南 |
+| [回测与实盘规范](docs/strategy/BACKTEST_AND_LIVE_SPEC.md) | 未来函数约束、参数敏感性、成本与延迟 |
+| [PE缓存指南](docs/data/PE_CACHE_GUIDE.md) | PE/PB历史数据缓存机制与使用说明 |
+| [K线数据指南](docs/setup/KLINE_DATA_GUIDE.md) | K线缓存预取、增量更新、格式说明 |
+| [数据接口与容错](docs/data/API_INTERFACES_AND_FETCHERS.md) | 各策略数据接口、主备切换 |
+| [V3.3 设计规格](docs/strategy/V33_DESIGN_SPEC.md) | 情绪/消息/政策/龙虎榜完整设计规格 |
+| [跨平台兼容说明](docs/setup/CROSS_PLATFORM.md) | Windows/Linux 兼容说明 |
+| [Windows完整指南](docs/setup/WINDOWS_GUIDE.md) | Windows 环境配置与使用 |
 
 ---
 
-**再次提醒：股市有风险，投资需谨慎！**
+**股市有风险，投资需谨慎！**
