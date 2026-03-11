@@ -59,18 +59,10 @@ python3 tools/backtest/batch_backtest.py --pool mydate/stock_pool_all.json --cou
 ### 2. 指定结果输出路径
 
 ```bash
-python3 tools/backtest/batch_backtest.py --pool mydate/stock_pool_all.json --count 300 --output mydate/backtest_results_300.json
+python3 tools/backtest/batch_backtest.py --pool mydate/stock_pool_all.json --count 300 --output mydate/backtest_results_v3.json
 ```
 
-### 3. 使用 V3.3 策略回测
-
-```bash
-python3 tools/backtest/batch_backtest.py --pool mydate/stock_pool_all.json --count 300 --v33
-```
-
-- 若已预取辅助数据，可加：`--local-aux mydate/backtest_aux`。
-
-### 4. 策略交叉验证
+### 3. 策略交叉验证
 
 ```bash
 python3 tools/backtest/cross_validate.py
@@ -86,11 +78,8 @@ python3 tools/backtest/cross_validate.py
 # 默认 MACD
 python3 tools/analysis/recommend_today.py
 
-# 7 策略组合
+# 9 策略组合（技术6 + 基本面3，推荐）
 python3 tools/analysis/recommend_today.py --pool mydate/stock_pool_all.json --strategy ensemble
-
-# 11 策略全量（full_11 + 默认 stock_pool_all）
-python3 tools/analysis/recommend_today.py --strategy full_11
 ```
 
 ### 2. 单股多策略分析
@@ -165,7 +154,7 @@ python3 tools/validation/strategy_tester.py --interactive
 ### 3. 基本面策略测试
 
 ```bash
-python3 tools/validation/test_fundamental.py
+python3 tools/validation/test_all_fundamental.py
 ```
 
 ---
@@ -174,11 +163,12 @@ python3 tools/validation/test_fundamental.py
 
 | 步骤 | 命令 |
 |------|------|
-| 1. 更新本地回测数据 | `python3 tools/data/backtest_prefetch.py --update --out-dir mydate/backtest_kline --workers 4` |
-| 2. 跑批量回测 | `python3 tools/backtest/batch_backtest.py --pool mydate/stock_pool_all.json --count 300` |
-| 3. 每日选股 | `python3 tools/analysis/recommend_today.py --strategy full_11` |
-| 4. 查未成功标的 | `python3 tools/data/view_backtest_kline.py --list-failed` |
-| 5. 查某只历史价格 | `python3 tools/data/view_backtest_kline.py 000425` 或 `--csv` |
+| 1. 更新本地K线缓存 | `python3 tools/data/backtest_prefetch.py --update --workers 4` |
+| 2. 更新PE/PB缓存 | `python3 tools/data/prefetch_pe_cache.py --pool mydate/stock_pool_all.json --update` |
+| 3. 跑批量回测 | `python3 tools/backtest/batch_backtest.py --pool mydate/stock_pool_all.json --count 300 --output mydate/backtest_results_v3.json` |
+| 4. 每日选股 | `python3 tools/analysis/recommend_today.py --pool mydate/stock_pool_all.json --strategy ensemble` |
+| 5. 查未成功标的 | `python3 tools/data/view_backtest_kline.py --list-failed` |
+| 6. 查某只历史价格 | `python3 tools/data/view_backtest_kline.py 000425` 或 `--csv` |
 
 更多说明见 `tools/README.md` 与各脚本 `--help`。
 

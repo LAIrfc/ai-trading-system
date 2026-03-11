@@ -1,5 +1,9 @@
 """
-双核动量策略共用数学函数
+双核动量策略共用数学函数（✅ 仍在使用）
+
+被以下模块引用：
+- src/strategies/dual_momentum.py（DualMomentumSingleStrategy）
+- src/etf_rotation/signal_engine.py（ETF轮动）
 
 三套双核动量实现（DualMomentumEngine / DualMomentumStrategy /
 DualMomentumSingleStrategy）共享的纯函数，无副作用，易于单元测试。

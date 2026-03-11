@@ -1,6 +1,9 @@
 """
 双核动量轮动策略 (Dual Momentum Rotational Strategy)
 
+⚠️  此文件为旧版 ETF 轮动实现（449行完整版），被 tools/backtest/backtest_dual_momentum.py 引用。
+    单股双核动量策略请使用 src/strategies/dual_momentum.py（DualMomentumSingleStrategy）。
+
 实现思路：
 1. 绝对动量：当前价格 > N日均线，过滤掉下跌趋势的资产
 2. 相对动量：计算M日涨幅，选择涨幅最大的K个资产

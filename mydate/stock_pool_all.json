@@ -7,17 +7,77 @@
     "exclude_st": true
   },
   "stats": {
-    "total_stocks": 660,
+    "total_stocks": 666,
     "total_etf": 57,
-    "total": 717
+    "total": 723
   },
   "stocks": {
     "光伏": [
+      {
+        "code": "300274",
+        "name": "阳光电源",
+        "pe_ttm": 20.43,
+        "market_cap_yi": 3236.3
+      },
+      {
+        "code": "300751",
+        "name": "迈为股份",
+        "pe_ttm": 84.13,
+        "market_cap_yi": 743.9
+      },
+      {
+        "code": "603806",
+        "name": "福斯特",
+        "pe_ttm": 50.42,
+        "market_cap_yi": 462.3
+      },
+      {
+        "code": "300724",
+        "name": "捷佳伟创",
+        "pe_ttm": 11.61,
+        "market_cap_yi": 416.2
+      },
+      {
+        "code": "601865",
+        "name": "福莱特",
+        "pe_ttm": 43.3,
+        "market_cap_yi": 368.1
+      },
+      {
+        "code": "600732",
+        "name": "爱旭股份"
+      },
+      {
+        "code": "300393",
+        "name": "中来股份"
+      },
       {
         "code": "601778",
         "name": "晶科科技",
         "pe_ttm": 42.24,
         "market_cap_yi": 200.3
+      }
+    ],
+    "机器人": [
+      {
+        "code": "300124",
+        "name": "汇川技术",
+        "pe_ttm": 33.91,
+        "market_cap_yi": 1923.2
+      }
+    ],
+    "半导体": [
+      {
+        "code": "002371",
+        "name": "北方华创",
+        "pe_ttm": 48.42,
+        "market_cap_yi": 3312.5
+      },
+      {
+        "code": "600584",
+        "name": "长电科技",
+        "pe_ttm": 64.73,
+        "market_cap_yi": 823.1
       }
     ],
     "有色金属": [
@@ -96,6 +156,46 @@
     ],
     "证券": [
       {
+        "code": "600837",
+        "name": "海通证券"
+      },
+      {
+        "code": "601059",
+        "name": "信达证券",
+        "pe_ttm": 31.3,
+        "market_cap_yi": 564.9
+      },
+      {
+        "code": "601377",
+        "name": "兴业证券",
+        "pe_ttm": 16.67,
+        "market_cap_yi": 560.5
+      },
+      {
+        "code": "002945",
+        "name": "华林证券",
+        "pe_ttm": 79.33,
+        "market_cap_yi": 465.5
+      },
+      {
+        "code": "601555",
+        "name": "东吴证券",
+        "pe_ttm": 11.8,
+        "market_cap_yi": 461.6
+      },
+      {
+        "code": "002670",
+        "name": "国盛证券",
+        "pe_ttm": 95.33,
+        "market_cap_yi": 307.7
+      },
+      {
+        "code": "600909",
+        "name": "华安证券",
+        "pe_ttm": 13.95,
+        "market_cap_yi": 293.6
+      },
+      {
         "code": "601108",
         "name": "财通证券",
         "pe_ttm": 14.36,
@@ -136,68 +236,90 @@
         "name": "中泰证券",
         "pe_ttm": 28.37,
         "market_cap_yi": 491.7
-      },
-      {
-        "code": "600030",
-        "name": "中信证券",
-        "pe_ttm": 12.89,
-        "market_cap_yi": 3872.6
-      },
-      {
-        "code": "601901",
-        "name": "方正证券",
-        "pe_ttm": 11.98,
-        "market_cap_yi": 606.7
-      },
-      {
-        "code": "600958",
-        "name": "东方证券",
-        "pe_ttm": 12.25,
-        "market_cap_yi": 834.4
-      },
-      {
-        "code": "002673",
-        "name": "西部证券",
-        "pe_ttm": 20.78,
-        "market_cap_yi": 344.6
-      },
-      {
-        "code": "601878",
-        "name": "浙商证券",
-        "pe_ttm": 18.66,
-        "market_cap_yi": 470.6
-      },
-      {
-        "code": "601688",
-        "name": "华泰证券",
-        "pe_ttm": 10.55,
-        "market_cap_yi": 1791.8
-      },
-      {
-        "code": "002500",
-        "name": "山西证券",
-        "pe_ttm": 21.48,
-        "market_cap_yi": 209.6
       }
     ],
     "创新药": [
       {
-        "code": "688331",
-        "name": "荣昌生物",
-        "pe_ttm": 94.29,
-        "market_cap_yi": 668.1
+        "code": "600276",
+        "name": "恒瑞医药",
+        "pe_ttm": 48.95,
+        "market_cap_yi": 3753.3
       },
       {
-        "code": "688513",
-        "name": "苑东生物",
-        "pe_ttm": 38.82,
-        "market_cap_yi": 109.9
+        "code": "300015",
+        "name": "爱尔眼科",
+        "pe_ttm": 23.22,
+        "market_cap_yi": 964.2
       },
       {
-        "code": "603259",
-        "name": "药明康德",
-        "pe_ttm": 17.45,
-        "market_cap_yi": 2809.2
+        "code": "300347",
+        "name": "泰格医药",
+        "pe_ttm": 36.58,
+        "market_cap_yi": 497.7
+      },
+      {
+        "code": "002223",
+        "name": "鱼跃医疗",
+        "pe_ttm": 18.83,
+        "market_cap_yi": 368.1
+      },
+      {
+        "code": "300003",
+        "name": "乐普医疗",
+        "pe_ttm": 24.47,
+        "market_cap_yi": 320.4
+      },
+      {
+        "code": "600161",
+        "name": "天坛生物",
+        "pe_ttm": 29.11,
+        "market_cap_yi": 317.8
+      },
+      {
+        "code": "002007",
+        "name": "华兰生物",
+        "pe_ttm": 26.84,
+        "market_cap_yi": 280.7
+      },
+      {
+        "code": "688765",
+        "name": "禾元生物-U"
+      },
+      {
+        "code": "002432",
+        "name": "九安医疗",
+        "pe_ttm": 11.68,
+        "market_cap_yi": 247.4
+      },
+      {
+        "code": "600763",
+        "name": "通策医疗",
+        "pe_ttm": 30.79,
+        "market_cap_yi": 210.8
+      },
+      {
+        "code": "300142",
+        "name": "沃森生物",
+        "pe_ttm": 87.41,
+        "market_cap_yi": 190.5
+      },
+      {
+        "code": "600201",
+        "name": "生物股份"
+      },
+      {
+        "code": "300009",
+        "name": "安科生物"
+      }
+    ],
+    "商业航天": [
+      {
+        "code": "600343",
+        "name": "航天动力"
+      },
+      {
+        "code": "000901",
+        "name": "航天科技"
       }
     ],
     "J66货币金融服务": [
@@ -784,22 +906,28 @@
     ],
     "J67资本市场服务": [
       {
+        "code": "600030",
+        "name": "中信证券",
+        "pe_ttm": 12.89,
+        "market_cap_yi": 3872.6
+      },
+      {
         "code": "600061",
         "name": "国投资本",
         "pe_ttm": 12.17,
         "market_cap_yi": 462.9
       },
       {
+        "code": "600958",
+        "name": "东方证券",
+        "pe_ttm": 12.25,
+        "market_cap_yi": 834.4
+      },
+      {
         "code": "600999",
         "name": "招商证券",
         "pe_ttm": 11.35,
         "market_cap_yi": 1395.8
-      },
-      {
-        "code": "601059",
-        "name": "信达证券",
-        "pe_ttm": 31.3,
-        "market_cap_yi": 564.9
       },
       {
         "code": "601066",
@@ -826,22 +954,34 @@
         "market_cap_yi": 373.6
       },
       {
-        "code": "601377",
-        "name": "兴业证券",
-        "pe_ttm": 16.67,
-        "market_cap_yi": 560.5
-      },
-      {
         "code": "601456",
         "name": "国联民生",
         "pe_ttm": 23.01,
         "market_cap_yi": 540.8
       },
       {
+        "code": "601688",
+        "name": "华泰证券",
+        "pe_ttm": 10.55,
+        "market_cap_yi": 1791.8
+      },
+      {
+        "code": "601878",
+        "name": "浙商证券",
+        "pe_ttm": 18.66,
+        "market_cap_yi": 470.6
+      },
+      {
         "code": "601881",
         "name": "中国银河",
         "pe_ttm": 10.53,
         "market_cap_yi": 1540.7
+      },
+      {
+        "code": "601901",
+        "name": "方正证券",
+        "pe_ttm": 11.98,
+        "market_cap_yi": 606.7
       },
       {
         "code": "601995",
@@ -892,12 +1032,6 @@
         "market_cap_yi": 217.4
       },
       {
-        "code": "600909",
-        "name": "华安证券",
-        "pe_ttm": 13.95,
-        "market_cap_yi": 293.6
-      },
-      {
         "code": "600927",
         "name": "永安期货",
         "pe_ttm": 34.39,
@@ -914,12 +1048,6 @@
         "name": "东兴证券",
         "pe_ttm": 20.5,
         "market_cap_yi": 437.0
-      },
-      {
-        "code": "601555",
-        "name": "东吴证券",
-        "pe_ttm": 11.8,
-        "market_cap_yi": 461.6
       },
       {
         "code": "601990",
@@ -940,10 +1068,16 @@
         "market_cap_yi": 415.9
       },
       {
-        "code": "002670",
-        "name": "国盛证券",
-        "pe_ttm": 95.33,
-        "market_cap_yi": 307.7
+        "code": "002500",
+        "name": "山西证券",
+        "pe_ttm": 21.48,
+        "market_cap_yi": 209.6
+      },
+      {
+        "code": "002673",
+        "name": "西部证券",
+        "pe_ttm": 20.78,
+        "market_cap_yi": 344.6
       },
       {
         "code": "002797",
@@ -956,12 +1090,6 @@
         "name": "华西证券",
         "pe_ttm": 16.39,
         "market_cap_yi": 231.5
-      },
-      {
-        "code": "002945",
-        "name": "华林证券",
-        "pe_ttm": 79.33,
-        "market_cap_yi": 465.5
       }
     ],
     "C35专用设备制造业": [
@@ -1000,12 +1128,6 @@
         "name": "徐工机械",
         "pe_ttm": 18.25,
         "market_cap_yi": 1454.5
-      },
-      {
-        "code": "002371",
-        "name": "北方华创",
-        "pe_ttm": 48.42,
-        "market_cap_yi": 3312.5
       },
       {
         "code": "300316",
@@ -1110,12 +1232,6 @@
         "market_cap_yi": 751.7
       },
       {
-        "code": "002223",
-        "name": "鱼跃医疗",
-        "pe_ttm": 18.83,
-        "market_cap_yi": 368.1
-      },
-      {
         "code": "002353",
         "name": "杰瑞股份",
         "pe_ttm": 50.88,
@@ -1128,22 +1244,10 @@
         "market_cap_yi": 300.6
       },
       {
-        "code": "002432",
-        "name": "九安医疗",
-        "pe_ttm": 11.68,
-        "market_cap_yi": 247.4
-      },
-      {
         "code": "002595",
         "name": "豪迈科技",
         "pe_ttm": 32.13,
         "market_cap_yi": 766.2
-      },
-      {
-        "code": "300003",
-        "name": "乐普医疗",
-        "pe_ttm": 24.47,
-        "market_cap_yi": 320.4
       },
       {
         "code": "300450",
@@ -1162,18 +1266,6 @@
         "name": "长川科技",
         "pe_ttm": 72.93,
         "market_cap_yi": 841.5
-      },
-      {
-        "code": "300724",
-        "name": "捷佳伟创",
-        "pe_ttm": 11.61,
-        "market_cap_yi": 416.2
-      },
-      {
-        "code": "300751",
-        "name": "迈为股份",
-        "pe_ttm": 84.13,
-        "market_cap_yi": 743.9
       }
     ],
     "E48土木工程建筑业": [
@@ -1474,22 +1566,10 @@
         "market_cap_yi": 412.1
       },
       {
-        "code": "600161",
-        "name": "天坛生物",
-        "pe_ttm": 29.11,
-        "market_cap_yi": 317.8
-      },
-      {
         "code": "600196",
         "name": "复星医药",
         "pe_ttm": 20.77,
         "market_cap_yi": 698.9
-      },
-      {
-        "code": "600276",
-        "name": "恒瑞医药",
-        "pe_ttm": 48.95,
-        "market_cap_yi": 3753.3
       },
       {
         "code": "600436",
@@ -1648,12 +1728,6 @@
         "market_cap_yi": 208.2
       },
       {
-        "code": "002007",
-        "name": "华兰生物",
-        "pe_ttm": 26.84,
-        "market_cap_yi": 280.7
-      },
-      {
         "code": "002262",
         "name": "恩华药业",
         "pe_ttm": 15.7,
@@ -1682,12 +1756,6 @@
         "name": "凯莱英",
         "pe_ttm": 34.26,
         "market_cap_yi": 365.6
-      },
-      {
-        "code": "300142",
-        "name": "沃森生物",
-        "pe_ttm": 87.41,
-        "market_cap_yi": 190.5
       },
       {
         "code": "300558",
@@ -1774,18 +1842,6 @@
         "name": "亿纬锂能",
         "pe_ttm": 34.79,
         "market_cap_yi": 1306.3
-      },
-      {
-        "code": "300124",
-        "name": "汇川技术",
-        "pe_ttm": 33.91,
-        "market_cap_yi": 1923.2
-      },
-      {
-        "code": "300274",
-        "name": "阳光电源",
-        "pe_ttm": 20.43,
-        "market_cap_yi": 3236.3
       },
       {
         "code": "300750",
@@ -2300,12 +2356,6 @@
         "market_cap_yi": 478.8
       },
       {
-        "code": "601865",
-        "name": "福莱特",
-        "pe_ttm": 43.3,
-        "market_cap_yi": 368.1
-      },
-      {
         "code": "002080",
         "name": "中材科技",
         "pe_ttm": 39.73,
@@ -2330,12 +2380,6 @@
         "name": "生益科技",
         "pe_ttm": 46.93,
         "market_cap_yi": 1564.6
-      },
-      {
-        "code": "600584",
-        "name": "长电科技",
-        "pe_ttm": 64.73,
-        "market_cap_yi": 823.1
       },
       {
         "code": "601138",
@@ -3448,12 +3492,6 @@
         "market_cap_yi": 453.9
       },
       {
-        "code": "603806",
-        "name": "福斯特",
-        "pe_ttm": 50.42,
-        "market_cap_yi": 462.3
-      },
-      {
         "code": "000887",
         "name": "中鼎股份",
         "pe_ttm": 15.08,
@@ -3632,10 +3670,10 @@
     ],
     "M73研究和试验发展": [
       {
-        "code": "300347",
-        "name": "泰格医药",
-        "pe_ttm": 36.58,
-        "market_cap_yi": 497.7
+        "code": "603259",
+        "name": "药明康德",
+        "pe_ttm": 17.45,
+        "market_cap_yi": 2809.2
       },
       {
         "code": "300759",
@@ -3712,20 +3750,6 @@
         "name": "温氏股份",
         "pe_ttm": 21.53,
         "market_cap_yi": 1127.2
-      }
-    ],
-    "Q84卫生": [
-      {
-        "code": "300015",
-        "name": "爱尔眼科",
-        "pe_ttm": 23.22,
-        "market_cap_yi": 964.2
-      },
-      {
-        "code": "600763",
-        "name": "通策医疗",
-        "pe_ttm": 30.79,
-        "market_cap_yi": 210.8
       }
     ],
     "J69其他金融业": [

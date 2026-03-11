@@ -57,11 +57,11 @@ python3 tools/validation/strategy_tester.py --interactive
 import sys
 sys.path.insert(0, '/home/wangxinghan/codetree/ai-trading-system')
 
-from src.core.strategy.strategy_library import strategy_library
+from src.strategies import get_all_strategies
 from src.data.realtime_data import MarketDataManager
 
 # 1. 创建策略
-strategy = strategy_library.get_strategy('MA', short_window=5, long_window=20)
+strategy = MACrossStrategy(short_window=5, long_window=20)
 
 # 2. 获取数据
 data_manager = MarketDataManager()
@@ -85,7 +85,7 @@ for signal in signals:
 **适用**: 趋势明显的市场
 
 ```python
-strategy = strategy_library.get_strategy('MA', 
+strategy = MACrossStrategy( 
     short_window=5,   # 短期均线
     long_window=20    # 长期均线
 )
@@ -100,7 +100,7 @@ strategy = strategy_library.get_strategy('MA',
 **适用**: 中期趋势判断
 
 ```python
-strategy = strategy_library.get_strategy('MACD',
+strategy = MACDStrategy(
     fast_period=12,     # 快速周期
     slow_period=26,     # 慢速周期
     signal_period=9     # 信号周期
@@ -116,7 +116,7 @@ strategy = strategy_library.get_strategy('MACD',
 **适用**: 震荡市场
 
 ```python
-strategy = strategy_library.get_strategy('RSI',
+strategy = RSIStrategy(
     period=14,        # RSI周期
     oversold=30,      # 超卖阈值
     overbought=70     # 超买阈值
@@ -141,10 +141,10 @@ sys.path.insert(0, '/home/wangxinghan/codetree/ai-trading-system')
 
 from typing import Dict, List
 import pandas as pd
-from src.core.strategy.base_strategy import BaseStrategy
+from src.strategies.base import Strategy
 
 
-class MyFirstStrategy(BaseStrategy):
+class MyFirstStrategy(Strategy):
     """
     我的第一个策略 - 简单示例
     
@@ -243,16 +243,12 @@ if __name__ == "__main__":
 python3 my_first_strategy.py
 ```
 
-### 步骤3: 注册到策略库（可选）
+### 步骤3: 注册到策略注册表（可选）
 
 ```python
-from src.core.strategy.strategy_library import strategy_library
+from src.strategies import STRATEGY_REGISTRY
 
-strategy_library.register_strategy(
-    name='MyFirst',
-    strategy_class=MyFirstStrategy,
-    description='我的第一个策略'
-)
+STRATEGY_REGISTRY['MyFirst'] = MyFirstStrategy
 ```
 
 ---
@@ -304,7 +300,7 @@ print(f"跌停: {overview['limit_down']}")
 测试多个策略，找出最适合的：
 
 ```python
-from src.core.strategy.strategy_library import strategy_library
+from src.strategies import get_all_strategies
 from src.data.realtime_data import MarketDataManager
 
 # 准备数据
@@ -313,19 +309,18 @@ stocks = ['600519', '000001', '600036']
 market_data = data_manager.prepare_strategy_data(stocks)
 
 # 测试所有策略
+from src.strategies import STRATEGY_REGISTRY
+
 strategies = ['MA', 'MACD', 'RSI']
 
 for strategy_name in strategies:
     print(f"\n{'='*60}")
     print(f"测试策略: {strategy_name}")
     print('='*60)
-    
-    strategy = strategy_library.get_strategy(strategy_name)
-    signals = strategy.generate_signals(market_data)
-    
-    print(f"生成信号数: {len(signals)}")
-    for signal in signals:
-        print(f"  {signal['action']}: {signal['stock_code']} - {signal['reason']}")
+
+    strategy = STRATEGY_REGISTRY[strategy_name]()
+    sig = strategy.analyze(df)
+    print(f"  信号: {sig.action}  置信: {sig.confidence:.0%}  {sig.reason}")
 ```
 
 ---
@@ -335,7 +330,7 @@ for strategy_name in strategies:
 ### 1. 组合策略
 
 ```python
-class ComboStrategy(BaseStrategy):
+class ComboStrategy(Strategy):
     """组合多个策略的信号"""
     
     def __init__(self):

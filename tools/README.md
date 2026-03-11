@@ -91,7 +91,7 @@ python3 tools/optimization/optimize_macd.py
 ```bash
 # 每日选股推荐（默认 MACD；可选 --strategy ensemble 使用 7 策略组合）
 python3 tools/analysis/recommend_today.py
-python3 tools/analysis/recommend_today.py --pool stock_pool_600.json --strategy ensemble
+python3 tools/analysis/recommend_today.py --pool mydate/stock_pool_all.json --strategy ensemble
 
 # 单股多策略分析（11 大策略：技术+情绪+消息+政策+龙虎榜+PE/PB）
 python3 tools/analysis/analyze_single_stock.py 002015

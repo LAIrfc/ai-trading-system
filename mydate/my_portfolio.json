@@ -1,5 +1,5 @@
 {
-  "updated": "2026-03-10",
+  "updated": "2026-03-11",
   "note": "持仓数据来自券商实盘，成本为持仓均价",
   "holdings": [
     {
@@ -19,7 +19,7 @@
     {
       "code": "159599",
       "name": "芯片指数ETF",
-      "avg_cost": 1.636,
+      "avg_cost": 2.127,
       "market_value_ref": 0,
       "shares": 4700
     },
@@ -48,7 +48,7 @@
       "code": "002281",
       "name": "光迅科技",
       "avg_cost": 75.10,
-      "market_value_ref": 7750,
+      "market_value_ref": 0,
       "shares": 0,
       "comment": "2026-03-10 已清仓"
     },
@@ -58,7 +58,7 @@
       "avg_cost": 1.167,
       "market_value_ref": 0,
       "shares": 0,
-      "comment": "2026-03-02 清仓, 亏¥348"
+      "comment": "2026-03-05 已清仓"
     },
     {
       "code": "513399",

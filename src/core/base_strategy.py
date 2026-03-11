@@ -1,6 +1,8 @@
 """
-策略基类
-所有交易策略都应继承此基类
+策略基类（旧版，已停用）
+
+⚠️  此文件为历史遗留，当前项目中所有策略均继承自 src/strategies/base.py。
+    此文件保留仅供参考，请勿在新代码中引用。
 """
 
 from abc import ABC, abstractmethod

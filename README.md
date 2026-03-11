@@ -20,7 +20,7 @@
 
 ## 系统特性
 
-- **11 单策略 + 5 组合**：MA/MACD/RSI/BOLL/KDJ/DUAL（技术）、PE/PB（基本面）、情绪/新闻/政策/资金流（V3.3）；多策略/保守/均衡/激进/V33 组合
+- **9 单策略 + 5 组合**：MA/MACD/RSI/BOLL/KDJ/DUAL（技术面 6 个）、PE/PB/PEPB（基本面 3 个）；情绪/新闻/政策/资金流（V3.3 扩展 4 个）；EnsembleStrategy（9 子策略加权投票）/保守/均衡/激进/V33 组合
 - **策略选股**：多策略组合从股票池挑选优质股票，综合评分排序
 - **单股/持仓分析**：跑遍 11 单策略 + PE/PB + 5 组合，给出买卖建议
 - **双核动量 ETF 轮动**：完整实现，含回测、可视化、月度调仓
@@ -71,11 +71,11 @@ python3 tools/backtest/backtest_dual_momentum.py
 
 **技术面（6 个）**：MA（均线交叉）、MACD、RSI、BOLL（布林带）、KDJ、DUAL（双核动量单股）
 
-**基本面（3 个）**：PE（行业 PE 分位数）、PB（行业 PB 分位数 + ROE）、PE+PB 双因子
+**基本面（3 个）**：PE（历史 PE 分位数）、PB（历史 PB 分位数）、PEPB（PE+PB 双因子联合低估）
 
 **V3.3 扩展（4 个）**：Sentiment（市场情绪）、NewsSentiment（新闻情感）、PolicyEvent（政策事件）、MoneyFlow（龙虎榜/大宗）
 
-**组合策略（5 个）**：多策略、保守、均衡、激进、**V33**（11 子策略投票，重大利空优先）
+**组合策略（5 个）**：**EnsembleStrategy**（9 子策略加权投票，含持仓成本止损感知）、保守、均衡、激进、**V33**（13 子策略，重大利空优先）
 
 详见 [策略清单](docs/strategy/STRATEGY_LIST.md)。
 
@@ -83,7 +83,7 @@ python3 tools/backtest/backtest_dual_momentum.py
 
 ```bash
 # 7 策略 Ensemble 选股（MA+MACD+RSI+BOLL+KDJ+DUAL+PE），TOP 20
-python3 tools/analysis/recommend_today.py --pool mydate/stock_pool_600.json --strategy ensemble --top 20
+python3 tools/analysis/recommend_today.py --pool mydate/stock_pool_all.json --strategy ensemble --top 20
 
 # 单 MACD 策略选股
 python3 tools/analysis/recommend_today.py --pool mydate/stock_pool.json --strategy macd --top 10
@@ -110,10 +110,9 @@ python3 tools/analysis/portfolio_strategy_analysis.py
 
 | 文件 | 说明 |
 |------|------|
-| `stock_pool.json` | 精选股票池（多赛道龙头，约 100 只） |
-| `stock_pool_600.json` | 验证/小型池（可按需配置） |
-| `stock_pool_all.json` | 全市场股票（含 ETF） |
-| `etf_pool.json` | ETF 池（行业 ETF + 宽基 ETF） |
+| `stock_pool.json` | 赛道龙头池（光伏/机器人/半导体/有色/证券/创新药/商业航天，约 48 只） |
+| `stock_pool_all.json` | 综合池（沪深300+中证500经基本面过滤，660 只个股 + 57 只 ETF） |
+| `etf_pool.json` | ETF 池（宽基/科技/消费/金融/周期/医药/地产/跨境，57 只） |
 
 ```bash
 # 刷新股票池（含基本面过滤）

@@ -169,9 +169,14 @@ class Strategy(ABC):
                  stamp_tax: float = 0.001,
                  stop_loss: float = 0.0,
                  trailing_stop: float = 0.0,
-                 take_profit: float = 0.0) -> dict:
+                 take_profit: float = 0.0,
+                 risk_free_rate: float = 0.03) -> dict:
         """
         回测引擎：在整段历史数据上逐日运行策略
+
+        执行时序（避免未来函数）：
+            T 日收盘后生成信号 → T+1 日开盘价执行
+            策略 analyze() 只能看到 T 日及之前的数据，成交价为 T+1 日开盘价。
 
         支持动态仓位调整：
         - BUY:  建仓或加仓到 min(0.95, signal.position) 目标仓位
@@ -192,13 +197,18 @@ class Strategy(ABC):
         风控优先级：止损/止盈 > 策略信号
             风控平仓后 continue 跳过当天策略信号，不会同天反手
 
+        胜率计算：
+            基于完整的买卖对（每次完全清仓后结算一次），而非每次卖出操作，
+            避免多次加仓后部分减仓导致的胜率失真。
+
         Args:
-            initial_cash:   初始资金
-            commission:     佣金费率（万分之2 = 0.0002，买卖均收）
-            stamp_tax:      印花税率（千分之1 = 0.001，仅卖出时收取）
-            stop_loss:      硬止损比例（0=不启用，如0.08表示亏8%止损）
-            trailing_stop:  跟踪止损比例（0=不启用，如0.05表示从最高回撤5%止损）
-            take_profit:    止盈比例（0=不启用，如0.20表示盈利20%止盈）
+            initial_cash:    初始资金
+            commission:      佣金费率（万分之2 = 0.0002，买卖均收）
+            stamp_tax:       印花税率（千分之1 = 0.001，仅卖出时收取）
+            stop_loss:       硬止损比例（0=不启用，如0.08表示亏8%止损）
+            trailing_stop:   跟踪止损比例（0=不启用，如0.05表示从最高回撤5%止损）
+            take_profit:     止盈比例（0=不启用，如0.20表示盈利20%止盈）
+            risk_free_rate:  年化无风险利率（默认3%，用于夏普比率计算）
 
         Returns:
             {
@@ -207,12 +217,14 @@ class Strategy(ABC):
                 'total_return': float,          # 百分比
                 'annualized_return': float,     # 百分比
                 'max_drawdown': float,          # 百分比
-                'win_rate': float,              # 百分比
+                'win_rate': float,              # 百分比（基于完整买卖对）
                 'trade_count': int,
                 'sharpe': float,
             }
         """
-        if len(df) < self.min_bars:
+        import numpy as np
+
+        if len(df) < self.min_bars + 1:
             return {
                 'trades': [], 'final_value': initial_cash,
                 'total_return': 0.0, 'annualized_return': 0.0,
@@ -235,28 +247,36 @@ class Strategy(ABC):
             avg_buy_price = 0.0             # 加权平均买入价（支持多次加仓）
             total_buy_cost = 0.0            # 累计买入成本（用于计算平均价）
             max_price_since_buy = 0.0       # 跟踪止损用
+            round_trip_buy_cost = 0.0       # 本轮买卖对的累计买入成本（用于胜率计算）
             trades: List[dict] = []
+            completed_trips: List[float] = []   # 每次完整清仓的盈亏率，用于胜率计算
             equity_curve: List[float] = []
 
-            for i in range(self.min_bars, len(df)):
-                # 不复制 DataFrame，策略只读不写，iloc 切片是视图
+            # T 日收盘后生成信号，T+1 日开盘价执行
+            # 循环从 min_bars 开始（T 日），执行发生在 i+1（T+1 日）
+            for i in range(self.min_bars, len(df) - 1):
+                # T 日：只用 T 日及之前的数据生成信号（不含 T+1）
                 window = df.iloc[:i + 1]
-                close = float(window['close'].iloc[-1])
-                date_str = str(window['date'].iloc[-1])[:10]
+                t1_row = df.iloc[i + 1]                         # T+1 日数据
+                exec_date = str(t1_row['date'])[:10]
+                t1_close = float(t1_row['close'])               # T+1 收盘用于权益估值
+                # T+1 开盘价执行；开盘价缺失/异常时退回收盘价
+                _open = t1_row.get('open', 0) if hasattr(t1_row, 'get') else t1_row['open']
+                exec_price = float(_open) if (float(_open) > 0) else t1_close
 
-                # ---- 当前权益 ----
-                equity = cash + shares * close
+                # ---- 当前权益（用 T+1 开盘价估值，执行前）----
+                equity = cash + shares * exec_price
 
-                # ---- 风控检查（持仓时优先于策略信号）----
+                # ---- 风控检查（基于 T+1 开盘价，持仓时优先于策略信号）----
                 risk_exit = False
                 risk_reason = ''
 
                 if shares > 0:
-                    pnl_pct = (close - avg_buy_price) / avg_buy_price
+                    pnl_pct = (exec_price - avg_buy_price) / avg_buy_price
 
-                    # 跟踪止损：更新最高价
-                    if close > max_price_since_buy:
-                        max_price_since_buy = close
+                    # 跟踪止损：更新最高价（用执行价）
+                    if exec_price > max_price_since_buy:
+                        max_price_since_buy = exec_price
 
                     # 硬止损
                     if stop_loss > 0 and pnl_pct <= -stop_loss:
@@ -264,8 +284,8 @@ class Strategy(ABC):
                         risk_reason = f'硬止损触发(亏损{pnl_pct:.1%}≤-{stop_loss:.0%})'
 
                     # 跟踪止损
-                    if (trailing_stop > 0 and max_price_since_buy > avg_buy_price):
-                        drawdown_from_peak = (max_price_since_buy - close) / max_price_since_buy
+                    if trailing_stop > 0 and max_price_since_buy > avg_buy_price:
+                        drawdown_from_peak = (max_price_since_buy - exec_price) / max_price_since_buy
                         if drawdown_from_peak >= trailing_stop:
                             risk_exit = True
                             risk_reason = (f'跟踪止损触发(从最高{max_price_since_buy:.2f}'
@@ -276,26 +296,28 @@ class Strategy(ABC):
                         risk_exit = True
                         risk_reason = f'止盈触发(盈利{pnl_pct:.1%}≥{take_profit:.0%})'
 
-                # ---- 风控强制平仓（全部清仓）----
+                # ---- 风控强制平仓（T+1 开盘价全部清仓）----
                 if risk_exit and shares > 0:
-                    revenue = shares * close * (1 - commission - stamp_tax)
-                    pnl = (close - avg_buy_price) / avg_buy_price
+                    revenue = shares * exec_price * (1 - commission - stamp_tax)
+                    pnl = (exec_price - avg_buy_price) / avg_buy_price
                     cash += revenue
+                    completed_trips.append(pnl)
                     trades.append({
-                        'date': date_str, 'action': 'SELL',
-                        'price': close, 'shares': shares,
+                        'date': exec_date, 'action': 'SELL',
+                        'price': exec_price, 'shares': shares,
                         'pnl_pct': round(pnl * 100, 2),
                         'reason': f'[风控] {risk_reason}',
                     })
                     shares = 0
                     avg_buy_price = 0.0
                     total_buy_cost = 0.0
+                    round_trip_buy_cost = 0.0
                     max_price_since_buy = 0.0
                     equity = cash
-                    equity_curve.append(equity)
+                    equity_curve.append(cash + shares * t1_close)
                     continue  # 风控平仓后跳过当天策略信号，不同天反手
 
-                # ---- 策略信号 ----
+                # ---- T 日收盘信号 ----
                 try:
                     signal = self.analyze(window)
                 except Exception:
@@ -303,26 +325,25 @@ class Strategy(ABC):
 
                 if signal.action == 'BUY':
                     target_pos = min(0.95, signal.position)
-                    # 需要加仓的金额 = 目标持仓市值 - 当前持仓市值
                     target_value = equity * target_pos
-                    current_value = shares * close
+                    current_value = shares * exec_price
                     delta_value = target_value - current_value
 
-                    if delta_value >= close * 100:  # 至少买1手(100股)才值得交易
-                        add_shares = int(delta_value / close / 100) * 100
+                    if delta_value >= exec_price * 100:  # 至少买1手(100股)才值得交易
+                        add_shares = int(delta_value / exec_price / 100) * 100
                         if add_shares > 0:
-                            cost = add_shares * close * (1 + commission)
-                            if cost <= cash:  # 现金充足
+                            cost = add_shares * exec_price * (1 + commission)
+                            if cost <= cash:
                                 cash -= cost
-                                # 更新加权平均买入价
-                                total_buy_cost += add_shares * close
+                                total_buy_cost += add_shares * exec_price
+                                round_trip_buy_cost += add_shares * exec_price
                                 shares += add_shares
                                 avg_buy_price = total_buy_cost / shares
-                                if close > max_price_since_buy:
-                                    max_price_since_buy = close
+                                if exec_price > max_price_since_buy:
+                                    max_price_since_buy = exec_price
                                 trades.append({
-                                    'date': date_str, 'action': 'BUY',
-                                    'price': close, 'shares': add_shares,
+                                    'date': exec_date, 'action': 'BUY',
+                                    'price': exec_price, 'shares': add_shares,
                                     'total_shares': shares,
                                     'reason': signal.reason,
                                 })
@@ -330,46 +351,47 @@ class Strategy(ABC):
                 elif signal.action == 'SELL' and shares > 0:
                     target_pos = max(0.0, signal.position)
                     target_value = equity * target_pos
-                    current_value = shares * close
+                    current_value = shares * exec_price
                     delta_value = current_value - target_value
 
-                    # 需要卖出的股数（A股最小交易单位100股，尾股允许一次卖出）
-                    sell_shares = int(delta_value / close / 100) * 100
-                    # 如果目标仓位接近 0 或剩余不足1手，则全部清仓
+                    sell_shares = int(delta_value / exec_price / 100) * 100
                     if target_pos < 0.05 or (shares - sell_shares) < 100:
                         sell_shares = shares
 
                     if sell_shares > 0 and sell_shares <= shares:
-                        revenue = sell_shares * close * (1 - commission - stamp_tax)
-                        pnl = (close - avg_buy_price) / avg_buy_price
+                        revenue = sell_shares * exec_price * (1 - commission - stamp_tax)
+                        pnl = (exec_price - avg_buy_price) / avg_buy_price
                         cash += revenue
                         shares -= sell_shares
                         trades.append({
-                            'date': date_str, 'action': 'SELL',
-                            'price': close, 'shares': sell_shares,
+                            'date': exec_date, 'action': 'SELL',
+                            'price': exec_price, 'shares': sell_shares,
                             'remaining_shares': shares,
                             'pnl_pct': round(pnl * 100, 2),
                             'reason': signal.reason,
                         })
                         if shares == 0:
+                            # 完整清仓：记录本轮买卖对盈亏（pnl = 相对均价的收益率）
+                            if round_trip_buy_cost > 0:
+                                completed_trips.append(pnl)
                             avg_buy_price = 0.0
                             total_buy_cost = 0.0
+                            round_trip_buy_cost = 0.0
                             max_price_since_buy = 0.0
                         else:
                             total_buy_cost = shares * avg_buy_price
 
-                # ---- 记录当日收盘后权益（所有交易处理完毕）----
-                equity = cash + shares * close
-                equity_curve.append(equity)
+                # ---- 记录当日收盘后权益（用 T+1 收盘价）----
+                equity_curve.append(cash + shares * t1_close)
 
-            # 最终市值
+            # 最终市值（用最后一日收盘价）
             final_close = float(df['close'].iloc[-1])
             final_value = cash + shares * final_close
 
             # 计算指标
             total_return = (final_value / initial_cash - 1) * 100
 
-            # 年化收益率
+            # 年化收益率（从第一个可执行日到最后一日）
             days = len(df)
             try:
                 days = (pd.Timestamp(df['date'].iloc[-1])
@@ -391,18 +413,26 @@ class Strategy(ABC):
                         max_drawdown = dd
             max_drawdown *= 100
 
-            # 胜率（基于卖出交易的盈亏）
-            sell_trades = [t for t in trades if t['action'] == 'SELL']
-            wins = sum(1 for t in sell_trades if t.get('pnl_pct', 0) > 0)
-            win_rate = (wins / len(sell_trades) * 100) if sell_trades else 0.0
+            # 胜率：基于完整买卖对（清仓时结算），避免部分减仓导致的失真
+            # 对于未完全清仓的持仓，用最终收盘价估算最后一笔盈亏
+            all_trips = list(completed_trips)
+            if shares > 0 and avg_buy_price > 0:
+                final_pnl = (final_close - avg_buy_price) / avg_buy_price
+                all_trips.append(final_pnl)
+            win_rate = (sum(1 for p in all_trips if p > 0) / len(all_trips) * 100) if all_trips else 0.0
 
-            # 夏普比率
+            # 卖出次数（用于 trade_count）
+            sell_trades = [t for t in trades if t['action'] == 'SELL']
+
+            # 夏普比率（统一扣除无风险利率）
+            # 最小 std 阈值防止浮点精度误差（全常数序列 std≈1e-20）导致天文数字
             sharpe = 0.0
             if len(equity_curve) > 1:
-                import numpy as np
                 returns = pd.Series(equity_curve).pct_change().dropna()
-                if returns.std() > 0:
-                    sharpe = float((returns.mean() / returns.std()) * (252 ** 0.5))
+                daily_rf = risk_free_rate / 252
+                excess = returns - daily_rf
+                if excess.std() > 1e-10:
+                    sharpe = float((excess.mean() / excess.std()) * (252 ** 0.5))
 
             return {
                 'trades': trades,

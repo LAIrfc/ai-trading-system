@@ -42,6 +42,8 @@ from .bollinger_band import BollingerBandStrategy
 from .kdj_signal import KDJStrategy
 from .dual_momentum import DualMomentumSingleStrategy
 from .fundamental_pe import PEStrategy
+from .fundamental_pb import PBStrategy
+from .fundamental_pe_pb import PE_PB_CombinedStrategy
 from .sentiment import SentimentStrategy
 from .news_sentiment import NewsSentimentStrategy
 from .policy_event import PolicyEventStrategy
@@ -82,6 +84,9 @@ class EnsembleStrategy(Strategy):
         mode:            str              投票模式
         buy_threshold:   float            BUY 阈值
         sell_threshold:  float            SELL 阈值
+        holding_cost:    float | None     持仓成本价（传入时启用止损感知）
+        stop_loss_pct:   float            硬止损比例，默认 -8%
+        warn_loss_pct:   float            预警比例，默认 -5%（触发减仓建议）
     """
 
     name = '多策略组合'
@@ -92,44 +97,84 @@ class EnsembleStrategy(Strategy):
         'sell_threshold': (0.3, 0.5, 0.8, 0.05),
     }
 
-    def __init__(self, mode: str = 'majority',
-                 buy_threshold: float = 0.5,
-                 sell_threshold: float = 0.5,
+    def __init__(self, mode: str = 'weighted',
+                 buy_threshold: float = 0.45,
+                 sell_threshold: float = 0.45,
                  weights: Optional[Dict[str, float]] = None,
+                 holding_cost: Optional[float] = None,
+                 stop_loss_pct: float = -0.08,
+                 warn_loss_pct: float = -0.05,
                  **kwargs):
         self.mode = mode
         self.buy_threshold = buy_threshold
         self.sell_threshold = sell_threshold
+        self.holding_cost = holding_cost
+        self.stop_loss_pct = stop_loss_pct
+        self.warn_loss_pct = warn_loss_pct
 
-        # 子策略实例（技术面 + 基本面）
+        # 子策略实例（技术面 6 + 基本面 3）
         self.sub_strategies: Dict[str, Strategy] = {
-            'MA':   MACrossStrategy(),
-            'MACD': MACDStrategy(),
-            'RSI':  RSIStrategy(),
-            'BOLL': BollingerBandStrategy(),
-            'KDJ':  KDJStrategy(),
-            'DUAL': DualMomentumSingleStrategy(),
-            'PE':   PEStrategy(),  # 基本面策略：PE估值
+            'MA':    MACrossStrategy(),
+            'MACD':  MACDStrategy(),
+            'RSI':   RSIStrategy(),
+            'BOLL':  BollingerBandStrategy(),
+            'KDJ':   KDJStrategy(),
+            'DUAL':  DualMomentumSingleStrategy(),
+            'PE':    PEStrategy(),           # 需 pe_ttm 列
+            'PB':    PBStrategy(),           # 需 pb 列
+            'PEPB':  PE_PB_CombinedStrategy(), # 需 pe_ttm + pb 列，双因子共振
         }
 
-        # 权重：支持外部传入，否则使用默认值
-        # 默认权重依据：夏普高+回撤低 → 权重大
-        # 基本面策略初始权重设为1.0（中等），后续可根据回测调整
+        # 权重：基于 v3 回测结果（235只股票）调整
+        # 回测夏普排名：BOLL(0.20) > MACD(0.16) > KDJ(0.15) > MA(0.12) > PE(0.11) > RSI(0.07)
+        # 回测回撤排名：PE(9%) < BOLL(14%) < RSI(16%) < KDJ(19%) < MA(19%) < MACD(20%)
+        # 综合风险调整收益：BOLL 最优，MACD 次之，DUAL 无单独数据保守处理
         self.weights: Dict[str, float] = weights or {
-            'DUAL': 1.5,   # 收益最高
-            'BOLL': 1.3,   # 夏普最高、回撤最低
-            'MA':   1.2,   # 收益第二
-            'MACD': 1.1,   # 均衡
-            'RSI':  1.0,   # 胜率高
-            'PE':   1.0,   # 基本面策略（初始权重，待回测验证）
-            'KDJ':  0.9,   # 交易频繁
+            'BOLL': 1.5,   # 技术面：夏普最高(0.20)、回撤最小(13.8%)，综合最优
+            'MACD': 1.3,   # 技术面：收益最高(+15.3%)，夏普第二(0.16)
+            'KDJ':  1.1,   # 技术面：夏普第三(0.15)，盈利率70.6%
+            'MA':   1.0,   # 技术面：收益第三(+13.9%)
+            'DUAL': 0.9,   # 技术面：无单独回测数据，保守权重
+            'RSI':  0.8,   # 技术面：夏普最低(0.07)，降权
+            'PEPB': 0.8,   # 基本面：双因子共振，信号最强但数据要求高
+            'PE':   0.6,   # 基本面：回撤最小(9%)，适合辅助过滤
+            'PB':   0.6,   # 基本面：单因子PB
         }
 
-        # 最小K线数取所有子策略的最大值
-        self.min_bars = max(s.min_bars for s in self.sub_strategies.values())
+        # min_bars 只取技术策略的最大值；基本面策略有数据时参与，无数据时被剔除逻辑过滤
+        fundamental_keys = {'PE', 'PB', 'PEPB'}
+        tech_strategies = {k: v for k, v in self.sub_strategies.items() if k not in fundamental_keys}
+        self.min_bars = max(s.min_bars for s in tech_strategies.values())
 
     def analyze(self, df: pd.DataFrame) -> StrategySignal:
-        """运行所有子策略，投票决策"""
+        """运行所有子策略，投票决策，并叠加持仓成本感知"""
+
+        # ========= 持仓成本感知（优先级最高）=========
+        # 传入 holding_cost 时，检查当前价格是否触及止损/预警线
+        # 止损信号直接返回，不经过投票，确保硬止损不被多数 HOLD 票压制
+        cost_info: dict = {}
+        if self.holding_cost and self.holding_cost > 0 and len(df) > 0:
+            current_price = float(df['close'].iloc[-1])
+            pnl_pct = (current_price / self.holding_cost - 1)
+            cost_info = {
+                '持仓成本': self.holding_cost,
+                '当前价格': current_price,
+                '持仓盈亏%': round(pnl_pct * 100, 2),
+                '止损线': round(self.holding_cost * (1 + self.stop_loss_pct), 3),
+                '预警线': round(self.holding_cost * (1 + self.warn_loss_pct), 3),
+            }
+            if pnl_pct <= self.stop_loss_pct:
+                # 触及硬止损，无条件卖出
+                return StrategySignal(
+                    action='SELL',
+                    confidence=0.95,
+                    position=0.0,
+                    reason=f'硬止损触发: 亏损{pnl_pct:.1%}，已达止损线{self.stop_loss_pct:.0%}',
+                    indicators={**cost_info, '触发类型': '硬止损'},
+                )
+            if pnl_pct <= self.warn_loss_pct:
+                # 预警区间：叠加到投票结果中，但不强制卖出
+                cost_info['触发类型'] = f'预警(亏损{pnl_pct:.1%})'
 
         votes: Dict[str, StrategySignal] = {}
         buy_votes: List[tuple] = []
@@ -141,6 +186,11 @@ class EnsembleStrategy(Strategy):
                 continue
             try:
                 sig = strat.analyze(df)
+                # 基本面策略数据缺失时（confidence=0 且 reason 含"缺少"/"不足"）
+                # 剔除出投票，避免拉低分母导致技术策略信号被稀释
+                if (sig.action == 'HOLD' and sig.confidence == 0.0
+                        and sig.reason and any(kw in sig.reason for kw in ('缺少', '不足', '无法'))):
+                    continue
                 votes[strat_name] = sig
                 if sig.action == 'BUY':
                     buy_votes.append((strat_name, sig))
@@ -154,7 +204,7 @@ class EnsembleStrategy(Strategy):
 
         total = len(votes)
         if total == 0:
-            return StrategySignal('HOLD', 0.0, '无策略可用', 0.5, {})
+            return StrategySignal('HOLD', 0.0, '无策略可用', 0.5, {**cost_info})
 
         # 投票详情
         vote_detail = {n: f"{s.action}({s.confidence:.0%})" for n, s in votes.items()}
@@ -174,17 +224,30 @@ class EnsembleStrategy(Strategy):
         else:  # majority
             action, conf, reason = self._majority(buy_votes, sell_votes, total)
 
-        # 仓位直接使用子策略的加权平均，不施加硬性边界。
-        # 子策略的 position 已包含风险考量（死叉平滑、仓位层级等），
-        # 组合策略应信任加权平均的结果。如果 SELL 时 avg_position 偏高，
-        # 说明部分策略不认为应该卖出——这种分歧信息应被保留，而非被覆盖。
-        position = avg_position
+        # ========= 持仓预警叠加 =========
+        # 预警区间内（未到硬止损）：若技术面没有明确 BUY，降级为 SELL 建议减仓
+        if cost_info.get('触发类型', '').startswith('预警') and action != 'BUY':
+            action = 'SELL'
+            conf = max(conf, 0.65)
+            reason = f"{cost_info['触发类型']}+技术面无买入支撑，建议减仓"
+
+        # ========= 仓位管理 =========
+        # 根据信号方向和强度给出建议仓位：
+        #   BUY  强信号(conf≥0.7) → 满仓(0.8)  弱信号 → 半仓(0.5)
+        #   SELL → 清仓(0.0)
+        #   HOLD → 维持加权平均仓位
+        if action == 'BUY':
+            suggested_position = 0.8 if conf >= 0.7 else 0.5
+        elif action == 'SELL':
+            suggested_position = 0.0
+        else:
+            suggested_position = round(avg_position, 2)
 
         return StrategySignal(
             action=action,
             confidence=round(conf, 2),
             reason=reason,
-            position=round(position, 2),
+            position=suggested_position,
             indicators={
                 '投票详情': vote_detail,
                 '买入票': len(buy_votes),
@@ -193,6 +256,7 @@ class EnsembleStrategy(Strategy):
                 '有效策略': total,
                 '模式': self.mode,
                 '加权仓位': round(avg_position, 2),
+                **cost_info,
             },
         )
 
@@ -254,10 +318,12 @@ class EnsembleStrategy(Strategy):
         sell_score = Σ(权重 × confidence)  for SELL votes
         total_active = buy_score + sell_score
 
-        如果 buy_score / total_active >= buy_threshold → BUY
-        如果 sell_score / total_active >= sell_threshold → SELL
-        否则 → HOLD
+        触发条件（同时满足）:
+          1. buy_score / total_active >= buy_threshold
+          2. 至少 2 个策略投 BUY（避免单策略孤票触发）
         """
+        MIN_ACTIVE_VOTES = 2  # 至少需要 N 个策略同向才行动
+
         buy_score = sum(self.weights.get(n, 1.0) * s.confidence
                         for n, s in buy_votes)
         sell_score = sum(self.weights.get(n, 1.0) * s.confidence
@@ -271,18 +337,20 @@ class EnsembleStrategy(Strategy):
         buy_pct = buy_score / total_active
         sell_pct = sell_score / total_active
 
-        if buy_pct > sell_pct and buy_pct >= self.buy_threshold:
+        if (buy_pct > sell_pct and buy_pct >= self.buy_threshold
+                and len(buy_votes) >= MIN_ACTIVE_VOTES):
             names = [n for n, _ in buy_votes]
             return (
                 'BUY', round(buy_pct, 2),
-                f"加权看多({buy_pct:.0%}): {', '.join(names)}"
+                f"加权看多({buy_pct:.0%}, {len(buy_votes)}票): {', '.join(names)}"
             )
 
-        if sell_pct > buy_pct and sell_pct >= self.sell_threshold:
+        if (sell_pct > buy_pct and sell_pct >= self.sell_threshold
+                and len(sell_votes) >= MIN_ACTIVE_VOTES):
             names = [n for n, _ in sell_votes]
             return (
                 'SELL', round(sell_pct, 2),
-                f"加权看空({sell_pct:.0%}): {', '.join(names)}"
+                f"加权看空({sell_pct:.0%}, {len(sell_votes)}票): {', '.join(names)}"
             )
 
         return 'HOLD', 0.5, f"加权信号中性(买{buy_pct:.0%}/卖{sell_pct:.0%})，观望"

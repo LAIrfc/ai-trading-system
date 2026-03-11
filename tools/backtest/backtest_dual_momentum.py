@@ -152,26 +152,28 @@ class DualMomentumBacktest:
         # 从第 min_data_points 天开始回测
         start_idx = min_data_points
         
-        for i in range(start_idx, len(data)):
+        # T 日收盘后生成信号，T+1 日开盘价执行（避免未来函数）
+        for i in range(start_idx, len(data) - 1):
             current_date = data.index[i]
-            
-            # 使用截至当前的所有历史数据
+            exec_date = data.index[i + 1]   # T+1 日
+
+            # 使用截至 T 日的所有历史数据生成信号
             historical_data = data.iloc[:i+1]
             
             # 生成信号
             signals = strategy.generate_signals(historical_data)
             
             if signals.empty:
-                # 无信号，记录净值
-                portfolio_value = self.calculate_portfolio_value(data, i)
+                # 无信号，记录 T+1 收盘后净值
+                portfolio_value = self.calculate_portfolio_value(data, i + 1)
                 self.portfolio_values.append({
-                    'date': current_date,
+                    'date': exec_date,
                     'value': portfolio_value,
                     'cash': self.cash
                 })
                 continue
             
-            # 执行交易
+            # T+1 日开盘价执行交易
             for _, signal_row in signals.iterrows():
                 code = signal_row['code']
                 signal = signal_row['signal']
@@ -179,20 +181,29 @@ class DualMomentumBacktest:
                 if code not in data.columns.get_level_values(0):
                     continue
                 
-                current_price = data[code]['close'].iloc[i]
+                # 用 T+1 开盘价执行，若无 open 列则退回收盘价
+                t1_cols = data[code].columns if hasattr(data[code], 'columns') else []
+                if 'open' in t1_cols:
+                    exec_price = data[code]['open'].iloc[i + 1]
+                else:
+                    exec_price = data[code]['close'].iloc[i + 1]
+                # 开盘价异常时退回收盘价
+                if not exec_price or exec_price != exec_price or exec_price <= 0:
+                    exec_price = data[code]['close'].iloc[i + 1]
+                current_price = exec_price
                 
                 if signal == 1:  # 买入
                     shares = strategy.calculate_position_size(
                         signal=1,
                         current_price=current_price,
                         account_value=self.cash + sum([
-                            data[c]['close'].iloc[i] * s 
+                            data[c]['close'].iloc[i + 1] * s
                             for c, s in self.holdings.items() 
                             if c in data.columns.get_level_values(0)
                         ])
                     )
                     if shares > 0:
-                        self.execute_trade(code, 1, current_price, shares, current_date)
+                        self.execute_trade(code, 1, current_price, shares, exec_date)
                         strategy.update_holdings(code, 1, current_price, shares)
                 
                 elif signal == -1:  # 卖出

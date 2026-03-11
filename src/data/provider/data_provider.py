@@ -26,53 +26,64 @@ except ImportError:
 DEFAULT_KLINE_SOURCES = ["sina", "eastmoney", "tencent", "tushare"]
 
 
-def _load_kline_sources_config() -> Tuple[List[str], List[str]]:
+DEFAULT_ETF_SOURCES = ["akshare_etf", "push2his_etf"]
+DEFAULT_SECTOR_SOURCES = ["akshare", "eastmoney", "sina", "baostock", "local"]
+
+
+def _load_sources_config() -> Tuple[List[str], List[str], List[str]]:
     """
-    从 config/data_sources.yaml 或 config/trading_config.yaml 读取 kline 主备顺序。
-    
+    从 config/data_sources.yaml 统一读取三类数据源顺序配置。
+
     Returns:
-        (stock_sources, etf_sources): 股票数据源列表、ETF 数据源列表
+        (stock_sources, etf_sources, sector_sources)
     """
     stock_sources = DEFAULT_KLINE_SOURCES
-    etf_sources = ["akshare_etf", "push2his_etf"]
-    
+    etf_sources = DEFAULT_ETF_SOURCES
+    sector_sources = DEFAULT_SECTOR_SOURCES
+
+    def _parse_list(raw) -> List[str]:
+        if isinstance(raw, list) and raw:
+            return [str(s).strip().lower() for s in raw]
+        return []
+
     for base in [Path(__file__).resolve().parents[3], Path.cwd()]:
-        # 优先 data_sources.yaml 的 kline.sources 和 kline.etf_sources
         ds = base / "config" / "data_sources.yaml"
         if ds.is_file():
             try:
                 with open(ds, "r", encoding="utf-8") as f:
                     data = yaml.safe_load(f)
-                if isinstance(data, dict) and "kline" in data:
-                    kline = data["kline"]
-                    if isinstance(kline, dict):
-                        # 股票数据源
-                        if "sources" in kline:
-                            raw = kline["sources"]
-                            if isinstance(raw, list) and raw:
-                                stock_sources = [str(s).strip().lower() for s in raw]
-                        # ETF 数据源
-                        if "etf_sources" in kline:
-                            raw = kline["etf_sources"]
-                            if isinstance(raw, list) and raw:
-                                etf_sources = [str(s).strip().lower() for s in raw]
-                    return stock_sources, etf_sources
+                if not isinstance(data, dict):
+                    continue
+                kline = data.get("kline", {})
+                if isinstance(kline, dict):
+                    parsed = _parse_list(kline.get("sources"))
+                    if parsed:
+                        stock_sources = parsed
+                    parsed = _parse_list(kline.get("etf_sources"))
+                    if parsed:
+                        etf_sources = parsed
+                sector = data.get("sector", {})
+                if isinstance(sector, dict):
+                    parsed = _parse_list(sector.get("sources"))
+                    if parsed:
+                        sector_sources = parsed
+                return stock_sources, etf_sources, sector_sources
             except Exception as e:
                 logger.debug("读取 data_sources.yaml 失败: %s", e)
-        # 其次 trading_config.yaml 的 data.kline_sources
+        # 兼容旧版 trading_config.yaml（仅股票 K 线）
         tc = base / "config" / "trading_config.yaml"
         if tc.is_file():
             try:
                 with open(tc, "r", encoding="utf-8") as f:
                     data = yaml.safe_load(f)
                 if isinstance(data, dict) and isinstance(data.get("data"), dict):
-                    raw = data["data"].get("kline_sources")
-                    if isinstance(raw, list) and raw:
-                        stock_sources = [str(s).strip().lower() for s in raw]
-                    return stock_sources, etf_sources
+                    parsed = _parse_list(data["data"].get("kline_sources"))
+                    if parsed:
+                        stock_sources = parsed
+                return stock_sources, etf_sources, sector_sources
             except Exception as e:
                 logger.debug("读取 trading_config.yaml 失败: %s", e)
-    return stock_sources, etf_sources
+    return stock_sources, etf_sources, sector_sources
 
 
 class UnifiedDataProvider:
@@ -81,23 +92,24 @@ class UnifiedDataProvider:
     支持股票和 ETF 分别配置数据源顺序。
     """
 
-    def __init__(self, sources: Optional[List[str]] = None, etf_sources: Optional[List[str]] = None):
+    def __init__(
+        self,
+        sources: Optional[List[str]] = None,
+        etf_sources: Optional[List[str]] = None,
+        sector_sources: Optional[List[str]] = None,
+    ):
         """
         Args:
-            sources: 股票数据源顺序，如 ["sina", "eastmoney", "tencent", "tushare"]。
-                     为 None 时从 config 读取。
-            etf_sources: ETF 数据源顺序，如 ["akshare_etf", "push2his_etf"]。
-                        为 None 时从 config 读取。
+            sources: 股票 K 线数据源顺序，None 时从 config/data_sources.yaml 读取。
+            etf_sources: ETF K 线数据源顺序，None 时从 config/data_sources.yaml 读取。
+            sector_sources: 板块成分股数据源顺序，None 时从 config/data_sources.yaml 读取。
         """
-        if sources is None or etf_sources is None:
-            config_stock, config_etf = _load_kline_sources_config()
-            self._source_order = sources if sources is not None else config_stock
-            self._etf_source_order = etf_sources if etf_sources is not None else config_etf
-        else:
-            self._source_order = sources
-            self._etf_source_order = etf_sources
-        
-        # 初始化股票适配器
+        config_stock, config_etf, config_sector = _load_sources_config()
+        self._source_order = sources if sources is not None else config_stock
+        self._etf_source_order = etf_sources if etf_sources is not None else config_etf
+        self._sector_source_order = sector_sources if sector_sources is not None else config_sector
+
+        # 初始化股票 K 线适配器
         self._adapters: List[KlineAdapter] = []
         for name in self._source_order:
             name = name.strip().lower()
@@ -105,12 +117,11 @@ class UnifiedDataProvider:
                 self._adapters.append(KLINE_ADAPTER_REGISTRY[name]())
             else:
                 logger.warning("[UnifiedDataProvider] 未知 kline 数据源 %s，已忽略", name)
-
         if not self._adapters:
             self._adapters = [KLINE_ADAPTER_REGISTRY[n]() for n in DEFAULT_KLINE_SOURCES if n in KLINE_ADAPTER_REGISTRY]
             logger.warning("[UnifiedDataProvider] 无有效配置，使用默认顺序: %s", [a.source_id for a in self._adapters])
-        
-        # 初始化 ETF 适配器
+
+        # 初始化 ETF K 线适配器
         self._etf_adapters: List[KlineAdapter] = []
         for name in self._etf_source_order:
             name = name.strip().lower()
@@ -118,15 +129,18 @@ class UnifiedDataProvider:
                 self._etf_adapters.append(KLINE_ADAPTER_REGISTRY[name]())
             else:
                 logger.warning("[UnifiedDataProvider] 未知 ETF 数据源 %s，已忽略", name)
-        
-        # 初始化板块数据适配器（默认顺序）
+
+        # 初始化板块成分股适配器
         self._sector_adapters: List[SectorAdapter] = []
-        sector_order = ['akshare', 'eastmoney', 'sina', 'baostock', 'local']
-        for name in sector_order:
+        for name in self._sector_source_order:
+            name = name.strip().lower()
             if name in SECTOR_ADAPTER_REGISTRY:
                 self._sector_adapters.append(SECTOR_ADAPTER_REGISTRY[name]())
             else:
                 logger.warning("[UnifiedDataProvider] 未知板块数据源 %s，已忽略", name)
+        if not self._sector_adapters:
+            self._sector_adapters = [SECTOR_ADAPTER_REGISTRY[n]() for n in DEFAULT_SECTOR_SOURCES if n in SECTOR_ADAPTER_REGISTRY]
+            logger.warning("[UnifiedDataProvider] 板块数据源无有效配置，使用默认顺序: %s", [a.source_id for a in self._sector_adapters])
 
     def get_kline(
         self,
@@ -288,7 +302,7 @@ class UnifiedDataProvider:
         """
         all_stocks = []
         
-        # 按适配器顺序尝试
+        # 所有数据源全部尝试并合并，不因数量达标而提前退出
         for adapter in self._sector_adapters:
             sid = adapter.source_id
             
@@ -315,19 +329,11 @@ class UnifiedDataProvider:
                     if stocks:
                         logger.info(f"[UnifiedDataProvider] {sid} {sector_code} 成功: {len(stocks)}只")
                         all_stocks.extend(stocks)
-                        
-                        # 如果已经获取足够数据，提前返回
-                        if len(all_stocks) >= target:
-                            break
                     
                 except Exception as e:
                     logger.warning(f"[UnifiedDataProvider] {sid} {sector_code} 失败: {e}")
                 
                 time.sleep(1)
-            
-            # 如果已经获取足够数据，不再尝试下一个数据源
-            if len(all_stocks) >= target:
-                break
         
         # 去重并按市值排序
         unique_stocks = {}

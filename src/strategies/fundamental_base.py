@@ -30,7 +30,7 @@ class FundamentalQuantileBase(Strategy):
     _BUY_POS_MAX  = 0.85
     _SELL_POS_MIN = 0.0
     _SELL_POS_MAX = 0.15
-    _ROLLING_WINDOW = 756   # 3年，覆盖1个完整牛熊周期
+    _ROLLING_WINDOW = 252   # 1年滚动窗口，回测数据通常800条，252可保留更多可回测区间
 
     def __init__(self,
                  low_quantile: float = 0.2,

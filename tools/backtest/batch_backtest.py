@@ -173,6 +173,85 @@ def _build_v33_strategies(symbol: str) -> tuple:
     return strategies, ensemble
 
 
+PE_CACHE_DIR = os.path.join(os.path.dirname(__file__), '../../mydate/pe_cache')
+
+
+def _update_pe_cache_incremental(code: str, pe_path: str) -> None:
+    """
+    对已有 PE 缓存做增量更新：只拉最后日期之后的新数据追加进去。
+    失败时静默跳过，不影响回测流程。
+    """
+    try:
+        import baostock as bs
+        from datetime import datetime, timedelta
+
+        old_df = pd.read_parquet(pe_path)
+        old_df['date'] = pd.to_datetime(old_df['date'])
+        last_date = old_df['date'].max()
+        days_behind = (pd.Timestamp.now() - last_date).days
+        if days_behind <= 1:
+            return  # 已是最新，跳过
+
+        inc_start = (last_date + pd.Timedelta(days=1)).strftime('%Y-%m-%d')
+        today = datetime.now().strftime('%Y-%m-%d')
+
+        def code_to_bs(c):
+            c = c.zfill(6)
+            return f'sh.{c}' if c.startswith(('60', '68')) else f'sz.{c}'
+
+        lg = bs.login()
+        if lg.error_code != '0':
+            return
+        rs = bs.query_history_k_data_plus(
+            code_to_bs(code), "date,peTTM,pbMRQ,turn",
+            start_date=inc_start, end_date=today,
+            frequency="d", adjustflag="3"
+        )
+        rows = []
+        while rs.error_code == '0' and rs.next():
+            rows.append(rs.get_row_data())
+        bs.logout()
+
+        if not rows:
+            return
+
+        new_df = pd.DataFrame(rows, columns=['date', 'pe_ttm', 'pb', 'turnover_rate'])
+        new_df['date'] = pd.to_datetime(new_df['date'])
+        for col in ['pe_ttm', 'pb', 'turnover_rate']:
+            new_df[col] = pd.to_numeric(new_df[col], errors='coerce')
+
+        merged = pd.concat([old_df, new_df], ignore_index=True)
+        merged = merged.drop_duplicates(subset='date').sort_values('date').reset_index(drop=True)
+        merged.to_parquet(pe_path, index=False)
+        logger.debug("[%s] PE缓存增量更新 +%d条", code, len(new_df))
+    except Exception as e:
+        logger.debug("[%s] PE缓存增量更新失败(静默跳过): %s", code, e)
+
+
+def _load_pe_cache(code: str, df: pd.DataFrame, auto_update: bool = True) -> pd.DataFrame:
+    """
+    从本地 pe_cache/{code}.parquet 读取历史 PE/PB 数据并合并到 K 线 DataFrame。
+    - auto_update=True（默认）：缓存过期时自动增量更新，确保近期数据最新
+    - 缓存不存在时静默跳过，不影响回测
+    """
+    pe_path = os.path.join(PE_CACHE_DIR, f'{code}.parquet')
+    if not os.path.exists(pe_path):
+        return df
+    if auto_update:
+        _update_pe_cache_incremental(code, pe_path)
+    try:
+        pe_df = pd.read_parquet(pe_path)
+        pe_df['date'] = pd.to_datetime(pe_df['date'])
+        df = df.copy()
+        df['date'] = pd.to_datetime(df['date'])
+        df = df.merge(pe_df[['date', 'pe_ttm', 'pb']], on='date', how='left')
+        df['pe_ttm'] = df['pe_ttm'].ffill()
+        df['pb'] = df['pb'].ffill()
+        return df
+    except Exception:
+        return df
+
+
 def backtest_one_stock(stock_info: dict, strategies: dict,
                        ensemble: EnsembleStrategy,
                        datalen: int = 800,
@@ -202,13 +281,26 @@ def backtest_one_stock(stock_info: dict, strategies: dict,
         strategies, ensemble = _build_v33_strategies(code)
         ensemble_key = 'V33组合'
     else:
+        # 每只股票创建独立策略实例，避免多线程共享同一实例导致的竞态条件
+        strategies = {
+            'MA':   MACrossStrategy(),
+            'MACD': MACDStrategy(),
+            'RSI':  RSIStrategy(),
+            'BOLL': BollingerBandStrategy(),
+            'KDJ':  KDJStrategy(),
+            'PE':   PEStrategy(),
+        }
+        ensemble = EnsembleStrategy()
         ensemble_key = 'Ensemble'
 
     df = load_kline_for_backtest(code, datalen, local_kline_dir, min_bars=100)
     if df.empty or len(df) < 100:
         return {'code': code, 'name': name, 'sector': sector,
                 'status': 'skip', 'reason': f'数据不足({len(df)}条)'}
-    
+
+    # 自动合并本地 PE 缓存（优先于网络请求，无缓存时静默跳过）
+    df = _load_pe_cache(code, df)
+
     # 合并基本面数据（如果启用）
     if enable_fundamental:
         try:
@@ -461,19 +553,9 @@ def main():
     if use_v33:
         strategy_names = ['MA', 'MACD', 'RSI', 'BOLL', 'KDJ', 'DUAL', 'PE',
                           'Sentiment', 'NewsSentiment', 'PolicyEvent', 'MoneyFlow', 'V33组合']
-        strategies = None
-        ensemble = None
     else:
-        strategies = {
-            'MA':   MACrossStrategy(),
-            'MACD': MACDStrategy(),
-            'RSI':  RSIStrategy(),
-            'BOLL': BollingerBandStrategy(),
-            'KDJ':  KDJStrategy(),
-            'PE':   PEStrategy(),
-        }
-        ensemble = EnsembleStrategy()
-        strategy_names = list(strategies.keys()) + ['Ensemble']
+        strategy_names = ['MA', 'MACD', 'RSI', 'BOLL', 'KDJ', 'PE', 'Ensemble']
+    # 策略实例在 backtest_one_stock 内部按股票独立创建，避免多线程共享状态
 
     print(f'策略: {", ".join(strategy_names)}')
     print(f'数据: {args.datalen}条日线 (约{args.datalen/240:.1f}年)')
@@ -513,12 +595,13 @@ def main():
         os.environ["BACKTEST_PREFETCH_DIR"] = local_aux_dir
         print(f'本地辅助数据: {local_aux_dir}（新闻/政策/龙虎榜优先读本地）')
     # 用线程池并发获取数据和回测
+    # 策略实例在 backtest_one_stock 内部按股票独立创建，此处传空占位参数
     with ThreadPoolExecutor(max_workers=args.workers) as executor:
         futures = {}
         for stock in stocks:
             future = executor.submit(
                 backtest_one_stock, stock,
-                strategies or {}, ensemble or EnsembleStrategy(),
+                {}, None,
                 args.datalen, False, 50.0, use_v33, local_kline_dir)
             futures[future] = stock
 

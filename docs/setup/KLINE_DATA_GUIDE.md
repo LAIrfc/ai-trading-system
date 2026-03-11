@@ -385,11 +385,45 @@ A: AKShare免费版只提供日K线，分钟级需要：
 
 ---
 
+## 🗄️ 批量K线缓存（回测推荐方式）
+
+单只获取适合临时查看，**批量回测请使用本地缓存**，速度快10倍以上。
+
+### 首次：全量预取股票池K线
+
+```bash
+# 预取 stock_pool_all.json 中所有股票的历史K线（约800条/只）
+python3 tools/data/backtest_prefetch.py --pool mydate/stock_pool_all.json --all --workers 4
+```
+
+输出到 `mydate/backtest_kline/`，每只股票一个 `{code}.parquet`。
+
+### 日常：增量更新到最新
+
+```bash
+# 只拉取上次缓存之后的新数据（通常几秒完成）
+python3 tools/data/backtest_prefetch.py --update --workers 4
+```
+
+### 查看缓存状态
+
+```bash
+# 查看某只股票缓存数据
+python3 tools/data/view_backtest_kline.py 600519
+
+# 列出未成功拉取的股票
+python3 tools/data/view_backtest_kline.py --list-failed
+```
+
+> 缓存文件格式为 Parquet，比 CSV 读取快约5倍，节省约60%磁盘空间。
+
+---
+
 ## 📚 相关文档
 
-- [策略开发快速开始](STRATEGY_QUICKSTART.md)
 - [策略详细说明](../strategy/STRATEGY_DETAIL.md) | [策略清单](../strategy/STRATEGY_LIST.md)
-- [快速参考](QUICK_REFERENCE.md)
+- [PE/PB缓存指南](../data/PE_CACHE_GUIDE.md)
+- [运行命令汇总](../RUN_COMMANDS.md)
 
 ---
 
@@ -400,9 +434,9 @@ A: AKShare免费版只提供日K线，分钟级需要：
    python3 tools/data/kline_fetcher.py 600519
    ```
 
-2. **运行完整演示**:
+2. **批量预取回测缓存**:
    ```bash
-   python3 examples/get_kline_demo.py
+   python3 tools/data/backtest_prefetch.py --pool mydate/stock_pool_all.json --all --workers 4
    ```
 
 3. **在策略中使用**:
