@@ -16,7 +16,6 @@ from typing import Dict, List, Tuple
 from datetime import datetime, timedelta
 from loguru import logger
 
-from src.core.base_strategy import BaseStrategy
 from src.core.momentum_math import (
     calc_absolute_momentum,
     calc_relative_momentum,
@@ -25,7 +24,7 @@ from src.core.momentum_math import (
 )
 
 
-class DualMomentumStrategy(BaseStrategy):
+class DualMomentumStrategy:
     """双核动量轮动策略"""
     
     def __init__(self, config: Dict):
@@ -44,8 +43,13 @@ class DualMomentumStrategy(BaseStrategy):
                 - min_volume (float): 最小日均成交额（万元），默认5000
                 - max_position (float): 单一资产最大仓位，默认0.30
         """
-        super().__init__('双核动量轮动策略', config)
-        
+        self.name = '双核动量轮动策略'
+        self.config = config
+        self.positions = {}
+        self.orders = []
+        self.signals = []
+        self.performance_metrics = {}
+
         # 策略参数
         self.absolute_period = config.get('absolute_period', 200)  # N
         self.relative_period = config.get('relative_period', 60)   # M
