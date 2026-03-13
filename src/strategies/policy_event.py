@@ -54,15 +54,15 @@ def _get_market_sentiment_s_high() -> Optional[tuple]:
             return None
 
 
-def _get_policy_v33(max_news: int = 15) -> Optional[tuple]:
-    """(agg_score, has_major_negative, avg_influence)。"""
+def _get_policy_v33(max_news: int = 15, use_llm: bool = True) -> Optional[tuple]:
+    """(agg_score, has_major_negative, avg_influence)。实盘时 use_llm=True 启用 LLM 融合分析。"""
     try:
         from src.data.policy import get_policy_sentiment_v33
-        return get_policy_sentiment_v33(max_news=max_news)
+        return get_policy_sentiment_v33(max_news=max_news, use_llm=use_llm)
     except ImportError:
         try:
             from data.policy import get_policy_sentiment_v33
-            return get_policy_sentiment_v33(max_news=max_news)
+            return get_policy_sentiment_v33(max_news=max_news, use_llm=use_llm)
         except ImportError:
             return None
 
@@ -154,6 +154,7 @@ class PolicyEventStrategy(Strategy):
             prefetched = _get_policy_prefetch_for_backtest(df)
             if prefetched is None:
                 return StrategySignal("HOLD", 0.0, "回测中无预取政策数据", 0.5, {"policy": "no_prefetch"})
+            # 回测时不调用 LLM（避免未来函数 + 节省 API 费用）
             return _analyze_from_prefetched_policy(prefetched, self.buy_threshold, self.sell_threshold)
         try:
             return self._analyze_impl(df)
@@ -177,7 +178,7 @@ class PolicyEventStrategy(Strategy):
             )
 
     def _analyze_impl(self, df: pd.DataFrame) -> StrategySignal:
-        v33 = _get_policy_v33(max_news=self.max_news)
+        v33 = _get_policy_v33(max_news=self.max_news, use_llm=True)
         if v33 is not None:
             agg, has_major_negative, avg_influence = v33
             sent = _get_market_sentiment_s_high()

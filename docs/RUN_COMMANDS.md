@@ -78,7 +78,7 @@ python3 tools/backtest/cross_validate.py
 # 默认 MACD
 python3 tools/analysis/recommend_today.py
 
-# 9 策略组合（技术6 + 基本面3，推荐）
+# 11 策略组合（技术6+基本面3+消息面+资金面，推荐）
 python3 tools/analysis/recommend_today.py --pool mydate/stock_pool_all.json --strategy ensemble
 ```
 

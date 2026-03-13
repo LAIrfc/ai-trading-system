@@ -1,10 +1,11 @@
 """
-新闻情感策略（NewsSentiment）V3.3
+新闻情感策略（NewsSentiment）V3.3+
 
 - 24h 内同向新闻最多 3 篇，加权平均得 S_news；新闻源权重参与最终置信度。
 - 预期差（日频近似）：买入要求当日涨幅<3%，卖出要求当日跌幅<2%；无 K 线时不校验。
 - 置信度：基础 = min(1, |S_news|×2 + 0.1×(N-1))；最终 = min(基础×新闻源权重, 1)。
 - 无 V3.3 数据时回退为旧版近期 N 篇情感均值。
+- 实盘：关键词分 0.4 + LLM 语义分 0.6 融合；回测：纯关键词（防未来函数）。
 """
 
 import logging
@@ -31,15 +32,15 @@ def _daily_return_from_df(df: pd.DataFrame) -> Optional[float]:
     return float(close.iloc[-1] / close.iloc[-2] - 1.0)
 
 
-def _get_news_sentiment_v33(symbol: str) -> Optional[tuple]:
+def _get_news_sentiment_v33(symbol: str, use_llm: bool = True, stock_name: str = "") -> Optional[tuple]:
     """(S_news, N, mean_source_weight)。无数据返回 None。"""
     try:
         from src.data.news import get_news_sentiment_v33
-        return get_news_sentiment_v33(symbol, max_same_direction=3)
+        return get_news_sentiment_v33(symbol, max_same_direction=3, use_llm=use_llm, stock_name=stock_name)
     except ImportError:
         try:
             from data.news import get_news_sentiment_v33
-            return get_news_sentiment_v33(symbol, max_same_direction=3)
+            return get_news_sentiment_v33(symbol, max_same_direction=3, use_llm=use_llm, stock_name=stock_name)
         except ImportError:
             return None
 
@@ -127,10 +128,10 @@ def _get_news_sentiment_backup(
 
 
 class NewsSentimentStrategy(Strategy):
-    """新闻情感分析策略 V3.3：24h 同向 N、S_news、预期差日频近似、新闻源权重置信度。"""
+    """新闻情感分析策略 V3.3+：24h 同向 N、S_news、预期差日频近似、新闻源权重置信度、LLM 语义融合。"""
 
     name = "NewsSentiment"
-    description = "个股新闻情感(V3.3)：24h同向N、S_news、预期差日频近似、新闻源权重置信度"
+    description = "个股新闻情感(V3.3+)：24h同向N、S_news、关键词0.4+LLM0.6融合、预期差日频近似、新闻源权重置信度"
 
     param_ranges = {
         "buy_threshold": (0.2, 0.3, 0.6, 0.1),
@@ -146,12 +147,14 @@ class NewsSentimentStrategy(Strategy):
         buy_threshold: float = 0.3,
         sell_threshold: float = -0.3,
         max_news: int = 10,
+        stock_name: str = "",
         **kwargs,
     ):
         self.symbol = symbol
         self.buy_threshold = buy_threshold
         self.sell_threshold = sell_threshold
         self.max_news = max_news
+        self.stock_name = stock_name
 
     def analyze(self, df: pd.DataFrame) -> StrategySignal:
         from .base import _BACKTEST_ACTIVE
@@ -192,8 +195,8 @@ class NewsSentimentStrategy(Strategy):
             )
 
     def _analyze_impl(self, df: pd.DataFrame, symbol: str) -> StrategySignal:
-        # 1) 优先 V3.3：24h 同向 N、S_news、新闻源权重
-        v33 = _get_news_sentiment_v33(symbol)
+        # 1) 优先 V3.3+：24h 同向 N、S_news、新闻源权重（实盘启用 LLM 融合）
+        v33 = _get_news_sentiment_v33(symbol, use_llm=True, stock_name=self.stock_name)
         if v33 is not None:
             S_news, N, mean_weight = v33
             base_conf = min(1.0, abs(S_news) * 2.0 + 0.1 * max(0, N - 1))

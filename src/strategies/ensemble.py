@@ -2,7 +2,7 @@
 多策略组合投票策略 (Ensemble Strategy)
 
 原理:
-- 同时运行多个子策略（MA, MACD, RSI, BOLL, KDJ, DUAL）
+- 同时运行多个子策略（MA, MACD, RSI, BOLL, KDJ, DUAL + 基本面 + 消息面 + 资金面）
 - 每个策略独立给出 BUY / SELL / HOLD 信号 + confidence + position
 - 采用投票机制决策:
   - 多数看多 → 买入
@@ -27,6 +27,8 @@ HOLD 计分规则:
 - buy_threshold:  majority/weighted 模式下，BUY 所需比例（默认 0.5 即过半）
 - sell_threshold: majority/weighted 模式下，SELL 所需比例（默认 0.5）
 - weights:        各策略权重 dict，可从外部传入（默认基于交叉验证结果）
+- symbol:         股票代码（NewsSentiment/MoneyFlow 需要）
+- stock_name:     股票名称（NewsSentiment LLM 分析用）
 """
 
 import logging
@@ -90,7 +92,7 @@ class EnsembleStrategy(Strategy):
     """
 
     name = '多策略组合'
-    description = '7大策略投票决策（6技术+1基本面），多数看多/看空才行动'
+    description = '11策略投票决策（6技术+3基本面+消息面+资金面），加权投票'
 
     param_ranges = {
         'buy_threshold':  (0.3, 0.5, 0.8, 0.05),
@@ -104,6 +106,8 @@ class EnsembleStrategy(Strategy):
                  holding_cost: Optional[float] = None,
                  stop_loss_pct: float = -0.08,
                  warn_loss_pct: float = -0.05,
+                 symbol: Optional[str] = None,
+                 stock_name: str = '',
                  **kwargs):
         self.mode = mode
         self.buy_threshold = buy_threshold
@@ -111,43 +115,146 @@ class EnsembleStrategy(Strategy):
         self.holding_cost = holding_cost
         self.stop_loss_pct = stop_loss_pct
         self.warn_loss_pct = warn_loss_pct
+        self.symbol = symbol
+        self.stock_name = stock_name
 
-        # 子策略实例（技术面 6 + 基本面 3）
+        # 子策略实例（技术面 6 + 基本面 3 + 消息面 1 + 资金面 1）
         self.sub_strategies: Dict[str, Strategy] = {
-            'MA':    MACrossStrategy(),
-            'MACD':  MACDStrategy(),
-            'RSI':   RSIStrategy(),
-            'BOLL':  BollingerBandStrategy(),
-            'KDJ':   KDJStrategy(),
-            'DUAL':  DualMomentumSingleStrategy(),
-            'PE':    PEStrategy(),           # 需 pe_ttm 列
-            'PB':    PBStrategy(),           # 需 pb 列
-            'PEPB':  PE_PB_CombinedStrategy(), # 需 pe_ttm + pb 列，双因子共振
+            'MA':           MACrossStrategy(),
+            'MACD':         MACDStrategy(),
+            'RSI':          RSIStrategy(),
+            'BOLL':         BollingerBandStrategy(),
+            'KDJ':          KDJStrategy(),
+            'DUAL':         DualMomentumSingleStrategy(),
+            'PE':           PEStrategy(),
+            'PB':           PBStrategy(),
+            'PEPB':         PE_PB_CombinedStrategy(),
+            'NEWS':         NewsSentimentStrategy(symbol=symbol, stock_name=stock_name),
+            'MONEY_FLOW':   MoneyFlowStrategy(symbol=symbol),
         }
 
         # 权重：基于 v3 回测结果（235只股票）调整
         # 回测夏普排名：BOLL(0.20) > MACD(0.16) > KDJ(0.15) > MA(0.12) > PE(0.11) > RSI(0.07)
         # 回测回撤排名：PE(9%) < BOLL(14%) < RSI(16%) < KDJ(19%) < MA(19%) < MACD(20%)
-        # 综合风险调整收益：BOLL 最优，MACD 次之，DUAL 无单独数据保守处理
+        # NEWS/MONEY_FLOW 无回测数据，保守权重；触发时信号质量高（LLM+龙虎榜）
         self.weights: Dict[str, float] = weights or {
-            'BOLL': 1.5,   # 技术面：夏普最高(0.20)、回撤最小(13.8%)，综合最优
-            'MACD': 1.3,   # 技术面：收益最高(+15.3%)，夏普第二(0.16)
-            'KDJ':  1.1,   # 技术面：夏普第三(0.15)，盈利率70.6%
-            'MA':   1.0,   # 技术面：收益第三(+13.9%)
-            'DUAL': 0.9,   # 技术面：无单独回测数据，保守权重
-            'RSI':  0.8,   # 技术面：夏普最低(0.07)，降权
-            'PEPB': 0.8,   # 基本面：双因子共振，信号最强但数据要求高
-            'PE':   0.6,   # 基本面：回撤最小(9%)，适合辅助过滤
-            'PB':   0.6,   # 基本面：单因子PB
+            'BOLL':       1.5,   # 技术面：夏普最高(0.20)、回撤最小(13.8%)，综合最优
+            'MACD':       1.3,   # 技术面：收益最高(+15.3%)，夏普第二(0.16)
+            'KDJ':        1.1,   # 技术面：夏普第三(0.15)，盈利率70.6%
+            'MA':         1.0,   # 技术面：收益第三(+13.9%)
+            'DUAL':       0.9,   # 技术面：无单独回测数据，保守权重
+            'RSI':        0.8,   # 技术面：夏普最低(0.07)，降权
+            'PEPB':       0.8,   # 基本面：双因子共振，信号最强但数据要求高
+            'PE':         0.6,   # 基本面：回撤最小(9%)，适合辅助过滤
+            'PB':         0.6,   # 基本面：单因子PB
+            'NEWS':       0.5,   # 消息面：关键词+LLM融合，触发频率中等，保守权重
+            'MONEY_FLOW': 0.4,   # 资金面：龙虎榜+大宗，触发频率低但信号质量高
         }
 
-        # min_bars 只取技术策略的最大值；基本面策略有数据时参与，无数据时被剔除逻辑过滤
-        fundamental_keys = {'PE', 'PB', 'PEPB'}
-        tech_strategies = {k: v for k, v in self.sub_strategies.items() if k not in fundamental_keys}
+        # min_bars 只取技术策略的最大值；其他策略有数据时参与，无数据时被剔除逻辑过滤
+        non_tech_keys = {'PE', 'PB', 'PEPB', 'NEWS', 'MONEY_FLOW'}
+        tech_strategies = {k: v for k, v in self.sub_strategies.items() if k not in non_tech_keys}
         self.min_bars = max(s.min_bars for s in tech_strategies.values())
+
+        # 动态权重状态（冷却 7 日，市场状态变化时触发）
+        self._use_dynamic_weights: bool = (compute_v33_weights is not None)
+        self._weight_state: Optional[str] = None
+        self._weight_adjustment_date: Optional[pd.Timestamp] = None
+        self._weight_cooldown_until: Optional[pd.Timestamp] = None
+        self._backtest_index_df = None
+
+    def set_symbol(self, symbol: str, stock_name: str = '') -> None:
+        """动态更新 symbol，供选股循环复用同一实例时逐股注入。"""
+        self.symbol = symbol
+        if stock_name:
+            self.stock_name = stock_name
+        news_strat = self.sub_strategies.get('NEWS')
+        if news_strat is not None:
+            news_strat.symbol = symbol
+            if stock_name:
+                news_strat.stock_name = stock_name
+        mf_strat = self.sub_strategies.get('MONEY_FLOW')
+        if mf_strat is not None:
+            mf_strat.symbol = symbol
+
+    def prepare_backtest(self, df: pd.DataFrame) -> None:
+        """
+        回测前预取沪深300指数（用于动态权重）及各子策略外部数据。
+        实盘无需调用，analyze 时实时获取。
+        """
+        for strat in self.sub_strategies.values():
+            if hasattr(strat, 'prepare_backtest'):
+                try:
+                    strat.prepare_backtest(df)
+                except Exception:
+                    pass
+        if df is None or df.empty or 'date' not in df.columns:
+            return
+        start_d = pd.Timestamp(df['date'].iloc[0]) - pd.Timedelta(days=90)
+        end_d = pd.Timestamp(df['date'].iloc[-1])
+        start_str = start_d.strftime('%Y%m%d')
+        end_str = end_d.strftime('%Y%m%d')
+        idx_df = None
+        try:
+            import akshare as ak
+            raw = ak.stock_zh_index_hist_csindex(symbol='000300', start_date=start_str, end_date=end_str)
+            if raw is not None and len(raw) >= 30:
+                raw = raw.rename(columns={'日期': 'date', '收盘': 'close', '最高': 'high', '最低': 'low'})
+                raw['date'] = pd.to_datetime(raw['date'])
+                for c in ['high', 'low']:
+                    if c not in raw.columns:
+                        raw[c] = raw['close']
+                for c in ['high', 'low', 'close']:
+                    raw[c] = pd.to_numeric(raw[c], errors='coerce').fillna(raw['close'])
+                idx_df = raw.dropna(subset=['close']).sort_values('date').reset_index(drop=True)
+        except Exception as e:
+            logger.debug('prepare_backtest 预取沪深300失败: %s', e)
+        self._backtest_index_df = idx_df
+
+    def _update_dynamic_weights(self, as_of: pd.Timestamp) -> None:
+        """根据市场状态动态调整权重（7日冷却）。"""
+        if not self._use_dynamic_weights or compute_v33_weights is None:
+            return
+        in_cooldown = (
+            self._weight_cooldown_until is not None
+            and as_of < self._weight_cooldown_until
+        )
+        if in_cooldown:
+            return
+        from .base import _BACKTEST_ACTIVE
+        index_df = None
+        if _BACKTEST_ACTIVE and self._backtest_index_df is not None:
+            sub = self._backtest_index_df[self._backtest_index_df['date'] <= as_of].tail(60)
+            if len(sub) >= 30:
+                index_df = sub.reset_index(drop=True)
+        elif not _BACKTEST_ACTIVE and fetch_index_for_state is not None:
+            index_df = fetch_index_for_state('000300', 60)
+        if index_df is None:
+            return
+        if should_trigger_adjustment and not should_trigger_adjustment(index_df, self._weight_state):
+            return
+        as_of_dt = as_of.to_pydatetime() if hasattr(as_of, 'to_pydatetime') else datetime.now()
+        w, state, adj_date = compute_v33_weights(
+            index_df, self._weight_state, self._weight_adjustment_date, as_of_dt
+        )
+        # 只更新 Ensemble 中实际存在的策略权重
+        for k, v in w.items():
+            if k in self.sub_strategies:
+                self.weights[k] = v
+        self._weight_state = state
+        self._weight_adjustment_date = pd.Timestamp(adj_date) if adj_date else as_of
+        self._weight_cooldown_until = self._weight_adjustment_date + pd.Timedelta(days=7)
+        logger.info('动态权重已更新: 市场状态=%s，冷却至%s', state, self._weight_cooldown_until.date())
 
     def analyze(self, df: pd.DataFrame) -> StrategySignal:
         """运行所有子策略，投票决策，并叠加持仓成本感知"""
+
+        # ========= 动态权重更新 =========
+        try:
+            as_of = pd.Timestamp(df['date'].iloc[-1]) if (df is not None and len(df) > 0 and 'date' in df.columns) else pd.Timestamp(datetime.now().date())
+            self._update_dynamic_weights(as_of)
+        except Exception as e:
+            logger.debug('动态权重更新跳过: %s', e)
 
         # ========= 持仓成本感知（优先级最高）=========
         # 传入 holding_cost 时，检查当前价格是否触及止损/预警线
@@ -205,6 +312,20 @@ class EnsembleStrategy(Strategy):
         total = len(votes)
         if total == 0:
             return StrategySignal('HOLD', 0.0, '无策略可用', 0.5, {**cost_info})
+
+        # ========= 重大利空优先（优先级仅次于硬止损）=========
+        for strat_name, sig in sell_votes:
+            if sig.reason and MAJOR_NEGATIVE_REASON_KEY in sig.reason:
+                return StrategySignal(
+                    action='SELL',
+                    confidence=sig.confidence,
+                    position=0.0,
+                    reason=f'重大利空优先({strat_name}): {sig.reason}',
+                    indicators={
+                        '投票详情': {n: f"{s.action}({s.confidence:.0%})" for n, s in votes.items()},
+                        **cost_info,
+                    },
+                )
 
         # 投票详情
         vote_detail = {n: f"{s.action}({s.confidence:.0%})" for n, s in votes.items()}
@@ -367,9 +488,9 @@ class ConservativeEnsemble(EnsembleStrategy):
     - 卖出仅需 ≥34% 策略看空（阈值0.34，保护优先）
     
     注意: 阈值是比例而非绝对数量，因此适用于任意数量的子策略。
-    当前有7个子策略（6技术+1基本面），阈值仍然有效：
-    - 买入: 需要 ≥4/7 策略看多（50%阈值）
-    - 卖出: 需要 ≥3/7 策略看空（34%阈值）
+    当前默认是 11 个子策略（技术6 + 基本面3 + NEWS + MONEY_FLOW），阈值仍然有效：
+    - 买入: 需要 ≥6/11 策略看多（50%阈值）
+    - 卖出: 需要 ≥4/11 策略看空（34%阈值）
     """
     name = '保守组合'
     description = '多数看多才买入、少数看空即卖出，保护优先'
@@ -385,7 +506,7 @@ class BalancedEnsemble(EnsembleStrategy):
     - 买入和卖出均需 ≥50% 策略同意（阈值0.5）
     
     注意: 阈值是比例，适用于任意数量的子策略。
-    当前有7个子策略，买入/卖出均需 ≥4/7 策略同意。
+    当前默认是 11 个子策略，买入/卖出均需 ≥6/11 策略同意。
     """
     name = '均衡组合'
     description = '过半策略同意就行动，平衡收益与风险'
@@ -402,7 +523,7 @@ class AggressiveEnsemble(EnsembleStrategy):
     - HOLD 不参与计分，反应更灵敏
     
     注意: 阈值是比例，适用于任意数量的子策略。
-    当前有7个子策略，加权投票模式下阈值仍然有效。
+    当前默认是 11 个子策略，加权投票模式下阈值仍然有效。
     """
     name = '激进组合'
     description = '加权投票，HOLD不计分，反应灵敏'
@@ -412,226 +533,6 @@ class AggressiveEnsemble(EnsembleStrategy):
                          sell_threshold=0.35, **kwargs)
 
 
-# ============================================================
-# V3.3 全策略组合（11 策略 + 重大利空优先 + 冲突规则 + 新策略仓位 40%）
-# ============================================================
-
-class V33EnsembleStrategy(Strategy):
-    """
-    V3.3 组合：11 策略投票，重大利空无条件卖出优先，否则买入总分 vs 卖出总分×1.2；
-    情绪+消息+政策触发的开仓合计 ≤ 40%。
-    """
-
-    name = "V33组合"
-    description = "11策略投票+重大利空优先+卖出×1.2+新策略仓位≤40%"
-
-    param_ranges = {
-        "buy_threshold": (0.35, 0.5, 0.7, 0.05),
-        "sell_threshold": (0.35, 0.5, 0.7, 0.05),
-    }
-
-    def __init__(
-        self,
-        symbol: Optional[str] = None,
-        buy_threshold: float = 0.5,
-        sell_threshold: float = 0.5,
-        weights: Optional[Dict[str, float]] = None,
-        use_dynamic_weights: bool = True,
-        **kwargs,
-    ):
-        self.symbol = symbol
-        self.buy_threshold = buy_threshold
-        self.sell_threshold = sell_threshold
-        self.use_dynamic_weights = use_dynamic_weights and compute_v33_weights is not None
-        self.sub_strategies: Dict[str, Strategy] = {
-            "MA": MACrossStrategy(),
-            "MACD": MACDStrategy(),
-            "RSI": RSIStrategy(),
-            "BOLL": BollingerBandStrategy(),
-            "KDJ": KDJStrategy(),
-            "DUAL": DualMomentumSingleStrategy(),
-            "PE": PEStrategy(),
-            "Sentiment": SentimentStrategy(),
-            "NewsSentiment": NewsSentimentStrategy(symbol=symbol or ""),
-            "PolicyEvent": PolicyEventStrategy(),
-            "MoneyFlow": MoneyFlowStrategy(symbol=symbol),
-        }
-        self.weights: Dict[str, float] = weights or {
-            "DUAL": 1.5, "BOLL": 1.3, "MA": 1.2, "MACD": 1.1,
-            "RSI": 1.0, "PE": 1.0, "KDJ": 0.9,
-            "Sentiment": 1.0, "NewsSentiment": 1.0, "PolicyEvent": 1.0, "MoneyFlow": 1.0,
-        }
-        self.min_bars = max(s.min_bars for s in self.sub_strategies.values())
-        # 动态权重冷却：上次调整日期、冷却截止日期、当前市场状态
-        self._weight_adjustment_date: Optional[pd.Timestamp] = None
-        self._weight_cooldown_until: Optional[pd.Timestamp] = None
-        self._weight_state: Optional[str] = None
-        # 回测用：预取指数日线，按 bar 日期做截面权重，不缩减动态权重功能
-        self._backtest_index_df: Optional[pd.DataFrame] = None
-
-    def prepare_backtest(self, df: pd.DataFrame) -> None:
-        """回测前让各子策略预取外部数据；并预取沪深300指数用于动态权重（按 bar 截面）。"""
-        for strat in self.sub_strategies.values():
-            if hasattr(strat, "prepare_backtest") and callable(getattr(strat, "prepare_backtest")):
-                try:
-                    strat.prepare_backtest(df)
-                except Exception:
-                    pass
-        if df is None or df.empty or "date" not in df.columns:
-            return
-        start_d = pd.Timestamp(df["date"].iloc[0]) - pd.Timedelta(days=90)
-        end_d = pd.Timestamp(df["date"].iloc[-1])
-        start_str = start_d.strftime("%Y%m%d")
-        end_str = end_d.strftime("%Y%m%d")
-
-        def _norm_index_df(raw):
-            if raw is None or len(raw) < 30:
-                return None
-            raw = raw.rename(columns={"日期": "date", "开盘": "open", "收盘": "close", "最高": "high", "最低": "low"})
-            if "date" not in raw.columns:
-                raw = raw.rename(columns={"trade_date": "date"})
-            raw["date"] = pd.to_datetime(raw["date"])
-            for c in ["high", "low", "close"]:
-                if c not in raw.columns:
-                    raw[c] = raw["close"]
-            raw["high"] = pd.to_numeric(raw["high"], errors="coerce").fillna(raw["close"])
-            raw["low"] = pd.to_numeric(raw["low"], errors="coerce").fillna(raw["close"])
-            raw["close"] = pd.to_numeric(raw["close"], errors="coerce")
-            return raw.dropna(subset=["close"]).sort_values("date").reset_index(drop=True)
-
-        idx_df = None
-        try:
-            import akshare as ak
-            idx_df = ak.stock_zh_index_hist_csindex(symbol="000300", start_date=start_str, end_date=end_str)
-            idx_df = _norm_index_df(idx_df)
-        except Exception as e:
-            logger.warning("V33 预取沪深300 akshare 失败: %s，尝试备用 tushare", e)
-        if idx_df is None:
-            try:
-                import tushare as ts
-                token = getattr(ts, "token", None) or __import__("os").environ.get("TUSHARE_TOKEN")
-                if token:
-                    pro = ts.pro_api(token)
-                    tushare_df = pro.index_daily(ts_code="399300.SZ", start_date=start_str, end_date=end_str)
-                    if tushare_df is not None and not tushare_df.empty:
-                        tushare_df = tushare_df.rename(columns={"trade_date": "date", "close": "close", "high": "high", "low": "low"})
-                        tushare_df["date"] = pd.to_datetime(tushare_df["date"])
-                        idx_df = _norm_index_df(tushare_df)
-                        if idx_df is not None:
-                            logger.info("V33 预取沪深300 已用备用 tushare 成功")
-            except Exception as e2:
-                logger.debug("V33 预取沪深300 tushare 失败: %s", e2)
-        self._backtest_index_df = idx_df
-
-    def analyze(self, df: pd.DataFrame) -> StrategySignal:
-        # 动态权重与冷却（Phase 5.2–5.4）
-        as_of = pd.Timestamp(datetime.now().date())
-        if df is not None and len(df) > 0 and hasattr(df.get("date", pd.Series()), "iloc"):
-            try:
-                d = df["date"] if "date" in df.columns else df.index
-                as_of = pd.Timestamp(d.iloc[-1]) if hasattr(d, "iloc") else pd.Timestamp(datetime.now().date())
-            except Exception:
-                pass
-        from .base import _BACKTEST_ACTIVE
-        index_df = None
-        if self.use_dynamic_weights and compute_v33_weights is not None:
-            if _BACKTEST_ACTIVE and self._backtest_index_df is not None and not self._backtest_index_df.empty:
-                # 回测：用预取指数，截取到当前 bar 日期的最近 60 日，保证动态权重按截面生效
-                sub = self._backtest_index_df[self._backtest_index_df["date"] <= as_of].tail(60)
-                if len(sub) >= 30:
-                    index_df = sub.reset_index(drop=True)
-            elif not _BACKTEST_ACTIVE and fetch_index_for_state is not None:
-                index_df = fetch_index_for_state("000300", 60)
-            if index_df is not None:
-                in_cooldown = (
-                    self._weight_cooldown_until is not None
-                    and as_of is not None
-                    and as_of < self._weight_cooldown_until
-                )
-                if not in_cooldown:
-                    trigger = should_trigger_adjustment(index_df, self._weight_state) if should_trigger_adjustment else True
-                    if trigger:
-                        as_of_dt = as_of.to_pydatetime() if hasattr(as_of, "to_pydatetime") else datetime.now()
-                        w, state, adj_date = compute_v33_weights(
-                            index_df, self._weight_state, self._weight_adjustment_date, as_of_dt
-                        )
-                        self.weights = {k: v for k, v in w.items() if k in self.sub_strategies}
-                        self._weight_state = state
-                        self._weight_adjustment_date = pd.Timestamp(adj_date) if adj_date else as_of
-                        self._weight_cooldown_until = self._weight_adjustment_date + pd.Timedelta(days=7)
-
-        votes: Dict[str, StrategySignal] = {}
-        buy_votes: List[tuple] = []
-        sell_votes: List[tuple] = []
-
-        for name, strat in self.sub_strategies.items():
-            if strat.min_bars > 0 and (df is None or len(df) < strat.min_bars):
-                continue
-            try:
-                sig = strat.analyze(df if df is not None else pd.DataFrame())
-                votes[name] = sig
-                if sig.action == "BUY":
-                    buy_votes.append((name, sig))
-                elif sig.action == "SELL":
-                    sell_votes.append((name, sig))
-            except Exception as e:
-                logger.warning("[V33组合] 子策略 %s 异常: %s", name, e)
-
-        total = len(votes)
-        if total == 0:
-            return StrategySignal("HOLD", 0.0, "无策略可用", 0.5, {})
-
-        # 1) 重大利空优先：任一 SELL 原因包含「重大利空」则无条件卖出
-        for name, sig in sell_votes:
-            if sig.reason and MAJOR_NEGATIVE_REASON_KEY in sig.reason:
-                return StrategySignal(
-                    action="SELL",
-                    confidence=sig.confidence,
-                    position=sig.position,
-                    reason=f"重大利空优先({name}): {sig.reason}",
-                    indicators={"投票详情": {n: f"{s.action}({s.confidence:.0%})" for n, s in votes.items()}},
-                )
-
-        # 2) 加权得分：买入总分 vs 卖出总分×1.2
-        buy_score = sum(self.weights.get(n, 1.0) * s.confidence for n, s in buy_votes)
-        sell_score = sum(self.weights.get(n, 1.0) * s.confidence for n, s in sell_votes) * SELL_SCORE_MULTIPLIER
-        total_active = buy_score + sell_score
-        if total_active <= 0:
-            action, conf = "HOLD", 0.5
-        elif buy_score > sell_score and buy_score / total_active >= self.buy_threshold:
-            action, conf = "BUY", buy_score / total_active
-        elif sell_score > buy_score and sell_score / total_active >= self.sell_threshold:
-            action, conf = "SELL", sell_score / total_active
-        else:
-            action, conf = "HOLD", 0.5
-
-        # 3) 目标仓位：加权平均，且新策略（情绪+消息+政策）合计 ≤ 40%
-        total_w = sum(self.weights.get(n, 1.0) for n in votes)
-        rest_weighted_pos = 0.0
-        new_weighted_pos = 0.0
-        new_names = {"Sentiment", "NewsSentiment", "PolicyEvent"}
-        for n, s in votes.items():
-            w = self.weights.get(n, 1.0)
-            if n in new_names and s.action == "BUY":
-                new_weighted_pos += w * s.position
-            else:
-                rest_weighted_pos += w * s.position
-        new_capped = min(new_weighted_pos, V33_NEW_STRATEGY_POSITION_CAP * total_w)
-        position = (rest_weighted_pos + new_capped) / total_w if total_w > 0 else 0.5
-        position = max(0.0, min(1.0, position))
-
-        if action == "HOLD":
-            position = 0.5
-
-        reason = f"V33投票: 买{buy_score:.2f} vs 卖×1.2={sell_score:.2f} → {action}"
-        return StrategySignal(
-            action=action,
-            confidence=round(conf, 2),
-            position=round(position, 2),
-            reason=reason,
-            indicators={
-                "投票详情": {n: f"{s.action}({s.confidence:.0%})" for n, s in votes.items()},
-                "买入票": len(buy_votes),
-                "卖出票": len(sell_votes),
-            },
-        )
+# V33EnsembleStrategy 已合并入 EnsembleStrategy（动态权重、重大利空优先均已迁移）
+# 保留别名供旧代码兼容
+V33EnsembleStrategy = EnsembleStrategy

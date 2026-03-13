@@ -515,12 +515,13 @@ def merge_all_pools(do_filter=True, min_pe=0, max_pe=100, min_cap=30):
                     seen_codes.add(s['code'])
         print(f"  赛道龙头池: +{len([s for s in all_stocks if s['source']=='sector_100'])} 只")
 
-    # 2. 加载指数成分股池
+    # 2. 加载指数成分股池（兼容 stocks / sectors 两种格式）
     if os.path.exists(POOL_ALL_FILE):
         with open(POOL_ALL_FILE, 'r', encoding='utf-8') as f:
             p2 = json.load(f)
         count_before = len(all_stocks)
-        for sector, stocks in p2.get('sectors', {}).items():
+        p2_sectors = p2.get('stocks', p2.get('sectors', {}))
+        for sector, stocks in p2_sectors.items():
             for s in stocks:
                 if s['code'] not in seen_codes:
                     all_stocks.append({

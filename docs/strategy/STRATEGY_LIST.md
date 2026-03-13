@@ -1,11 +1,11 @@
 # 策略清单（完整）
 
 > 项目内所有策略与组合的索引，便于查阅和工具对接。  
-> 更新：2026-03-11
+> 更新：2026-03-12
 
 ---
 
-## 一、单策略（共 9 个，入 EnsembleStrategy）
+## 一、单策略（共 14 个，其中 11 个入 EnsembleStrategy）
 
 ### 技术面策略（6 个）
 
@@ -29,24 +29,39 @@
 > 基本面策略依赖本地 PE/PB 缓存（`mydate/pe_cache/`），ETF 无 PE/PB 数据时自动跳过，不影响技术策略投票。
 > 缓存管理见 [PE_CACHE_GUIDE](../data/PE_CACHE_GUIDE.md)。
 
-### V3.3 扩展策略（4 个，仅入 V33 组合）
+### 消息面 + 资金面策略（2 个，入 EnsembleStrategy）
 
 | 注册名 | 类名 | 文件 | 说明 |
 |--------|------|------|------|
-| Sentiment | SentimentStrategy | `sentiment.py` | 市场情绪（S/S_low/S_high + 趋势过滤） |
-| NewsSentiment | NewsSentimentStrategy | `news_sentiment.py` | 新闻情感（24h N、S_news、预期差） |
-| PolicyEvent | PolicyEventStrategy | `policy_event.py` | 政策事件（S_high、重大利空） |
-| MoneyFlow | MoneyFlowStrategy | `money_flow.py` | 龙虎榜/大宗资金流 |
+| NEWS | NewsSentimentStrategy | `news_sentiment.py` | 新闻情感（24h N、S_news、关键词0.4+LLM0.6 融合、预期差） |
+| MONEY_FLOW | MoneyFlowStrategy | `money_flow.py` | 龙虎榜连续2日同席位 + 大宗折价/买卖方 |
+
+### 市场级策略（2 个，不入 Ensemble，作独立/过滤层）
+
+| 注册名 | 类名 | 文件 | 说明 |
+|--------|------|------|------|
+| Sentiment | SentimentStrategy | `sentiment.py` | 市场情绪综合指数（S/S_low/S_high），市场级 |
+| PolicyEvent | PolicyEventStrategy | `policy_event.py` | 政策事件（关键词+LLM 融合），市场级，作选股前大盘过滤 |
+
+> PolicyEvent 在每日选股入口 `recommend_today.py` 中作为大盘过滤层：政策极度利空时暂停选股；可用 `--no-policy-filter` 强制跳过。
+
+### 其他（1 个，接口不兼容）
+
+| 注册名 | 类名 | 文件 | 说明 |
+|--------|------|------|------|
+| DualMomentum | DualMomentumStrategy | `core/dual_momentum_strategy.py` | ETF 轮动专用，MultiIndex 接口 |
 
 ---
 
 ## 二、组合策略
 
-### EnsembleStrategy（主力组合，9 子策略）
+### EnsembleStrategy（主力组合，11 子策略）
 
 ```
 技术面 6 个：MA / MACD / RSI / BOLL / KDJ / DUAL
 基本面 3 个：PE / PB / PEPB
+消息面 1 个：NEWS（关键词+LLM 融合）
+资金面 1 个：MONEY_FLOW（龙虎榜+大宗）
 ```
 
 | 参数 | 默认值 | 说明 |
@@ -58,36 +73,51 @@
 | `holding_cost` | `None` | 传入持仓成本后启用止损感知 |
 | `stop_loss_pct` | `-8%` | 硬止损线，触发后直接输出 SELL |
 | `warn_loss_pct` | `-5%` | 预警线，无买入支撑时建议减仓 |
+| `symbol` / `stock_name` | — | NEWS/MONEY_FLOW 需要；选股时 `set_symbol()` 逐股注入 |
 
-**权重配置：**
+**权重配置**（基于 v3 回测 + 保守估计）：
 
 | 策略 | 权重 | 说明 |
 |------|------|------|
-| MACD | 1.2 | 短线最优，权重最高 |
-| DUAL | 1.0 | 趋势确认 |
-| MA/RSI/BOLL/KDJ | 0.8 | 标准技术指标 |
-| PEPB | 0.8 | 双因子基本面，权重较高 |
-| PE/PB | 0.6 | 单因子基本面 |
+| BOLL | 1.5 | 夏普最高(0.20)、回撤最小(13.8%) |
+| MACD | 1.3 | 收益最高(+15.3%)，夏普第二(0.16) |
+| KDJ | 1.1 | 夏普第三(0.15)，盈利率70.6% |
+| MA | 1.0 | 收益第三(+13.9%) |
+| DUAL | 0.9 | 无单独回测数据，保守权重 |
+| RSI | 0.8 | 夏普最低(0.07)，降权 |
+| PEPB | 0.8 | 双因子共振，数据要求高 |
+| PE | 0.6 | 回撤最小(9%)，辅助过滤 |
+| PB | 0.6 | 单因子 PB |
+| NEWS | 0.5 | 关键词+LLM 融合，触发频率中等 |
+| MONEY_FLOW | 0.4 | 龙虎榜+大宗，触发频率低但质量高 |
 
-**持仓成本感知（新增）：**
-- 传入 `holding_cost` 后，每次 `analyze()` 会计算当前盈亏
-- 亏损超过 `-8%` → 直接返回 SELL（优先级最高，覆盖所有技术信号）
+**决策优先级**（从高到低）：
+1. 硬止损（亏损 ≤ -8%）→ 无条件 SELL  
+2. 重大利空（任一 SELL 含「重大利空」）→ 直接 SELL  
+3. 投票决策（weighted / majority / unanimous / any）  
+4. 持仓预警（-5%~-8% 且无 BUY）→ 建议减仓 SELL  
+
+**动态权重**：`v33_weights` 根据沪深300 ADX/HV20 判断趋势/震荡市，自动调节各策略权重，7 日冷却。
+
+**持仓成本感知**：
+- 传入 `holding_cost` 后，每次 `analyze()` 计算当前盈亏
+- 亏损超过 `-8%` → 直接返回 SELL
 - 亏损在 `-5%~-8%` 且无 BUY 支撑 → 降级为 SELL 建议减仓
 
-**仓位管理（新增）：**
+**仓位管理**：
 - BUY 且置信 ≥ 70% → 建议仓位 80%
 - BUY 且置信 < 70% → 建议仓位 50%
 - SELL → 建议仓位 0%
 - HOLD → 取各子策略建议仓位均值
 
-### 其他组合（保守/均衡/激进/V33）
+### 预设组合（均继承 EnsembleStrategy，11 子策略）
 
-| 注册名 | 类名 | 子策略 | 说明 |
-|--------|------|--------|------|
-| 保守组合 | ConservativeEnsemble | 技术面 6 个 + PE | 投票阈值更严 |
-| 均衡组合 | BalancedEnsemble | 同上 7 个 | 默认阈值 |
-| 激进组合 | AggressiveEnsemble | 同上 7 个 | 投票阈值更松 |
-| V33组合 | V33EnsembleStrategy | 技术 6 + 基本面 3 + V3.3 扩展 4（共 13 个） | 重大利空优先、动态权重与 7 日冷却 |
+| 注册名 | 类名 | 模式 | 说明 |
+|--------|------|------|------|
+| 保守组合 | ConservativeEnsemble | majority | buy≥50%、sell≥34%，保护优先 |
+| 均衡组合 | BalancedEnsemble | majority | 买入/卖出均需 ≥50% |
+| 激进组合 | AggressiveEnsemble | weighted | 阈值 0.35，反应更灵敏 |
+| V33组合 | V33EnsembleStrategy | — | **EnsembleStrategy 别名**（兼容旧代码） |
 
 ---
 
@@ -97,6 +127,7 @@
 |------|------|------|
 | 换手率辅助 | `turnover_helper.py` | 换手率过滤/约束，供策略或回测使用 |
 | 策略基类 | `base.py` | `Strategy`、`StrategySignal` 定义 |
+| 动态权重 | `v33_weights.py` | ADX/HV20 市场状态、乘数表、7 日冷却 |
 
 ---
 
@@ -104,7 +135,7 @@
 
 - **策略实现目录**：`src/strategies/`
 - **注册表**：`src/strategies/__init__.py` 中的 `STRATEGY_REGISTRY`
-- **V3.3 权重与名单**：`src/core/v33_weights.py` 中 `V33_STRATEGY_NAMES`（与 V33 组合 11 子策略一致）
+- **动态权重与名单**：`src/strategies/v33_weights.py` 中 `V33_STRATEGY_NAMES`（与 EnsembleStrategy 11 子策略一致）
 
 获取所有策略实例：`get_all_strategies()`；列出名称与参数：`list_strategies()`。
 
@@ -114,13 +145,11 @@
 
 | 工具 | 路径 | 使用的策略 |
 |------|------|------------|
-| 单股多策略分析 | `tools/analysis/analyze_single_stock.py` | 9 大单策略：MA, MACD, RSI, BOLL, KDJ, DUAL（技术面6）+ PE, PB, PEPB（基本面3） |
-| 持仓多策略分析 | `tools/analysis/portfolio_strategy_analysis.py` | 同上 9 大策略 |
-| 每日选股推荐 | `tools/analysis/recommend_today.py` | 单 MACD 或 9 策略 EnsembleStrategy（技术6+基本面3，加权投票） |
+| 每日选股推荐 | `tools/analysis/recommend_today.py` | 政策面大盘过滤（PolicyEvent）+ 单 MACD 或 11 策略 EnsembleStrategy |
+| 单股多策略分析 | `tools/analysis/analyze_single_stock.py` | 11 单策略 + PE/PB + 5 组合（含 Ensemble/V33） |
+| 持仓多策略分析 | `tools/analysis/portfolio_strategy_analysis.py` | 11 大策略（技术6+消息面+资金面+基本面） |
 | 交易报告生成 | `tools/analysis/generate_trade_report.py` | 双核动量轮动（ETF 轮动），非单股策略库 |
 | 批量回测 | `tools/backtest/batch_backtest.py` | 可配置策略；支持 `--check-future` 未来函数校验 |
-
-若要在「每日推荐」中使用 V33 组合（含情绪/消息/政策/龙虎榜），需在 `recommend_today.py` 中增加对 `V33EnsembleStrategy(symbol=code)` 的调用或选项。
 
 ---
 

@@ -38,7 +38,7 @@ src/strategies/
 ├── fundamental_pe.py      ← ⑦ PE 历史分位数策略
 ├── fundamental_pb.py      ← ⑧ PB 历史分位数策略
 ├── fundamental_pe_pb.py   ← ⑨ PE+PB 双因子联合低估策略
-├── ensemble.py            ← 组合策略（EnsembleStrategy 9子策略 + 保守/均衡/激进）
+├── ensemble.py            ← 组合策略（EnsembleStrategy 11子策略 + 保守/均衡/激进）
 └── __init__.py            ← 策略注册中心
 ```
 
@@ -315,7 +315,7 @@ conf = 0.55 + (0.85 - 0.55) × tanh(|momentum| / 10)
 
 ## 五、EnsembleStrategy 主力组合策略 (`ensemble.py`)
 
-EnsembleStrategy 整合 **9 个子策略**（技术面 6 + 基本面 3）进行加权投票。
+EnsembleStrategy 整合 **11 个子策略**（技术面 6 + 基本面 3 + 消息面 NEWS + 资金面 MONEY_FLOW）进行加权投票。
 
 ### 子策略与权重
 

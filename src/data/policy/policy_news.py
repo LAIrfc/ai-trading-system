@@ -300,15 +300,112 @@ def get_policy_sentiment(max_news: int = 15) -> Optional[float]:
     return v[0] if v else None
 
 
-def get_policy_sentiment_v33(max_news: int = 15) -> Optional[tuple]:
+# ============================================================
+# LLM 语义情感分析（升级层）
+# ============================================================
+
+_LLM_POLICY_SYSTEM = (
+    "你是专业的A股政策面分析师。"
+    "请基于给出的政策新闻标题列表，判断整体政策面对A股市场的影响。"
+    "只输出 JSON，不要任何其他文字。"
+)
+
+_LLM_POLICY_PROMPT_TMPL = """以下是今日最新政策/宏观新闻标题（共{n}条）：
+
+{titles}
+
+请分析这些新闻对A股市场的整体政策面影响，输出以下 JSON：
+{{
+  "score": <-1.0到1.0的浮点数，-1极度利空，0中性，1极度利好>,
+  "direction": "<利好|利空|中性>",
+  "major_negative": <true或false，是否存在监管加强/反垄断/集采降价/出口管制等重大利空>,
+  "key_themes": ["<主题1>", "<主题2>"],
+  "reason": "<50字以内的简要说明>"
+}}"""
+
+
+def _llm_score_policy_news(news_titles: list) -> Optional[dict]:
     """
-    V3.3：政策情感 + 是否出现重大利空 + 加权平均影响力。
+    用 LLM 对政策新闻标题列表做语义情感分析。
+
+    Parameters
+    ----------
+    news_titles : list of str
+        新闻标题列表（最多 20 条）
+
+    Returns
+    -------
+    dict with keys: score, direction, major_negative, key_themes, reason
+    或 None（LLM 不可用或解析失败）
+    """
+    if not news_titles:
+        return None
+
+    try:
+        from src.data.ai_analyst import call_llm
+    except ImportError:
+        try:
+            import sys, os
+            sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', '..'))
+            from src.data.ai_analyst import call_llm
+        except ImportError:
+            logger.debug("ai_analyst 模块不可用，跳过 LLM 政策分析")
+            return None
+
+    titles_text = "\n".join(f"{i+1}. {t}" for i, t in enumerate(news_titles[:20]))
+    prompt = _LLM_POLICY_PROMPT_TMPL.format(n=len(news_titles[:20]), titles=titles_text)
+
+    try:
+        result = call_llm(
+            prompt=prompt,
+            system_prompt=_LLM_POLICY_SYSTEM,
+            max_tokens=300,
+            temperature=0.1,
+        )
+        if not result:
+            return None
+
+        # 解析 JSON（LLM 可能在 JSON 前后加文字，用正则提取）
+        import re
+        m = re.search(r'\{.*\}', result, re.DOTALL)
+        if not m:
+            logger.debug("LLM 政策分析返回格式异常: %s", result[:200])
+            return None
+
+        data = json.loads(m.group())
+        score = float(data.get("score", 0))
+        score = max(-1.0, min(1.0, score))
+        return {
+            "score": score,
+            "direction": data.get("direction", "中性"),
+            "major_negative": bool(data.get("major_negative", False)),
+            "key_themes": data.get("key_themes", []),
+            "reason": data.get("reason", ""),
+        }
+    except Exception as e:
+        logger.debug("LLM 政策分析解析失败: %s", e)
+        return None
+
+
+def get_policy_sentiment_v33(max_news: int = 15, use_llm: bool = True) -> Optional[tuple]:
+    """
+    V3.3+：政策情感 + 是否出现重大利空 + 加权平均影响力。
+
+    升级：在关键词打分基础上，若 LLM 可用则融合语义分析结果。
+    融合权重：关键词分 0.4 + LLM 分 0.6（LLM 不可用时退化为纯关键词）。
+
+    Parameters
+    ----------
+    max_news : int
+        最多获取的新闻条数
+    use_llm : bool
+        是否尝试调用 LLM（回测时应设为 False）
 
     Returns
     -------
     (agg_score, has_major_negative, avg_influence) 或 None
-        agg_score 在 [-1, 1]；has_major_negative 为 True 表示某条新闻影响力≥1.0 且命中重大利空关键词；
-        avg_influence 为用于置信度计算的影响力均值。
+        agg_score 在 [-1, 1]；has_major_negative 为 True 表示出现重大利空；
+        avg_influence 为影响力均值（用于置信度）。
     """
     try:
         from .policy_keywords import score_policy_text, has_major_negative
@@ -316,15 +413,23 @@ def get_policy_sentiment_v33(max_news: int = 15) -> Optional[tuple]:
     except ImportError:
         from src.data.policy.policy_keywords import score_policy_text, has_major_negative
         from src.data.policy.policy_overrides import get_policy_override, policy_id_from_row, score_from_override, influence_from_override
+
     df = fetch_policy_news(max_items=max_news)
     if df is None or df.empty:
         return None
+
+    # ---- 关键词打分（原有逻辑，保留用于回测兼容）----
     scores = []
     influences = []
     major_neg = False
+    titles = []
+
     for _, row in df.iterrows():
-        text = str(row.get("title", "")) + " " + str(row.get("content", ""))
-        pid = policy_id_from_row(str(row.get("date", "")), str(row.get("title", "")))
+        title = str(row.get("title", ""))
+        text = title + " " + str(row.get("content", ""))
+        if title:
+            titles.append(title)
+        pid = policy_id_from_row(str(row.get("date", "")), title)
         ov = get_policy_override(pid)
         if ov is not None:
             s = score_from_override(ov)
@@ -338,12 +443,40 @@ def get_policy_sentiment_v33(max_news: int = 15) -> Optional[tuple]:
                 major_neg = True
             elif ov is None and has_major_negative(text):
                 major_neg = True
+
     if not scores:
         return None
+
     total_w = sum(influences)
     if total_w <= 0:
         total_w = 1.0
-    agg = sum(s * w for s, w in zip(scores, influences)) / total_w
-    agg = max(-1.0, min(1.0, agg))
+    kw_agg = sum(s * w for s, w in zip(scores, influences)) / total_w
+    kw_agg = max(-1.0, min(1.0, kw_agg))
     avg_inf = sum(influences) / len(influences)
-    return (agg, major_neg, avg_inf)
+
+    # ---- LLM 语义分析（实盘增强层）----
+    llm_result = None
+    if use_llm and titles:
+        llm_result = _llm_score_policy_news(titles)
+
+    if llm_result is not None:
+        # 融合：LLM 权重 0.6，关键词权重 0.4
+        llm_score = llm_result["score"]
+        final_agg = 0.4 * kw_agg + 0.6 * llm_score
+        final_agg = max(-1.0, min(1.0, final_agg))
+
+        # LLM 发现重大利空也触发
+        if llm_result.get("major_negative"):
+            major_neg = True
+
+        logger.info(
+            "政策面分析完成 [关键词%.2f × LLM%.2f → 融合%.2f] 方向:%s 主题:%s",
+            kw_agg, llm_score, final_agg,
+            llm_result.get("direction", ""),
+            ",".join(llm_result.get("key_themes", [])),
+        )
+        return (final_agg, major_neg, avg_inf)
+
+    # LLM 不可用，退化为纯关键词
+    logger.debug("政策面分析：LLM 不可用，使用纯关键词分数 %.2f", kw_agg)
+    return (kw_agg, major_neg, avg_inf)

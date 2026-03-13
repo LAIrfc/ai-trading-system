@@ -17,9 +17,9 @@ tools/
 │   └── v33_sensitivity.py          # V3.3 参数敏感性（新闻阈值等）
 │
 ├── analysis/              # 分析报告（策略见 docs/strategy/STRATEGY_LIST.md）
-│   ├── recommend_today.py          # 每日选股推荐（MACD 或多策略组合）
-│   ├── analyze_single_stock.py     # 单股 9 大策略分析
-│   ├── portfolio_strategy_analysis.py  # 持仓 9 大策略分析
+│   ├── recommend_today.py          # 每日选股（政策面过滤 + MACD 或 11 策略 Ensemble）
+│   ├── analyze_single_stock.py     # 单股 11 策略 + 组合分析
+│   ├── portfolio_strategy_analysis.py  # 持仓 11 大策略分析
 │   └── generate_trade_report.py    # 双核动量交易报告
 │
 ├── data/                  # 数据获取与管理
@@ -53,7 +53,7 @@ tools/
 ### 回测工具
 
 ```bash
-# 大规模回测（9策略 Ensemble，300只股票，3年数据）
+# 大规模回测（11策略 Ensemble，300只股票，3年数据）
 python3 tools/backtest/batch_backtest.py --pool mydate/stock_pool_all.json --count 300 --local-kline mydate/backtest_kline
 
 # 策略交叉验证
@@ -93,15 +93,15 @@ python3 tools/optimization/optimize_macd.py
 ### 分析报告
 
 ```bash
-# 每日选股推荐（9策略 Ensemble，综合技术面+基本面）
+# 每日选股推荐（政策面过滤 + 11策略 Ensemble）
 python3 tools/analysis/recommend_today.py --pool mydate/stock_pool_all.json --strategy ensemble
 python3 tools/analysis/recommend_today.py --pool mydate/stock_pool.json --strategy macd --top 10
 
-# 单股多策略分析（9 大策略：技术6+基本面3）
+# 单股多策略分析（11 大策略：技术6+基本面3+消息面+资金面）
 python3 tools/analysis/analyze_single_stock.py 002015
 python3 tools/analysis/analyze_single_stock.py 002015 --name "协鑫能科"
 
-# 持仓多策略分析（同上 9 大策略）
+# 持仓多策略分析（同上 11 大策略）
 python3 tools/analysis/portfolio_strategy_analysis.py
 
 # 双核动量交易报告（ETF 轮动）

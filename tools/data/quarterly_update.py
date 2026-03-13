@@ -164,7 +164,7 @@ def update_fundamental_cache():
 
     print("\n📡 更新基本面数据缓存...")
 
-    # 加载所有股票代码
+    # 加载所有股票代码（兼容 stocks / sectors 两种格式）
     all_codes = set()
     for pool_file in [
         os.path.join(DATA_DIR, 'stock_pool.json'),
@@ -173,7 +173,8 @@ def update_fundamental_cache():
         if os.path.exists(pool_file):
             with open(pool_file, 'r', encoding='utf-8') as f:
                 pool = json.load(f)
-            for sector, stocks in pool.get('sectors', {}).items():
+            sectors = pool.get('stocks', pool.get('sectors', {}))
+            for sector, stocks in sectors.items():
                 for s in stocks:
                     all_codes.add(s['code'])
 

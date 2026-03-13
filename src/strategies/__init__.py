@@ -13,27 +13,12 @@
   用于后续参数扫描优化。
 
 策略分类:
-  技术面 (technical):
-    MA    - ma_cross.py         均线金叉/死叉
-    MACD  - macd_cross.py       MACD柱状图交叉
-    RSI   - rsi_signal.py       RSI超买超卖
-    BOLL  - bollinger_band.py   布林带突破/均值回归
-    KDJ   - kdj_signal.py       KDJ指标
-    DUAL  - dual_momentum.py    双核动量（个股版）
+  技术面 (technical): MA, MACD, RSI, BOLL, KDJ, DUAL
+  基本面 (fundamental): PE, PB, PEPB
+  消息面+资金面: NEWS(新闻情感), MONEY_FLOW(龙虎榜/大宗)
+  市场级(不入Ensemble): Sentiment(市场情绪), PolicyEvent(政策事件，作选股前大盘过滤)
 
-  基本面 (fundamental):
-    PE    - fundamental_pe.py   PE历史分位数
-    PB    - fundamental_pb.py   PB历史分位数（含ROE过滤）
-    PE_PB - fundamental_pe_pb.py PE+PB双因子共振
-
-  V3.3扩展 (v33):
-    Sentiment    - sentiment.py       市场情绪综合指数
-    NewsSentiment- news_sentiment.py  新闻情感分析
-    PolicyEvent  - policy_event.py    政策事件驱动
-    MoneyFlow    - money_flow.py      龙虎榜/大宗交易
-
-  组合策略 (ensemble):
-    保守组合 / 均衡组合 / 激进组合 / V33组合  - ensemble.py
+  组合策略 (ensemble): EnsembleStrategy(11子策略) / 保守/均衡/激进 / V33别名
 """
 
 from .base import Strategy, StrategySignal
