@@ -32,6 +32,7 @@ import time
 import argparse
 from datetime import datetime, timedelta
 from collections import defaultdict
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import pandas as pd
 import numpy as np
@@ -323,6 +324,256 @@ def compute_score(info: dict) -> float:
 
 
 # ============================================================
+# 11 策略全量分析（与持仓分析一致）
+# ============================================================
+
+def load_cached_kline(code: str, cache_dir: str = None) -> pd.DataFrame:
+    """从缓存加载K线数据"""
+    if not cache_dir:
+        cache_dir = os.path.join(os.path.dirname(__file__), '..', '..', 'mydate', 'backtest_kline')
+    cache_file = os.path.join(cache_dir, f'{code}.parquet')
+    if os.path.exists(cache_file):
+        try:
+            df = pd.read_parquet(cache_file)
+            if 'date' in df.columns:
+                df['date'] = pd.to_datetime(df['date'])
+            return df
+        except:
+            pass
+    return pd.DataFrame()
+
+
+def update_kline_cache(code: str, cache_dir: str = None, days: int = 200) -> pd.DataFrame:
+    """增量更新K线缓存：只获取缺失的日期"""
+    import baostock as bs
+    
+    # 1. 加载现有缓存
+    cached_df = load_cached_kline(code, cache_dir)
+    
+    end_date = datetime.now().strftime('%Y-%m-%d')
+    
+    # 2. 确定需要更新的日期范围
+    if not cached_df.empty and 'date' in cached_df.columns:
+        last_date = pd.Timestamp(cached_df['date'].max())
+        today = pd.Timestamp(datetime.now().date())
+        
+        # 如果缓存是最新的（包含今天或昨天），直接返回
+        if (today - last_date).days <= 1:
+            return cached_df
+        
+        # 增量更新：从缓存的最后一天开始
+        start_date = (last_date + timedelta(days=1)).strftime('%Y-%m-%d')
+    else:
+        # 没有缓存，全量下载
+        start_date = (datetime.now() - timedelta(days=int(days * 1.6))).strftime('%Y-%m-%d')
+    
+    # 3. 获取增量数据
+    prefix = 'sh' if code.startswith(('5', '6')) else 'sz'
+    bs_code = f'{prefix}.{code}'
+    
+    rs = bs.query_history_k_data_plus(
+        bs_code,
+        'date,open,high,low,close,volume,amount',
+        start_date=start_date,
+        end_date=end_date,
+        frequency='d',
+        adjustflag='2',
+    )
+    
+    rows = []
+    while rs.error_code == '0' and rs.next():
+        rows.append(rs.get_row_data())
+    
+    if not rows:
+        return cached_df if not cached_df.empty else pd.DataFrame()
+    
+    # 4. 合并新旧数据
+    new_df = pd.DataFrame(rows, columns=['date', 'open', 'high', 'low', 'close', 'volume', 'amount'])
+    for col in ['open', 'high', 'low', 'close', 'volume', 'amount']:
+        new_df[col] = pd.to_numeric(new_df[col], errors='coerce')
+    new_df['date'] = pd.to_datetime(new_df['date'])
+    new_df.dropna(subset=['close'], inplace=True)
+    
+    if not cached_df.empty:
+        # 合并去重
+        combined = pd.concat([cached_df, new_df], ignore_index=True)
+        combined = combined.drop_duplicates(subset=['date'], keep='last')
+        combined = combined.sort_values('date').reset_index(drop=True)
+    else:
+        combined = new_df
+    
+    # 5. 保存更新后的缓存
+    if not cache_dir:
+        cache_dir = os.path.join(os.path.dirname(__file__), '..', '..', 'mydate', 'backtest_kline')
+    os.makedirs(cache_dir, exist_ok=True)
+    cache_file = os.path.join(cache_dir, f'{code}.parquet')
+    combined.to_parquet(cache_file, index=False)
+    
+    return combined
+
+
+def load_fundamental_cache():
+    """加载基本面缓存"""
+    cache_file = os.path.join(os.path.dirname(__file__), '..', '..', 'mydate', 'market_fundamental_cache.json')
+    if os.path.exists(cache_file):
+        try:
+            with open(cache_file, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+            return data
+        except:
+            pass
+    return {'date': '', 'all_data': {}}
+
+
+def update_fundamental_cache(code: str, fetcher: FundamentalFetcher, cache_data: dict) -> dict:
+    """增量更新单只股票的基本面数据（PE/PB）"""
+    today = datetime.now().strftime('%Y-%m-%d')
+    cache_date = cache_data.get('date', '')
+    all_data = cache_data.get('all_data', {})
+    
+    # 检查缓存是否是今天的
+    if cache_date == today and code in all_data:
+        # 今天的缓存，直接返回
+        return all_data[code]
+    
+    # 缓存过期或不存在，从网络获取
+    try:
+        # 只获取最新一天的数据
+        fund_df = fetcher.get_daily_basic(code, start_date=today, end_date=today)
+        if not fund_df.empty:
+            fund_info = {
+                'name': fund_df['name'].iloc[0] if 'name' in fund_df.columns else '',
+                'pe_ttm': float(fund_df['pe_ttm'].iloc[0]) if 'pe_ttm' in fund_df.columns and pd.notna(fund_df['pe_ttm'].iloc[0]) else None,
+                'pb': float(fund_df['pb'].iloc[0]) if 'pb' in fund_df.columns and pd.notna(fund_df['pb'].iloc[0]) else None,
+                'market_cap_yi': float(fund_df['market_cap'].iloc[0]) / 100000000 if 'market_cap' in fund_df.columns and pd.notna(fund_df['market_cap'].iloc[0]) else None,
+                'is_st': False
+            }
+            return fund_info
+    except Exception:
+        pass
+    
+    # 获取失败，返回缓存（如果有）
+    if code in all_data:
+        return all_data[code]
+    
+    return None
+
+
+def run_full_11_analysis(code: str, name: str, sector: str, df: pd.DataFrame, fetcher: FundamentalFetcher) -> dict:
+    """
+    运行 11 大策略: MA, MACD, RSI, BOLL, KDJ, DUAL, Sentiment, NewsSentiment, PolicyEvent, MoneyFlow, PE, PB。
+    返回 buy_count, sell_count, hold_count, score（买-卖加权）, signals 列表。
+    
+    Args:
+        skip_network_strategies: 是否跳过需要网络请求的策略（NewsSentiment, MoneyFlow）
+    """
+    tech_strategies = {
+        'MA': MACrossStrategy(),
+        'MACD': MACDStrategy(),
+        'RSI': RSIStrategy(),
+        'BOLL': BollingerBandStrategy(),
+        'KDJ': KDJStrategy(),
+        'DUAL': DualMomentumSingleStrategy(),
+        'Sentiment': SentimentStrategy(),
+        'NewsSentiment': NewsSentimentStrategy(symbol=code),
+        'PolicyEvent': PolicyEventStrategy(),
+        'MoneyFlow': MoneyFlowStrategy(symbol=code),
+    }
+    buy_count = sell_count = hold_count = 0
+    signals = []
+    score_sum = 0.0  # BUY +position, SELL -position, HOLD 0
+
+    for strat_name, strat in tech_strategies.items():
+        try:
+            if len(df) < strat.min_bars:
+                continue
+            sig = strat.safe_analyze(df)
+            if sig.action == 'BUY':
+                buy_count += 1
+                score_sum += sig.position
+            elif sig.action == 'SELL':
+                sell_count += 1
+                score_sum -= sig.position
+            else:
+                hold_count += 1
+            signals.append((strat_name, sig.action, sig.confidence, sig.reason[:40]))
+        except Exception:
+            pass
+
+    # 获取行业PE/PB数据（用于行业分位数对比）
+    industry = None
+    industry_pe_data = industry_pb_data = None
+    try:
+        industry = fetcher.get_industry_classification(code)
+        if industry:
+            industry_data = fetcher.get_industry_pe_pb_data(code, datalen=400)  # 降到400天，提升速度
+            industry_pe_data = industry_data.get('industry_pe')
+            industry_pb_data = industry_data.get('industry_pb')
+    except Exception:
+        pass
+
+    if 'pe_ttm' in df.columns and df['pe_ttm'].notna().sum() > 100:
+        try:
+            available_data = len(df[df['pe_ttm'].notna()])
+            rolling_window = min(available_data, 756)
+            pe_strat = PEStrategy(industry=industry, industry_pe_data=industry_pe_data, rolling_window=rolling_window) if industry and industry_pe_data is not None else PEStrategy(rolling_window=rolling_window)
+            pe_strat.min_bars = max(100, available_data)
+            if len(df) >= pe_strat.min_bars:
+                pe_sig = pe_strat.safe_analyze(df)
+                if pe_sig.action == 'BUY':
+                    buy_count += 1
+                    score_sum += pe_sig.position
+                elif pe_sig.action == 'SELL':
+                    sell_count += 1
+                    score_sum -= pe_sig.position
+                else:
+                    hold_count += 1
+                signals.append(('PE', pe_sig.action, pe_sig.confidence, pe_sig.reason[:40]))
+        except Exception:
+            pass
+
+    if 'pb' in df.columns and df['pb'].notna().sum() > 100:
+        try:
+            available_data = len(df[df['pb'].notna()])
+            rolling_window = min(available_data, 756)
+            roe_passes, _, _ = fetcher.get_roe_for_filter(code)
+            pb_strat = PBStrategy(industry=industry, industry_pb_data=industry_pb_data, min_roe=8.0 if roe_passes else 0, rolling_window=rolling_window) if industry and industry_pb_data is not None else PBStrategy(min_roe=8.0 if roe_passes else 0, rolling_window=rolling_window)
+            pb_strat.min_bars = max(100, available_data)
+            if len(df) >= pb_strat.min_bars:
+                pb_sig = pb_strat.safe_analyze(df)
+                if pb_sig.action == 'BUY':
+                    buy_count += 1
+                    score_sum += pb_sig.position
+                elif pb_sig.action == 'SELL':
+                    sell_count += 1
+                    score_sum -= pb_sig.position
+                else:
+                    hold_count += 1
+                signals.append(('PB', pb_sig.action, pb_sig.confidence, pb_sig.reason[:40]))
+        except Exception:
+            pass
+
+    # 综合得分：买数量*2 - 卖数量*2 + 仓位加权
+    score = buy_count * 2 - sell_count * 2 + round(score_sum, 2)
+    price = float(df['close'].iloc[-1])
+    change_5d = (price / float(df['close'].iloc[-6]) - 1) * 100 if len(df) > 5 else 0
+    change_20d = (price / float(df['close'].iloc[-21]) - 1) * 100 if len(df) > 20 else 0
+    return {
+        'code': code,
+        'name': name,
+        'sector': sector,
+        'buy_count': buy_count,
+        'sell_count': sell_count,
+        'hold_count': hold_count,
+        'score': score,
+        'price': price,
+        'change_5d': round(change_5d, 2),
+        'change_20d': round(change_20d, 2),
+        'signals': signals,
+    }
+
+
+# ============================================================
 # 主逻辑
 # ============================================================
 
@@ -365,8 +616,8 @@ def main():
     parser.add_argument('--pool', type=str, default='stock_pool_all.json', help='股票池（默认大池 812 只）')
     parser.add_argument('--max-pool', type=int, default=0, help='最多扫描池内前 N 只（0=全部）')
     parser.add_argument('--strategy', type=str, default='ensemble',
-                        choices=['macd', 'ensemble'],
-                        help='策略: macd | ensemble(11策略加权投票，推荐，默认)')
+                        choices=['macd', 'ensemble', 'full_11'],
+                        help='策略: macd | ensemble(11策略加权投票) | full_11(11策略全量并发，推荐)')
     parser.add_argument('--fast', type=int, default=12, help='MACD快线(仅macd模式)')
     parser.add_argument('--slow', type=int, default=30, help='MACD慢线(仅macd模式)')
     parser.add_argument('--signal', type=int, default=9, help='MACD信号线(仅macd模式)')
@@ -389,21 +640,187 @@ def main():
     today = datetime.now().strftime('%Y-%m-%d')
 
     # ========= 政策面大盘过滤 =========
+    policy_result = {'blocked': False, 'score': 0.0, 'reason': '未启用政策面过滤'}
     if not args.no_policy_filter:
         print("🔍 检查政策面大盘环境...")
-        policy_status = _check_policy_filter()
-        score_str = f"{policy_status['score']:+.2f}"
-        if policy_status['blocked']:
-            print(f"\n🚫 【大盘过滤】{policy_status['reason']}")
+        policy_result = _check_policy_filter()
+        score_str = f"{policy_result['score']:+.2f}"
+        if policy_result['blocked']:
+            print(f"\n🚫 【大盘过滤】{policy_result['reason']}")
             print("   如需强制执行选股，请添加 --no-policy-filter 参数")
             return
-        elif policy_status.get('warn'):
-            print(f"⚠️  【政策预警】{policy_status['reason']}")
+        elif policy_result.get('warn'):
+            print(f"⚠️  【政策预警】{policy_result['reason']}")
             print("   继续选股，但建议降低仓位、提高确定性要求\n")
         else:
-            print(f"✅ 政策面: {policy_status['reason']}\n")
+            print(f"✅ 政策面: {policy_result['reason']}\n")
 
-    # ---------- ensemble / macd 模式 ----------
+    # ---------- 11 策略全量模式 ----------
+    if args.strategy == 'full_11':
+        strategy_name = '11大策略(MA|MACD|RSI|BOLL|KDJ|DUAL|Sentiment|NewsSentiment|PolicyEvent|MoneyFlow|PE|PB)'
+        print(f"{'='*70}")
+        print(f"📈 每日选股推荐 — {today} [全策略+大池]")
+        print(f"{'='*70}")
+        print(f"📌 策略: {strategy_name}")
+        print(f"📌 股票池: {len(stocks)} 只")
+        print(f"📌 推荐TOP: {args.top} 只")
+        print()
+
+        import baostock as bs
+        
+        # 检查缓存
+        cache_dir = os.path.join(os.path.dirname(__file__), '..', '..', 'mydate', 'backtest_kline')
+        use_kline_cache = os.path.exists(cache_dir)
+        fundamental_cache = load_fundamental_cache()
+        
+        if use_kline_cache:
+            cached_files = [f[:-8] for f in os.listdir(cache_dir) if f.endswith('.parquet')]
+            print(f"✅ K线缓存: {len(cached_files)}只")
+        
+        cache_date = fundamental_cache.get('date', '')
+        all_fund_data = fundamental_cache.get('all_data', {})
+        today = datetime.now().strftime('%Y-%m-%d')
+        
+        if cache_date == today:
+            print(f"✅ 基本面缓存: {len(all_fund_data)}只（今日最新）")
+        elif cache_date:
+            print(f"✅ 基本面缓存: {len(all_fund_data)}只（{cache_date}，将增量更新）")
+        else:
+            print(f"⚠️  基本面缓存: 无缓存，将全量获取")
+        
+        bs.login()
+        fetcher = FundamentalFetcher()
+        full_results = []
+        fail_count = 0
+        
+        # 定义单股分析函数（用于并发）
+        def analyze_one_stock(stock_info):
+            code = stock_info.get('code') or stock_info.get('symbol', '')
+            name = stock_info.get('name', '')
+            sector = stock_info.get('sector', '')
+            if not code:
+                return None
+            
+            # 增量更新K线缓存（只下载缺失日期）
+            try:
+                df = update_kline_cache(code, cache_dir, days=200)
+            except Exception:
+                # 更新失败，尝试使用现有缓存
+                df = load_cached_kline(code, cache_dir) if use_kline_cache else pd.DataFrame()
+            
+            if df.empty or len(df) < 60:
+                return None
+            
+            # 2. 增量更新基本面数据（PE/PB）
+            fund_data = update_fundamental_cache(code, fetcher, fundamental_cache)
+            if fund_data:
+                # 将基本面数据添加到最后一行
+                if 'pe_ttm' not in df.columns:
+                    df['pe_ttm'] = None
+                if 'pb' not in df.columns:
+                    df['pb'] = None
+                if 'market_cap' not in df.columns:
+                    df['market_cap'] = None
+                
+                # 用最新数据填充最后一行
+                df.loc[df.index[-1], 'pe_ttm'] = fund_data.get('pe_ttm')
+                df.loc[df.index[-1], 'pb'] = fund_data.get('pb')
+                df.loc[df.index[-1], 'market_cap'] = fund_data.get('market_cap_yi', 0) * 100000000 if fund_data.get('market_cap_yi') else None
+                # 向前填充
+                df['pe_ttm'] = df['pe_ttm'].ffill()
+                df['pb'] = df['pb'].ffill()
+                df['market_cap'] = df['market_cap'].ffill()
+            
+            return run_full_11_analysis(code, name, sector, df, fetcher)
+        
+        # 并发分析（降低线程数避免限流）
+        max_workers = 3  # 降到3，减少baostock限流
+        print(f"\n🚀 使用{max_workers}线程增量更新+并发分析...\n")
+        completed = 0
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            futures = {executor.submit(analyze_one_stock, stock): stock for stock in stocks}
+            
+            for future in as_completed(futures):
+                completed += 1
+                if completed % 50 == 0 or completed == len(stocks):
+                    pct = completed / len(stocks) * 100
+                    bar = '█' * int(pct / 2) + '░' * (50 - int(pct / 2))
+                    print(f"\r  [{bar}] {completed}/{len(stocks)} ({pct:.0f}%)", end='', flush=True)
+                
+                try:
+                    result = future.result()
+                    if result:
+                        full_results.append(result)
+                    else:
+                        fail_count += 1
+                except Exception:
+                    fail_count += 1
+
+        try:
+            bs.logout()
+        except Exception:
+            pass
+        fetcher._bs_logout()
+
+        if fail_count:
+            print(f"\n⚠️  {fail_count} 只数据不足，已跳过")
+        if not full_results:
+            print("\n⚠️ 无有效分析结果")
+            return
+
+        full_results.sort(key=lambda x: x['score'], reverse=True)
+        top_list = full_results[:args.top]
+
+        print(f"\n\n{'='*70}")
+        print(f"🟢 11策略选股 TOP {len(top_list)}（按综合得分排序）")
+        print(f"{'='*70}")
+        print(f"{'排名':>4} {'代码':>8} {'名称':>10} {'价格':>8} {'得分':>6} {'买':>3} {'卖':>3} {'观':>3} {'5日%':>7} {'20日%':>7} {'板块'}")
+        print("-" * 75)
+        for rank, r in enumerate(top_list, 1):
+            print(f"{rank:>4} {r['code']:>8} {r['name']:>10} {r['price']:>8.2f} {r['score']:>6.1f} "
+                  f"{r['buy_count']:>3} {r['sell_count']:>3} {r['hold_count']:>3} "
+                  f"{r['change_5d']:>+7.2f} {r['change_20d']:>+7.2f} {str(r['sector'])[:12]}")
+        print("-" * 75)
+        print("\n📋 策略信号明细（TOP3）:")
+        for rank, r in enumerate(top_list[:3], 1):
+            print(f"\n  {rank}. {r['code']} {r['name']} (得分 {r['score']:.1f}, 买{r['buy_count']}/卖{r['sell_count']}/观{r['hold_count']})")
+            for sn, action, conf, reason in r['signals']:
+                em = '🟢' if action == 'BUY' else ('🔴' if action == 'SELL' else '⚪')
+                print(f"      {sn:>12} {em} {action:>4} {conf:.0%} {reason[:45]}")
+        output_dir = os.path.join(os.path.dirname(__file__), '..', 'output')
+        os.makedirs(output_dir, exist_ok=True)
+        md_path = os.path.join(output_dir, f'daily_recommendation_{today}.md')
+        with open(md_path, 'w', encoding='utf-8') as f:
+            f.write(f"# 📈 每日选股推荐 — {today}（11策略+大池）\n\n")
+            f.write(f"**策略**: {strategy_name}\n")
+            f.write(f"**股票池**: {len(stocks)} 只，有效 {len(full_results)} 只\n\n")
+            
+            # TOP 推荐表格
+            f.write("## TOP 推荐\n\n")
+            f.write("| 排名 | 代码 | 名称 | 价格 | 得分 | 买 | 卖 | 观 | 5日% | 20日% | 板块 |\n")
+            f.write("|------|------|------|------|------|----|----|----|------|-------|------|\n")
+            for rank, r in enumerate(top_list, 1):
+                f.write(f"| {rank} | {r['code']} | {r['name']} | {r['price']:.2f} | {r['score']:.1f} | "
+                        f"{r['buy_count']} | {r['sell_count']} | {r['hold_count']} | "
+                        f"{r['change_5d']:+.2f} | {r['change_20d']:+.2f} | {r['sector']} |\n")
+            
+            # 详细分析（TOP 10）
+            f.write("\n## 详细分析\n\n")
+            for rank, r in enumerate(top_list, 1):
+                f.write(f"### {rank}. {r['code']} {r['name']}\n\n")
+                f.write(f"**得分**: {r['score']:.1f} | **价格**: ¥{r['price']:.2f} | ")
+                f.write(f"**5日涨幅**: {r['change_5d']:+.2f}% | **20日涨幅**: {r['change_20d']:+.2f}%\n\n")
+                f.write(f"**策略信号** (买{r['buy_count']}/卖{r['sell_count']}/观{r['hold_count']}):\n\n")
+                for sn, action, conf, reason in r['signals']:
+                    em = '🟢' if action == 'BUY' else ('🔴' if action == 'SELL' else '⚪')
+                    f.write(f"- {em} **{sn}** ({action}, {conf:.0%}): {reason}\n")
+                f.write("\n---\n\n")
+        
+        print(f"\n📝 报告已保存: {md_path}")
+        print("\n✅ 分析完成!")
+        return
+
+    # ---------- 原有 ensemble / macd 模式 ----------
     if args.strategy == 'ensemble':
         strat = EnsembleStrategy()
         strategy_name = '11策略Ensemble(技术6+基本面3+消息面+资金面，加权投票)'
