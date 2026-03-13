@@ -19,7 +19,9 @@
 
 | 模块 | 说明 |
 |------|------|
-| **策略选股** | 11策略 Ensemble 从 723 只股票池中筛选买入机会，政策面大盘过滤 + 综合评分排序 |
+| **🆕 每日推荐** | 11策略从721只股票池筛选TOP 30，自动生成跟踪文档 📊 [使用指南](docs/PORTFOLIO_GUIDE.md) |
+| **🆕 持仓跟踪** | 记录买入/卖出操作，追踪盈亏，每日自动更新 💼 [快速参考](docs/QUICK_REFERENCE.md) |
+| **策略选股** | 11策略 Full Ensemble 从 721 只股票池中筛选买入机会，综合评分排序 |
 | **持仓分析** | 对当前持仓跑全策略信号，给出操作建议和风险提示 |
 | **策略回测** | 大规模批量回测（235只股票 × 3年），支持本地数据缓存加速 |
 | **ETF轮动** | 双核动量 ETF 轮动策略，含完整回测、可视化、月度调仓 |
@@ -44,13 +46,35 @@ Windows 用户：双击 `scripts\start_windows.bat`，选择 `6` 安装依赖。
 
 ### 日常使用流程
 
+#### 🆕 推荐：一键每日更新（Windows）
+
+```bash
+# 快速模式（5-10分钟）
+scripts\daily_update.bat --quick
+
+# 完整模式（30-45分钟，含股票池更新）
+scripts\daily_update.bat
+```
+
+**自动完成**：
+- ✅ 更新股票池（HS300/ZZ500/7大板块，721只）
+- ✅ 生成今日TOP 30推荐（11策略分析）
+- ✅ 更新每日跟踪文档
+- ✅ 检查持仓盈亏
+
+**查看结果**: `docs\DAILY_TRACKING.md`
+
+---
+
+#### 传统方式（分步执行）
+
 ```bash
 # 第一步：更新本地数据缓存（每周/每月执行一次）
 python3 tools/data/backtest_prefetch.py --update --out-dir mydate/backtest_kline --workers 4
 python3 tools/data/prefetch_pe_cache.py --update
 
-# 第二步：今日选股推荐（政策面过滤 + 11策略，从 723 只综合池选出 TOP 20）
-python3 tools/analysis/recommend_today.py --pool mydate/stock_pool_all.json --strategy ensemble --top 20
+# 第二步：今日选股推荐（从 721 只综合池选出 TOP 30）
+python3 tools/analysis/recommend_today.py --pool mydate/stock_pool_all.json --strategy full_11 --top 30
 
 # 第三步：持仓分析（对当前持仓给出操作建议）
 python3 tools/analysis/portfolio_strategy_analysis.py
@@ -63,7 +87,7 @@ python3 tools/analysis/analyze_single_stock.py 600519 --name "贵州茅台"
 
 ## 🎯 策略体系
 
-### 11 个子策略（入 EnsembleStrategy）
+### 9 个单策略
 
 **技术面（6个）**
 
@@ -88,23 +112,16 @@ python3 tools/analysis/analyze_single_stock.py 600519 --name "贵州茅台"
 
 > 基本面数据来源：Baostock，本地缓存于 `mydate/pe_cache/`（779只股票），详见 [PE缓存指南](docs/data/PE_CACHE_GUIDE.md)。
 
-**消息面 + 资金面（2个）**
-
-| 策略 | 文件 | 信号逻辑 |
-|------|------|----------|
-| NEWS | `news_sentiment.py` | 24h 同向新闻，关键词0.4 + LLM语义0.6 融合，预期差日频近似 |
-| MONEY_FLOW | `money_flow.py` | 龙虎榜连续2日同席位 + 大宗折价/买卖方 |
-
 ### EnsembleStrategy（主力组合策略）
 
-11 个子策略加权投票，综合技术面、基本面、消息面、资金面：
+9个子策略加权投票，综合技术面和基本面信号：
 
 ```
 买入条件：加权得分 ≥ 0.45，且至少 2 个策略同时发出买入信号
 卖出条件：加权得分 ≤ -0.45，且至少 2 个策略同时发出卖出信号
 ```
 
-**当前权重配置**（基于回测结果 + 保守估计）：
+**当前权重配置**（基于回测结果优化）：
 
 | 策略 | 权重 | 依据 |
 |------|------|------|
@@ -117,25 +134,17 @@ python3 tools/analysis/analyze_single_stock.py 600519 --name "贵州茅台"
 | PEPB | 0.8 | 双因子共振，信号强但数据要求高 |
 | PE | 0.6 | 回撤最小(9%)，辅助过滤 |
 | PB | 0.6 | 单因子PB |
-| NEWS | 0.5 | 关键词+LLM 融合，触发频率中等 |
-| MONEY_FLOW | 0.4 | 龙虎榜+大宗，触发频率低但质量高 |
 
-**政策面大盘过滤**：选股前自动检查 PolicyEvent（关键词+LLM），极度利空时暂停选股；可用 `--no-policy-filter` 强制跳过。
+**持仓成本感知**：传入 `avg_cost` 时，自动触发止损（-8%）和预警（-5%）逻辑。
 
-**持仓成本感知**：传入 `holding_cost` 时，自动触发止损（-8%）和预警（-5%）逻辑。
-
-**动态权重**：根据沪深300 ADX/HV20 判断趋势/震荡市，自动调节各策略权重，7 日冷却。
-
-**重大利空优先**：任一策略 SELL 原因含「重大利空」→ 直接卖出，不参与投票。
-
-### 4 个预设组合（均继承 EnsembleStrategy，11 子策略）
+### 其他 4 个组合策略
 
 | 策略 | 说明 |
 |------|------|
-| 保守组合 | majority 模式，buy≥50%、sell≥34%，保护优先 |
-| 均衡组合 | majority 模式，买入/卖出均需 ≥50% |
-| 激进组合 | weighted 模式，阈值 0.35，反应更灵敏 |
-| V33组合 | EnsembleStrategy 别名（兼容旧代码） |
+| 保守组合 | 仅技术面，高阈值，低误报 |
+| 均衡组合 | 技术+基本面，默认阈值 |
+| 激进组合 | 低阈值，捕捉更多信号 |
+| V33 | 13子策略，含情绪/新闻/政策/龙虎榜，重大利空优先 |
 
 ---
 
@@ -278,7 +287,7 @@ ai-trading-system/
 │   └── data_sources.yaml    # 数据源优先级配置
 │
 ├── src/                     # 核心源代码
-│   ├── strategies/          # 11 单策略（入 Ensemble）+ 4 组合
+│   ├── strategies/          # 9 单策略 + 5 组合
 │   │   ├── base.py              # 策略基类（Strategy / StrategySignal）
 │   │   ├── ma_cross.py          # MA 均线交叉
 │   │   ├── macd_cross.py        # MACD
@@ -289,7 +298,7 @@ ai-trading-system/
 │   │   ├── fundamental_pe.py    # PE 历史分位数
 │   │   ├── fundamental_pb.py    # PB 历史分位数
 │   │   ├── fundamental_pe_pb.py # PEPB 双因子联合低估
-│   │   └── ensemble.py          # EnsembleStrategy（11子策略加权投票）
+│   │   └── ensemble.py          # EnsembleStrategy（9子策略加权投票）
 │   ├── core/                # 核心工具模块
 │   │   ├── momentum_math.py         # 动量计算共用函数
 │   │   ├── backtest_constraints.py  # 回测未来函数约束
@@ -375,7 +384,7 @@ STRATEGY_REGISTRY['MyStrategy'] = MyStrategy
 | 文档 | 说明 |
 |------|------|
 | [运行命令汇总](docs/RUN_COMMANDS.md) | 常用命令一页汇总，便于复制执行 |
-| [策略清单](docs/strategy/STRATEGY_LIST.md) | 11 单策略 + 4 组合完整清单与工具对应关系 |
+| [策略清单](docs/strategy/STRATEGY_LIST.md) | 9 单策略 + 5 组合完整清单与工具对应关系 |
 | [策略详解](docs/strategy/STRATEGY_DETAIL.md) | 各策略信号逻辑、参数、置信度映射 |
 | [策略开发快速开始](docs/strategy/STRATEGY_QUICKSTART.md) | 5 分钟上手策略开发 |
 | [双核动量指南](docs/strategy/DUAL_MOMENTUM_GUIDE.md) | ETF 轮动策略完整使用指南 |

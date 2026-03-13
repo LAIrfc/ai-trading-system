@@ -1,0 +1,1848 @@
+{
+  "meta": {
+    "date": "2026-03-14 02:36",
+    "total_stocks": 27,
+    "ok_stocks": 27,
+    "skip_stocks": 0,
+    "datalen": 730,
+    "elapsed_seconds": 322.5,
+    "risk_control": "stop_loss=8%, trailing_stop=5%"
+  },
+  "summary": {
+    "MA": {
+      "count": 27,
+      "avg_return": 21.04,
+      "median_return": 13.48,
+      "avg_ann_return": 6.65,
+      "avg_drawdown": 22.61,
+      "avg_sharpe": 0.23,
+      "median_sharpe": 0.2,
+      "avg_win_rate": 41.85,
+      "avg_trades": 21.7,
+      "positive_pct": 74.1,
+      "best_return": 81.2,
+      "worst_return": -25.15,
+      "return_std": 30.03
+    },
+    "MACD": {
+      "count": 27,
+      "avg_return": 34.0,
+      "median_return": 35.21,
+      "avg_ann_return": 10.8,
+      "avg_drawdown": 21.35,
+      "avg_sharpe": 0.38,
+      "median_sharpe": 0.53,
+      "avg_win_rate": 40.44,
+      "avg_trades": 27.8,
+      "positive_pct": 85.2,
+      "best_return": 107.47,
+      "worst_return": -29.81,
+      "return_std": 33.91
+    },
+    "RSI": {
+      "count": 27,
+      "avg_return": 23.03,
+      "median_return": 16.53,
+      "avg_ann_return": 7.27,
+      "avg_drawdown": 20.88,
+      "avg_sharpe": 0.24,
+      "median_sharpe": 0.27,
+      "avg_win_rate": 41.78,
+      "avg_trades": 21.8,
+      "positive_pct": 85.2,
+      "best_return": 110.22,
+      "worst_return": -18.29,
+      "return_std": 31.96
+    },
+    "BOLL": {
+      "count": 27,
+      "avg_return": 24.33,
+      "median_return": 20.22,
+      "avg_ann_return": 6.85,
+      "avg_drawdown": 18.95,
+      "avg_sharpe": 0.25,
+      "median_sharpe": 0.34,
+      "avg_win_rate": 44.67,
+      "avg_trades": 17.0,
+      "positive_pct": 74.1,
+      "best_return": 127.02,
+      "worst_return": -31.35,
+      "return_std": 34.44
+    },
+    "KDJ": {
+      "count": 27,
+      "avg_return": 26.3,
+      "median_return": 18.97,
+      "avg_ann_return": 7.56,
+      "avg_drawdown": 24.49,
+      "avg_sharpe": 0.23,
+      "median_sharpe": 0.3,
+      "avg_win_rate": 39.39,
+      "avg_trades": 46.9,
+      "positive_pct": 66.7,
+      "best_return": 129.99,
+      "worst_return": -32.76,
+      "return_std": 43.33
+    },
+    "PE": {
+      "count": 27,
+      "avg_return": 0.0,
+      "median_return": 0.0,
+      "avg_ann_return": 0.0,
+      "avg_drawdown": 0.0,
+      "avg_sharpe": 0.0,
+      "median_sharpe": 0.0,
+      "avg_win_rate": 0.0,
+      "avg_trades": 0.0,
+      "positive_pct": 0.0,
+      "best_return": 0.0,
+      "worst_return": 0.0,
+      "return_std": 0.0
+    },
+    "Ensemble": {
+      "count": 27,
+      "avg_return": 26.97,
+      "median_return": 8.18,
+      "avg_ann_return": 8.3,
+      "avg_drawdown": 23.41,
+      "avg_sharpe": 0.25,
+      "median_sharpe": 0.12,
+      "avg_win_rate": 42.71,
+      "avg_trades": 27.3,
+      "positive_pct": 66.7,
+      "best_return": 110.36,
+      "worst_return": -22.99,
+      "return_std": 38.18
+    }
+  },
+  "details": [
+    {
+      "code": "300751",
+      "name": "迈为股份",
+      "sector": "光伏",
+      "status": "ok",
+      "bars": 730,
+      "date_range": "2023-03-08 ~ 2026-03-13",
+      "MA": {
+        "total_return": 49.28,
+        "annualized_return": 16.2,
+        "max_drawdown": 22.47,
+        "sharpe": 0.6,
+        "win_rate": 53.85,
+        "trade_count": 15
+      },
+      "MACD": {
+        "total_return": 107.47,
+        "annualized_return": 31.75,
+        "max_drawdown": 21.24,
+        "sharpe": 1.01,
+        "win_rate": 52.94,
+        "trade_count": 20
+      },
+      "RSI": {
+        "total_return": 12.51,
+        "annualized_return": 4.48,
+        "max_drawdown": 29.51,
+        "sharpe": 0.18,
+        "win_rate": 27.27,
+        "trade_count": 24
+      },
+      "BOLL": {
+        "total_return": 59.74,
+        "annualized_return": 17.41,
+        "max_drawdown": 20.07,
+        "sharpe": 0.73,
+        "win_rate": 25.0,
+        "trade_count": 13
+      },
+      "KDJ": {
+        "total_return": 78.0,
+        "annualized_return": 23.71,
+        "max_drawdown": 22.75,
+        "sharpe": 0.84,
+        "win_rate": 35.29,
+        "trade_count": 45
+      },
+      "PE": {
+        "total_return": 0.0,
+        "annualized_return": 0.0,
+        "max_drawdown": 0.0,
+        "sharpe": 0.0,
+        "win_rate": 0.0,
+        "trade_count": 0
+      },
+      "Ensemble": {
+        "total_return": 45.41,
+        "annualized_return": 15.2,
+        "max_drawdown": 29.88,
+        "sharpe": 0.55,
+        "win_rate": 37.04,
+        "trade_count": 26
+      }
+    },
+    {
+      "code": "600438",
+      "name": "通威股份",
+      "sector": "光伏",
+      "status": "ok",
+      "bars": 730,
+      "date_range": "2023-02-22 ~ 2026-03-13",
+      "MA": {
+        "total_return": 0.54,
+        "annualized_return": 0.2,
+        "max_drawdown": 25.77,
+        "sharpe": -0.07,
+        "win_rate": 37.5,
+        "trade_count": 22
+      },
+      "MACD": {
+        "total_return": 35.21,
+        "annualized_return": 11.89,
+        "max_drawdown": 20.82,
+        "sharpe": 0.53,
+        "win_rate": 38.89,
+        "trade_count": 22
+      },
+      "RSI": {
+        "total_return": -18.29,
+        "annualized_return": -7.12,
+        "max_drawdown": 30.62,
+        "sharpe": -0.54,
+        "win_rate": 28.57,
+        "trade_count": 23
+      },
+      "BOLL": {
+        "total_return": 4.41,
+        "annualized_return": 1.47,
+        "max_drawdown": 19.57,
+        "sharpe": -0.03,
+        "win_rate": 40.0,
+        "trade_count": 16
+      },
+      "KDJ": {
+        "total_return": -32.76,
+        "annualized_return": -13.42,
+        "max_drawdown": 41.39,
+        "sharpe": -0.8,
+        "win_rate": 29.73,
+        "trade_count": 57
+      },
+      "PE": {
+        "total_return": 0.0,
+        "annualized_return": 0.0,
+        "max_drawdown": 0.0,
+        "sharpe": 0.0,
+        "win_rate": 0.0,
+        "trade_count": 0
+      },
+      "Ensemble": {
+        "total_return": -2.57,
+        "annualized_return": -0.97,
+        "max_drawdown": 26.94,
+        "sharpe": -0.1,
+        "win_rate": 32.14,
+        "trade_count": 27
+      }
+    },
+    {
+      "code": "601012",
+      "name": "隆基绿能",
+      "sector": "光伏",
+      "status": "ok",
+      "bars": 730,
+      "date_range": "2023-03-08 ~ 2026-03-13",
+      "MA": {
+        "total_return": -1.21,
+        "annualized_return": -0.45,
+        "max_drawdown": 17.75,
+        "sharpe": -0.1,
+        "win_rate": 36.84,
+        "trade_count": 26
+      },
+      "MACD": {
+        "total_return": 10.52,
+        "annualized_return": 3.85,
+        "max_drawdown": 17.89,
+        "sharpe": 0.15,
+        "win_rate": 47.37,
+        "trade_count": 24
+      },
+      "RSI": {
+        "total_return": -6.23,
+        "annualized_return": -2.36,
+        "max_drawdown": 21.87,
+        "sharpe": -0.33,
+        "win_rate": 43.75,
+        "trade_count": 20
+      },
+      "BOLL": {
+        "total_return": -31.35,
+        "annualized_return": -12.1,
+        "max_drawdown": 34.4,
+        "sharpe": -1.29,
+        "win_rate": 27.78,
+        "trade_count": 20
+      },
+      "KDJ": {
+        "total_return": -10.72,
+        "annualized_return": -4.1,
+        "max_drawdown": 26.21,
+        "sharpe": -0.3,
+        "win_rate": 35.48,
+        "trade_count": 45
+      },
+      "PE": {
+        "total_return": 0.0,
+        "annualized_return": 0.0,
+        "max_drawdown": 0.0,
+        "sharpe": 0.0,
+        "win_rate": 0.0,
+        "trade_count": 0
+      },
+      "Ensemble": {
+        "total_return": -22.99,
+        "annualized_return": -9.4,
+        "max_drawdown": 26.14,
+        "sharpe": -0.7,
+        "win_rate": 37.5,
+        "trade_count": 23
+      }
+    },
+    {
+      "code": "688223",
+      "name": "晶科能源",
+      "sector": "光伏",
+      "status": "ok",
+      "bars": 730,
+      "date_range": "2023-03-08 ~ 2026-03-13",
+      "MA": {
+        "total_return": -24.9,
+        "annualized_return": -10.17,
+        "max_drawdown": 30.38,
+        "sharpe": -0.69,
+        "win_rate": 43.75,
+        "trade_count": 19
+      },
+      "MACD": {
+        "total_return": 2.64,
+        "annualized_return": 0.99,
+        "max_drawdown": 19.32,
+        "sharpe": 0.04,
+        "win_rate": 40.91,
+        "trade_count": 26
+      },
+      "RSI": {
+        "total_return": 26.27,
+        "annualized_return": 9.06,
+        "max_drawdown": 21.25,
+        "sharpe": 0.38,
+        "win_rate": 40.91,
+        "trade_count": 25
+      },
+      "BOLL": {
+        "total_return": 5.86,
+        "annualized_return": 1.97,
+        "max_drawdown": 29.83,
+        "sharpe": 0.04,
+        "win_rate": 26.67,
+        "trade_count": 17
+      },
+      "KDJ": {
+        "total_return": 28.4,
+        "annualized_return": 9.66,
+        "max_drawdown": 23.64,
+        "sharpe": 0.38,
+        "win_rate": 42.86,
+        "trade_count": 44
+      },
+      "PE": {
+        "total_return": 0.0,
+        "annualized_return": 0.0,
+        "max_drawdown": 0.0,
+        "sharpe": 0.0,
+        "win_rate": 0.0,
+        "trade_count": 0
+      },
+      "Ensemble": {
+        "total_return": 2.29,
+        "annualized_return": 0.86,
+        "max_drawdown": 26.28,
+        "sharpe": 0.03,
+        "win_rate": 38.71,
+        "trade_count": 30
+      }
+    },
+    {
+      "code": "603806",
+      "name": "福斯特",
+      "sector": "光伏",
+      "status": "ok",
+      "bars": 730,
+      "date_range": "2023-03-08 ~ 2026-03-13",
+      "MA": {
+        "total_return": 13.48,
+        "annualized_return": 4.85,
+        "max_drawdown": 18.97,
+        "sharpe": 0.2,
+        "win_rate": 47.06,
+        "trade_count": 21
+      },
+      "MACD": {
+        "total_return": 45.27,
+        "annualized_return": 15.15,
+        "max_drawdown": 18.54,
+        "sharpe": 0.68,
+        "win_rate": 47.37,
+        "trade_count": 24
+      },
+      "RSI": {
+        "total_return": 11.69,
+        "annualized_return": 4.19,
+        "max_drawdown": 23.12,
+        "sharpe": 0.16,
+        "win_rate": 37.5,
+        "trade_count": 29
+      },
+      "BOLL": {
+        "total_return": -17.97,
+        "annualized_return": -6.56,
+        "max_drawdown": 38.46,
+        "sharpe": -0.67,
+        "win_rate": 30.0,
+        "trade_count": 21
+      },
+      "KDJ": {
+        "total_return": -3.0,
+        "annualized_return": -1.12,
+        "max_drawdown": 25.51,
+        "sharpe": -0.11,
+        "win_rate": 37.84,
+        "trade_count": 55
+      },
+      "PE": {
+        "total_return": 0.0,
+        "annualized_return": 0.0,
+        "max_drawdown": 0.0,
+        "sharpe": 0.0,
+        "win_rate": 0.0,
+        "trade_count": 0
+      },
+      "Ensemble": {
+        "total_return": 7.43,
+        "annualized_return": 2.75,
+        "max_drawdown": 25.11,
+        "sharpe": 0.1,
+        "win_rate": 43.33,
+        "trade_count": 29
+      }
+    },
+    {
+      "code": "300124",
+      "name": "汇川技术",
+      "sector": "机器人",
+      "status": "ok",
+      "bars": 730,
+      "date_range": "2023-03-08 ~ 2026-03-13",
+      "MA": {
+        "total_return": 48.91,
+        "annualized_return": 16.09,
+        "max_drawdown": 17.06,
+        "sharpe": 0.73,
+        "win_rate": 42.86,
+        "trade_count": 20
+      },
+      "MACD": {
+        "total_return": 39.62,
+        "annualized_return": 13.44,
+        "max_drawdown": 18.17,
+        "sharpe": 0.59,
+        "win_rate": 37.5,
+        "trade_count": 23
+      },
+      "RSI": {
+        "total_return": -7.0,
+        "annualized_return": -2.66,
+        "max_drawdown": 16.77,
+        "sharpe": -0.33,
+        "win_rate": 36.84,
+        "trade_count": 22
+      },
+      "BOLL": {
+        "total_return": 10.47,
+        "annualized_return": 3.47,
+        "max_drawdown": 13.14,
+        "sharpe": 0.11,
+        "win_rate": 40.0,
+        "trade_count": 12
+      },
+      "KDJ": {
+        "total_return": 0.98,
+        "annualized_return": 0.36,
+        "max_drawdown": 23.68,
+        "sharpe": -0.11,
+        "win_rate": 39.29,
+        "trade_count": 42
+      },
+      "PE": {
+        "total_return": 0.0,
+        "annualized_return": 0.0,
+        "max_drawdown": 0.0,
+        "sharpe": 0.0,
+        "win_rate": 0.0,
+        "trade_count": 0
+      },
+      "Ensemble": {
+        "total_return": -21.0,
+        "annualized_return": -8.52,
+        "max_drawdown": 26.08,
+        "sharpe": -0.81,
+        "win_rate": 31.82,
+        "trade_count": 21
+      }
+    },
+    {
+      "code": "301248",
+      "name": "杰创智能",
+      "sector": "机器人",
+      "status": "ok",
+      "bars": 730,
+      "date_range": "2023-03-08 ~ 2026-03-13",
+      "MA": {
+        "total_return": 2.7,
+        "annualized_return": 1.0,
+        "max_drawdown": 38.87,
+        "sharpe": 0.08,
+        "win_rate": 33.33,
+        "trade_count": 27
+      },
+      "MACD": {
+        "total_return": 47.32,
+        "annualized_return": 15.76,
+        "max_drawdown": 16.26,
+        "sharpe": 0.58,
+        "win_rate": 30.43,
+        "trade_count": 35
+      },
+      "RSI": {
+        "total_return": 88.74,
+        "annualized_return": 26.63,
+        "max_drawdown": 11.97,
+        "sharpe": 1.08,
+        "win_rate": 43.75,
+        "trade_count": 22
+      },
+      "BOLL": {
+        "total_return": 127.02,
+        "annualized_return": 32.44,
+        "max_drawdown": 14.5,
+        "sharpe": 1.28,
+        "win_rate": 52.94,
+        "trade_count": 22
+      },
+      "KDJ": {
+        "total_return": 108.47,
+        "annualized_return": 31.14,
+        "max_drawdown": 20.57,
+        "sharpe": 1.16,
+        "win_rate": 42.42,
+        "trade_count": 52
+      },
+      "PE": {
+        "total_return": 0.0,
+        "annualized_return": 0.0,
+        "max_drawdown": 0.0,
+        "sharpe": 0.0,
+        "win_rate": 0.0,
+        "trade_count": 0
+      },
+      "Ensemble": {
+        "total_return": 110.36,
+        "annualized_return": 32.44,
+        "max_drawdown": 20.28,
+        "sharpe": 1.05,
+        "win_rate": 40.0,
+        "trade_count": 30
+      }
+    },
+    {
+      "code": "688981",
+      "name": "中芯国际",
+      "sector": "半导体",
+      "status": "ok",
+      "bars": 730,
+      "date_range": "2023-02-28 ~ 2026-03-13",
+      "MA": {
+        "total_return": 5.89,
+        "annualized_return": 2.15,
+        "max_drawdown": 25.31,
+        "sharpe": 0.11,
+        "win_rate": 33.33,
+        "trade_count": 23
+      },
+      "MACD": {
+        "total_return": 53.34,
+        "annualized_return": 17.37,
+        "max_drawdown": 25.91,
+        "sharpe": 0.62,
+        "win_rate": 45.0,
+        "trade_count": 24
+      },
+      "RSI": {
+        "total_return": 18.84,
+        "annualized_return": 6.57,
+        "max_drawdown": 29.38,
+        "sharpe": 0.27,
+        "win_rate": 31.25,
+        "trade_count": 17
+      },
+      "BOLL": {
+        "total_return": 54.25,
+        "annualized_return": 15.87,
+        "max_drawdown": 12.71,
+        "sharpe": 0.76,
+        "win_rate": 55.56,
+        "trade_count": 11
+      },
+      "KDJ": {
+        "total_return": 68.54,
+        "annualized_return": 20.97,
+        "max_drawdown": 24.6,
+        "sharpe": 0.82,
+        "win_rate": 53.33,
+        "trade_count": 47
+      },
+      "PE": {
+        "total_return": 0.0,
+        "annualized_return": 0.0,
+        "max_drawdown": 0.0,
+        "sharpe": 0.0,
+        "win_rate": 0.0,
+        "trade_count": 0
+      },
+      "Ensemble": {
+        "total_return": 73.46,
+        "annualized_return": 22.93,
+        "max_drawdown": 18.46,
+        "sharpe": 0.81,
+        "win_rate": 51.85,
+        "trade_count": 27
+      }
+    },
+    {
+      "code": "002371",
+      "name": "北方华创",
+      "sector": "半导体",
+      "status": "ok",
+      "bars": 730,
+      "date_range": "2023-03-08 ~ 2026-03-13",
+      "MA": {
+        "total_return": 1.29,
+        "annualized_return": 0.48,
+        "max_drawdown": 26.34,
+        "sharpe": -0.01,
+        "win_rate": 45.0,
+        "trade_count": 22
+      },
+      "MACD": {
+        "total_return": -14.57,
+        "annualized_return": -5.78,
+        "max_drawdown": 26.87,
+        "sharpe": -0.33,
+        "win_rate": 40.91,
+        "trade_count": 28
+      },
+      "RSI": {
+        "total_return": 0.13,
+        "annualized_return": 0.05,
+        "max_drawdown": 15.43,
+        "sharpe": -0.17,
+        "win_rate": 33.33,
+        "trade_count": 21
+      },
+      "BOLL": {
+        "total_return": 4.58,
+        "annualized_return": 1.55,
+        "max_drawdown": 21.15,
+        "sharpe": -0.01,
+        "win_rate": 53.85,
+        "trade_count": 14
+      },
+      "KDJ": {
+        "total_return": -9.75,
+        "annualized_return": -3.72,
+        "max_drawdown": 21.51,
+        "sharpe": -0.37,
+        "win_rate": 39.29,
+        "trade_count": 32
+      },
+      "PE": {
+        "total_return": 0.0,
+        "annualized_return": 0.0,
+        "max_drawdown": 0.0,
+        "sharpe": 0.0,
+        "win_rate": 0.0,
+        "trade_count": 0
+      },
+      "Ensemble": {
+        "total_return": -0.09,
+        "annualized_return": -0.03,
+        "max_drawdown": 22.45,
+        "sharpe": -0.1,
+        "win_rate": 40.74,
+        "trade_count": 27
+      }
+    },
+    {
+      "code": "603986",
+      "name": "兆易创新",
+      "sector": "半导体",
+      "status": "ok",
+      "bars": 730,
+      "date_range": "2023-03-08 ~ 2026-03-13",
+      "MA": {
+        "total_return": 28.83,
+        "annualized_return": 9.96,
+        "max_drawdown": 19.02,
+        "sharpe": 0.44,
+        "win_rate": 43.75,
+        "trade_count": 19
+      },
+      "MACD": {
+        "total_return": 55.33,
+        "annualized_return": 18.1,
+        "max_drawdown": 29.85,
+        "sharpe": 0.71,
+        "win_rate": 39.13,
+        "trade_count": 31
+      },
+      "RSI": {
+        "total_return": 37.42,
+        "annualized_return": 12.54,
+        "max_drawdown": 14.02,
+        "sharpe": 0.62,
+        "win_rate": 46.67,
+        "trade_count": 21
+      },
+      "BOLL": {
+        "total_return": -12.35,
+        "annualized_return": -4.42,
+        "max_drawdown": 26.3,
+        "sharpe": -0.47,
+        "win_rate": 42.86,
+        "trade_count": 15
+      },
+      "KDJ": {
+        "total_return": 94.59,
+        "annualized_return": 27.85,
+        "max_drawdown": 24.95,
+        "sharpe": 1.05,
+        "win_rate": 44.12,
+        "trade_count": 49
+      },
+      "PE": {
+        "total_return": 0.0,
+        "annualized_return": 0.0,
+        "max_drawdown": 0.0,
+        "sharpe": 0.0,
+        "win_rate": 0.0,
+        "trade_count": 0
+      },
+      "Ensemble": {
+        "total_return": 66.28,
+        "annualized_return": 21.18,
+        "max_drawdown": 27.82,
+        "sharpe": 0.75,
+        "win_rate": 51.61,
+        "trade_count": 31
+      }
+    },
+    {
+      "code": "600584",
+      "name": "长电科技",
+      "sector": "半导体",
+      "status": "ok",
+      "bars": 730,
+      "date_range": "2023-03-01 ~ 2026-03-13",
+      "MA": {
+        "total_return": 72.39,
+        "annualized_return": 22.46,
+        "max_drawdown": 14.06,
+        "sharpe": 0.97,
+        "win_rate": 43.75,
+        "trade_count": 17
+      },
+      "MACD": {
+        "total_return": 25.49,
+        "annualized_return": 8.89,
+        "max_drawdown": 21.38,
+        "sharpe": 0.36,
+        "win_rate": 47.37,
+        "trade_count": 27
+      },
+      "RSI": {
+        "total_return": 18.79,
+        "annualized_return": 6.56,
+        "max_drawdown": 22.39,
+        "sharpe": 0.29,
+        "win_rate": 31.58,
+        "trade_count": 23
+      },
+      "BOLL": {
+        "total_return": 51.4,
+        "annualized_return": 15.17,
+        "max_drawdown": 13.8,
+        "sharpe": 0.84,
+        "win_rate": 53.33,
+        "trade_count": 16
+      },
+      "KDJ": {
+        "total_return": 53.87,
+        "annualized_return": 17.07,
+        "max_drawdown": 25.57,
+        "sharpe": 0.85,
+        "win_rate": 40.62,
+        "trade_count": 52
+      },
+      "PE": {
+        "total_return": 0.0,
+        "annualized_return": 0.0,
+        "max_drawdown": 0.0,
+        "sharpe": 0.0,
+        "win_rate": 0.0,
+        "trade_count": 0
+      },
+      "Ensemble": {
+        "total_return": -6.25,
+        "annualized_return": -2.39,
+        "max_drawdown": 26.65,
+        "sharpe": -0.22,
+        "win_rate": 38.24,
+        "trade_count": 34
+      }
+    },
+    {
+      "code": "601899",
+      "name": "紫金矿业",
+      "sector": "有色金属",
+      "status": "ok",
+      "bars": 730,
+      "date_range": "2023-03-08 ~ 2026-03-13",
+      "MA": {
+        "total_return": 6.98,
+        "annualized_return": 2.56,
+        "max_drawdown": 16.39,
+        "sharpe": 0.09,
+        "win_rate": 47.06,
+        "trade_count": 23
+      },
+      "MACD": {
+        "total_return": 27.42,
+        "annualized_return": 9.59,
+        "max_drawdown": 15.82,
+        "sharpe": 0.46,
+        "win_rate": 47.37,
+        "trade_count": 28
+      },
+      "RSI": {
+        "total_return": 19.69,
+        "annualized_return": 6.91,
+        "max_drawdown": 10.25,
+        "sharpe": 0.45,
+        "win_rate": 40.0,
+        "trade_count": 13
+      },
+      "BOLL": {
+        "total_return": 34.55,
+        "annualized_return": 10.71,
+        "max_drawdown": 10.39,
+        "sharpe": 0.83,
+        "win_rate": 54.55,
+        "trade_count": 13
+      },
+      "KDJ": {
+        "total_return": 20.73,
+        "annualized_return": 7.2,
+        "max_drawdown": 13.87,
+        "sharpe": 0.42,
+        "win_rate": 50.0,
+        "trade_count": 51
+      },
+      "PE": {
+        "total_return": 0.0,
+        "annualized_return": 0.0,
+        "max_drawdown": 0.0,
+        "sharpe": 0.0,
+        "win_rate": 0.0,
+        "trade_count": 0
+      },
+      "Ensemble": {
+        "total_return": 49.67,
+        "annualized_return": 16.46,
+        "max_drawdown": 13.46,
+        "sharpe": 0.83,
+        "win_rate": 51.72,
+        "trade_count": 29
+      }
+    },
+    {
+      "code": "002379",
+      "name": "宏桥控股",
+      "sector": "有色金属",
+      "status": "ok",
+      "bars": 730,
+      "date_range": "2023-02-22 ~ 2026-03-13",
+      "MA": {
+        "total_return": 35.22,
+        "annualized_return": 11.79,
+        "max_drawdown": 17.31,
+        "sharpe": 0.52,
+        "win_rate": 47.06,
+        "trade_count": 23
+      },
+      "MACD": {
+        "total_return": 85.44,
+        "annualized_return": 25.86,
+        "max_drawdown": 15.41,
+        "sharpe": 1.0,
+        "win_rate": 57.14,
+        "trade_count": 26
+      },
+      "RSI": {
+        "total_return": 3.04,
+        "annualized_return": 1.1,
+        "max_drawdown": 18.08,
+        "sharpe": -0.1,
+        "win_rate": 36.36,
+        "trade_count": 15
+      },
+      "BOLL": {
+        "total_return": 22.48,
+        "annualized_return": 7.09,
+        "max_drawdown": 17.78,
+        "sharpe": 0.39,
+        "win_rate": 35.71,
+        "trade_count": 18
+      },
+      "KDJ": {
+        "total_return": 56.03,
+        "annualized_return": 17.54,
+        "max_drawdown": 18.99,
+        "sharpe": 0.94,
+        "win_rate": 50.0,
+        "trade_count": 42
+      },
+      "PE": {
+        "total_return": 0.0,
+        "annualized_return": 0.0,
+        "max_drawdown": 0.0,
+        "sharpe": 0.0,
+        "win_rate": 0.0,
+        "trade_count": 0
+      },
+      "Ensemble": {
+        "total_return": 75.12,
+        "annualized_return": 23.21,
+        "max_drawdown": 17.59,
+        "sharpe": 0.97,
+        "win_rate": 48.0,
+        "trade_count": 24
+      }
+    },
+    {
+      "code": "601600",
+      "name": "中国铝业",
+      "sector": "有色金属",
+      "status": "ok",
+      "bars": 730,
+      "date_range": "2023-03-08 ~ 2026-03-13",
+      "MA": {
+        "total_return": 16.6,
+        "annualized_return": 5.92,
+        "max_drawdown": 18.98,
+        "sharpe": 0.25,
+        "win_rate": 43.75,
+        "trade_count": 22
+      },
+      "MACD": {
+        "total_return": 3.48,
+        "annualized_return": 1.3,
+        "max_drawdown": 19.94,
+        "sharpe": 0.02,
+        "win_rate": 35.0,
+        "trade_count": 34
+      },
+      "RSI": {
+        "total_return": 32.74,
+        "annualized_return": 11.1,
+        "max_drawdown": 12.69,
+        "sharpe": 0.7,
+        "win_rate": 53.85,
+        "trade_count": 19
+      },
+      "BOLL": {
+        "total_return": 31.93,
+        "annualized_return": 9.96,
+        "max_drawdown": 8.51,
+        "sharpe": 0.69,
+        "win_rate": 54.55,
+        "trade_count": 16
+      },
+      "KDJ": {
+        "total_return": 18.97,
+        "annualized_return": 6.62,
+        "max_drawdown": 12.41,
+        "sharpe": 0.32,
+        "win_rate": 44.0,
+        "trade_count": 49
+      },
+      "PE": {
+        "total_return": 0.0,
+        "annualized_return": 0.0,
+        "max_drawdown": 0.0,
+        "sharpe": 0.0,
+        "win_rate": 0.0,
+        "trade_count": 0
+      },
+      "Ensemble": {
+        "total_return": 38.6,
+        "annualized_return": 13.13,
+        "max_drawdown": 15.79,
+        "sharpe": 0.66,
+        "win_rate": 48.0,
+        "trade_count": 25
+      }
+    },
+    {
+      "code": "600547",
+      "name": "山东黄金",
+      "sector": "有色金属",
+      "status": "ok",
+      "bars": 730,
+      "date_range": "2023-03-08 ~ 2026-03-13",
+      "MA": {
+        "total_return": 1.6,
+        "annualized_return": 0.6,
+        "max_drawdown": 13.84,
+        "sharpe": -0.09,
+        "win_rate": 53.33,
+        "trade_count": 21
+      },
+      "MACD": {
+        "total_return": 47.03,
+        "annualized_return": 15.68,
+        "max_drawdown": 13.96,
+        "sharpe": 0.76,
+        "win_rate": 55.56,
+        "trade_count": 25
+      },
+      "RSI": {
+        "total_return": 2.68,
+        "annualized_return": 0.99,
+        "max_drawdown": 21.57,
+        "sharpe": -0.12,
+        "win_rate": 53.33,
+        "trade_count": 18
+      },
+      "BOLL": {
+        "total_return": 39.84,
+        "annualized_return": 12.18,
+        "max_drawdown": 9.56,
+        "sharpe": 0.94,
+        "win_rate": 77.78,
+        "trade_count": 13
+      },
+      "KDJ": {
+        "total_return": 36.78,
+        "annualized_return": 12.25,
+        "max_drawdown": 14.75,
+        "sharpe": 0.69,
+        "win_rate": 46.43,
+        "trade_count": 53
+      },
+      "PE": {
+        "total_return": 0.0,
+        "annualized_return": 0.0,
+        "max_drawdown": 0.0,
+        "sharpe": 0.0,
+        "win_rate": 0.0,
+        "trade_count": 0
+      },
+      "Ensemble": {
+        "total_return": 64.97,
+        "annualized_return": 20.82,
+        "max_drawdown": 11.53,
+        "sharpe": 0.99,
+        "win_rate": 61.54,
+        "trade_count": 26
+      }
+    },
+    {
+      "code": "600837",
+      "name": "海通证券",
+      "sector": "证券",
+      "status": "ok",
+      "bars": 730,
+      "date_range": "2021-12-30 ~ 2025-02-05",
+      "MA": {
+        "total_return": -13.17,
+        "annualized_return": -5.03,
+        "max_drawdown": 26.12,
+        "sharpe": -0.57,
+        "win_rate": 35.71,
+        "trade_count": 25
+      },
+      "MACD": {
+        "total_return": -9.01,
+        "annualized_return": -3.43,
+        "max_drawdown": 18.7,
+        "sharpe": -0.46,
+        "win_rate": 31.25,
+        "trade_count": 31
+      },
+      "RSI": {
+        "total_return": -14.55,
+        "annualized_return": -5.54,
+        "max_drawdown": 20.37,
+        "sharpe": -0.86,
+        "win_rate": 43.75,
+        "trade_count": 26
+      },
+      "BOLL": {
+        "total_return": -26.11,
+        "annualized_return": -9.63,
+        "max_drawdown": 26.35,
+        "sharpe": -1.2,
+        "win_rate": 21.05,
+        "trade_count": 24
+      },
+      "KDJ": {
+        "total_return": -11.51,
+        "annualized_return": -4.29,
+        "max_drawdown": 20.13,
+        "sharpe": -0.61,
+        "win_rate": 25.93,
+        "trade_count": 49
+      },
+      "PE": {
+        "total_return": 0.0,
+        "annualized_return": 0.0,
+        "max_drawdown": 0.0,
+        "sharpe": 0.0,
+        "win_rate": 0.0,
+        "trade_count": 0
+      },
+      "Ensemble": {
+        "total_return": -18.75,
+        "annualized_return": -7.38,
+        "max_drawdown": 19.19,
+        "sharpe": -0.82,
+        "win_rate": 32.0,
+        "trade_count": 25
+      }
+    },
+    {
+      "code": "601555",
+      "name": "东吴证券",
+      "sector": "证券",
+      "status": "ok",
+      "bars": 730,
+      "date_range": "2023-02-22 ~ 2026-02-27",
+      "MA": {
+        "total_return": 60.16,
+        "annualized_return": 19.3,
+        "max_drawdown": 15.52,
+        "sharpe": 0.96,
+        "win_rate": 37.5,
+        "trade_count": 24
+      },
+      "MACD": {
+        "total_return": 6.1,
+        "annualized_return": 2.26,
+        "max_drawdown": 22.85,
+        "sharpe": 0.04,
+        "win_rate": 15.79,
+        "trade_count": 37
+      },
+      "RSI": {
+        "total_return": 13.67,
+        "annualized_return": 4.87,
+        "max_drawdown": 28.11,
+        "sharpe": 0.21,
+        "win_rate": 38.89,
+        "trade_count": 24
+      },
+      "BOLL": {
+        "total_return": 61.97,
+        "annualized_return": 17.95,
+        "max_drawdown": 12.66,
+        "sharpe": 1.02,
+        "win_rate": 60.0,
+        "trade_count": 21
+      },
+      "KDJ": {
+        "total_return": 3.66,
+        "annualized_return": 1.33,
+        "max_drawdown": 29.8,
+        "sharpe": -0.0,
+        "win_rate": 44.0,
+        "trade_count": 35
+      },
+      "PE": {
+        "total_return": 0.0,
+        "annualized_return": 0.0,
+        "max_drawdown": 0.0,
+        "sharpe": 0.0,
+        "win_rate": 0.0,
+        "trade_count": 0
+      },
+      "Ensemble": {
+        "total_return": 3.58,
+        "annualized_return": 1.34,
+        "max_drawdown": 26.37,
+        "sharpe": -0.01,
+        "win_rate": 37.04,
+        "trade_count": 26
+      }
+    },
+    {
+      "code": "002945",
+      "name": "华林证券",
+      "sector": "证券",
+      "status": "ok",
+      "bars": 730,
+      "date_range": "2023-03-08 ~ 2026-03-13",
+      "MA": {
+        "total_return": 81.2,
+        "annualized_return": 24.95,
+        "max_drawdown": 22.95,
+        "sharpe": 0.97,
+        "win_rate": 47.06,
+        "trade_count": 26
+      },
+      "MACD": {
+        "total_return": 55.51,
+        "annualized_return": 18.16,
+        "max_drawdown": 23.11,
+        "sharpe": 0.71,
+        "win_rate": 64.71,
+        "trade_count": 24
+      },
+      "RSI": {
+        "total_return": 104.95,
+        "annualized_return": 30.57,
+        "max_drawdown": 16.25,
+        "sharpe": 1.26,
+        "win_rate": 66.67,
+        "trade_count": 19
+      },
+      "BOLL": {
+        "total_return": 55.15,
+        "annualized_return": 16.25,
+        "max_drawdown": 17.15,
+        "sharpe": 0.94,
+        "win_rate": 53.85,
+        "trade_count": 15
+      },
+      "KDJ": {
+        "total_return": 49.57,
+        "annualized_return": 16.02,
+        "max_drawdown": 14.6,
+        "sharpe": 0.72,
+        "win_rate": 44.83,
+        "trade_count": 44
+      },
+      "PE": {
+        "total_return": 0.0,
+        "annualized_return": 0.0,
+        "max_drawdown": 0.0,
+        "sharpe": 0.0,
+        "win_rate": 0.0,
+        "trade_count": 0
+      },
+      "Ensemble": {
+        "total_return": 52.76,
+        "annualized_return": 17.36,
+        "max_drawdown": 18.81,
+        "sharpe": 0.72,
+        "win_rate": 48.15,
+        "trade_count": 27
+      }
+    },
+    {
+      "code": "601696",
+      "name": "中银证券",
+      "sector": "证券",
+      "status": "ok",
+      "bars": 730,
+      "date_range": "2023-03-08 ~ 2026-03-13",
+      "MA": {
+        "total_return": 32.69,
+        "annualized_return": 11.18,
+        "max_drawdown": 21.5,
+        "sharpe": 0.5,
+        "win_rate": 35.71,
+        "trade_count": 21
+      },
+      "MACD": {
+        "total_return": 8.18,
+        "annualized_return": 3.02,
+        "max_drawdown": 22.9,
+        "sharpe": 0.11,
+        "win_rate": 25.0,
+        "trade_count": 24
+      },
+      "RSI": {
+        "total_return": 5.18,
+        "annualized_return": 1.9,
+        "max_drawdown": 30.06,
+        "sharpe": 0.04,
+        "win_rate": 35.29,
+        "trade_count": 22
+      },
+      "BOLL": {
+        "total_return": 47.24,
+        "annualized_return": 14.18,
+        "max_drawdown": 14.05,
+        "sharpe": 0.85,
+        "win_rate": 58.33,
+        "trade_count": 18
+      },
+      "KDJ": {
+        "total_return": 15.43,
+        "annualized_return": 5.44,
+        "max_drawdown": 28.75,
+        "sharpe": 0.21,
+        "win_rate": 31.25,
+        "trade_count": 49
+      },
+      "PE": {
+        "total_return": 0.0,
+        "annualized_return": 0.0,
+        "max_drawdown": 0.0,
+        "sharpe": 0.0,
+        "win_rate": 0.0,
+        "trade_count": 0
+      },
+      "Ensemble": {
+        "total_return": -0.32,
+        "annualized_return": -0.12,
+        "max_drawdown": 32.96,
+        "sharpe": -0.07,
+        "win_rate": 39.13,
+        "trade_count": 23
+      }
+    },
+    {
+      "code": "600276",
+      "name": "恒瑞医药",
+      "sector": "创新药",
+      "status": "ok",
+      "bars": 730,
+      "date_range": "2023-03-08 ~ 2026-03-13",
+      "MA": {
+        "total_return": -25.15,
+        "annualized_return": -10.29,
+        "max_drawdown": 25.15,
+        "sharpe": -0.91,
+        "win_rate": 35.71,
+        "trade_count": 19
+      },
+      "MACD": {
+        "total_return": -29.81,
+        "annualized_return": -12.52,
+        "max_drawdown": 31.01,
+        "sharpe": -1.02,
+        "win_rate": 19.05,
+        "trade_count": 36
+      },
+      "RSI": {
+        "total_return": 16.53,
+        "annualized_return": 5.85,
+        "max_drawdown": 13.13,
+        "sharpe": 0.29,
+        "win_rate": 52.94,
+        "trade_count": 24
+      },
+      "BOLL": {
+        "total_return": 20.22,
+        "annualized_return": 6.52,
+        "max_drawdown": 12.81,
+        "sharpe": 0.34,
+        "win_rate": 53.33,
+        "trade_count": 17
+      },
+      "KDJ": {
+        "total_return": -17.03,
+        "annualized_return": -6.66,
+        "max_drawdown": 21.29,
+        "sharpe": -0.71,
+        "win_rate": 25.93,
+        "trade_count": 45
+      },
+      "PE": {
+        "total_return": 0.0,
+        "annualized_return": 0.0,
+        "max_drawdown": 0.0,
+        "sharpe": 0.0,
+        "win_rate": 0.0,
+        "trade_count": 0
+      },
+      "Ensemble": {
+        "total_return": -16.01,
+        "annualized_return": -6.38,
+        "max_drawdown": 25.54,
+        "sharpe": -0.51,
+        "win_rate": 40.74,
+        "trade_count": 26
+      }
+    },
+    {
+      "code": "603259",
+      "name": "药明康德",
+      "sector": "创新药",
+      "status": "ok",
+      "bars": 730,
+      "date_range": "2023-03-08 ~ 2026-03-13",
+      "MA": {
+        "total_return": -8.09,
+        "annualized_return": -3.11,
+        "max_drawdown": 29.77,
+        "sharpe": -0.19,
+        "win_rate": 42.11,
+        "trade_count": 22
+      },
+      "MACD": {
+        "total_return": -0.47,
+        "annualized_return": -0.18,
+        "max_drawdown": 25.28,
+        "sharpe": -0.06,
+        "win_rate": 33.33,
+        "trade_count": 26
+      },
+      "RSI": {
+        "total_return": 19.64,
+        "annualized_return": 6.89,
+        "max_drawdown": 25.76,
+        "sharpe": 0.32,
+        "win_rate": 52.94,
+        "trade_count": 25
+      },
+      "BOLL": {
+        "total_return": -2.65,
+        "annualized_return": -0.91,
+        "max_drawdown": 26.85,
+        "sharpe": -0.26,
+        "win_rate": 41.67,
+        "trade_count": 16
+      },
+      "KDJ": {
+        "total_return": 19.04,
+        "annualized_return": 6.64,
+        "max_drawdown": 26.68,
+        "sharpe": 0.3,
+        "win_rate": 51.72,
+        "trade_count": 46
+      },
+      "PE": {
+        "total_return": 0.0,
+        "annualized_return": 0.0,
+        "max_drawdown": 0.0,
+        "sharpe": 0.0,
+        "win_rate": 0.0,
+        "trade_count": 0
+      },
+      "Ensemble": {
+        "total_return": 45.91,
+        "annualized_return": 15.35,
+        "max_drawdown": 24.64,
+        "sharpe": 0.68,
+        "win_rate": 56.0,
+        "trade_count": 25
+      }
+    },
+    {
+      "code": "300015",
+      "name": "爱尔眼科",
+      "sector": "创新药",
+      "status": "ok",
+      "bars": 730,
+      "date_range": "2023-03-08 ~ 2026-03-13",
+      "MA": {
+        "total_return": 15.47,
+        "annualized_return": 5.54,
+        "max_drawdown": 30.17,
+        "sharpe": 0.22,
+        "win_rate": 26.67,
+        "trade_count": 23
+      },
+      "MACD": {
+        "total_return": 2.99,
+        "annualized_return": 1.12,
+        "max_drawdown": 33.05,
+        "sharpe": 0.03,
+        "win_rate": 10.0,
+        "trade_count": 32
+      },
+      "RSI": {
+        "total_return": 49.35,
+        "annualized_return": 16.08,
+        "max_drawdown": 27.42,
+        "sharpe": 0.63,
+        "win_rate": 37.5,
+        "trade_count": 28
+      },
+      "BOLL": {
+        "total_return": 29.94,
+        "annualized_return": 9.39,
+        "max_drawdown": 24.23,
+        "sharpe": 0.41,
+        "win_rate": 40.0,
+        "trade_count": 16
+      },
+      "KDJ": {
+        "total_return": -14.01,
+        "annualized_return": -5.42,
+        "max_drawdown": 40.63,
+        "sharpe": -0.23,
+        "win_rate": 24.32,
+        "trade_count": 53
+      },
+      "PE": {
+        "total_return": 0.0,
+        "annualized_return": 0.0,
+        "max_drawdown": 0.0,
+        "sharpe": 0.0,
+        "win_rate": 0.0,
+        "trade_count": 0
+      },
+      "Ensemble": {
+        "total_return": 2.96,
+        "annualized_return": 1.11,
+        "max_drawdown": 25.26,
+        "sharpe": -0.01,
+        "win_rate": 36.0,
+        "trade_count": 24
+      }
+    },
+    {
+      "code": "688331",
+      "name": "荣昌生物",
+      "sector": "创新药",
+      "status": "ok",
+      "bars": 730,
+      "date_range": "2023-03-08 ~ 2026-03-13",
+      "MA": {
+        "total_return": -5.83,
+        "annualized_return": -2.23,
+        "max_drawdown": 27.16,
+        "sharpe": -0.05,
+        "win_rate": 40.91,
+        "trade_count": 23
+      },
+      "MACD": {
+        "total_return": 65.41,
+        "annualized_return": 20.94,
+        "max_drawdown": 23.13,
+        "sharpe": 0.7,
+        "win_rate": 50.0,
+        "trade_count": 26
+      },
+      "RSI": {
+        "total_return": 110.22,
+        "annualized_return": 31.81,
+        "max_drawdown": 18.24,
+        "sharpe": 1.11,
+        "win_rate": 47.06,
+        "trade_count": 19
+      },
+      "BOLL": {
+        "total_return": 74.0,
+        "annualized_return": 20.9,
+        "max_drawdown": 20.03,
+        "sharpe": 0.93,
+        "win_rate": 53.85,
+        "trade_count": 13
+      },
+      "KDJ": {
+        "total_return": 129.99,
+        "annualized_return": 35.99,
+        "max_drawdown": 28.92,
+        "sharpe": 1.24,
+        "win_rate": 51.52,
+        "trade_count": 49
+      },
+      "PE": {
+        "total_return": 0.0,
+        "annualized_return": 0.0,
+        "max_drawdown": 0.0,
+        "sharpe": 0.0,
+        "win_rate": 0.0,
+        "trade_count": 0
+      },
+      "Ensemble": {
+        "total_return": 105.47,
+        "annualized_return": 31.27,
+        "max_drawdown": 18.52,
+        "sharpe": 0.94,
+        "win_rate": 46.67,
+        "trade_count": 30
+      }
+    },
+    {
+      "code": "600118",
+      "name": "中国卫星",
+      "sector": "商业航天",
+      "status": "ok",
+      "bars": 730,
+      "date_range": "2023-03-08 ~ 2026-03-13",
+      "MA": {
+        "total_return": 39.93,
+        "annualized_return": 13.42,
+        "max_drawdown": 15.56,
+        "sharpe": 0.58,
+        "win_rate": 37.5,
+        "trade_count": 21
+      },
+      "MACD": {
+        "total_return": 25.38,
+        "annualized_return": 8.92,
+        "max_drawdown": 20.41,
+        "sharpe": 0.38,
+        "win_rate": 38.1,
+        "trade_count": 36
+      },
+      "RSI": {
+        "total_return": 1.47,
+        "annualized_return": 0.54,
+        "max_drawdown": 18.88,
+        "sharpe": -0.07,
+        "win_rate": 40.0,
+        "trade_count": 18
+      },
+      "BOLL": {
+        "total_return": -0.97,
+        "annualized_return": -0.33,
+        "max_drawdown": 16.19,
+        "sharpe": -0.21,
+        "win_rate": 33.33,
+        "trade_count": 16
+      },
+      "KDJ": {
+        "total_return": -23.28,
+        "annualized_return": -9.32,
+        "max_drawdown": 31.37,
+        "sharpe": -0.67,
+        "win_rate": 26.67,
+        "trade_count": 43
+      },
+      "PE": {
+        "total_return": 0.0,
+        "annualized_return": 0.0,
+        "max_drawdown": 0.0,
+        "sharpe": 0.0,
+        "win_rate": 0.0,
+        "trade_count": 0
+      },
+      "Ensemble": {
+        "total_return": -6.29,
+        "annualized_return": -2.42,
+        "max_drawdown": 31.65,
+        "sharpe": -0.13,
+        "win_rate": 40.62,
+        "trade_count": 31
+      }
+    },
+    {
+      "code": "600879",
+      "name": "航天电子",
+      "sector": "商业航天",
+      "status": "ok",
+      "bars": 730,
+      "date_range": "2023-03-08 ~ 2026-03-13",
+      "MA": {
+        "total_return": 60.65,
+        "annualized_return": 19.44,
+        "max_drawdown": 14.45,
+        "sharpe": 0.84,
+        "win_rate": 61.11,
+        "trade_count": 22
+      },
+      "MACD": {
+        "total_return": 75.93,
+        "annualized_return": 23.8,
+        "max_drawdown": 11.6,
+        "sharpe": 1.01,
+        "win_rate": 52.38,
+        "trade_count": 29
+      },
+      "RSI": {
+        "total_return": 16.98,
+        "annualized_return": 6.0,
+        "max_drawdown": 15.1,
+        "sharpe": 0.29,
+        "win_rate": 38.46,
+        "trade_count": 21
+      },
+      "BOLL": {
+        "total_return": 4.52,
+        "annualized_return": 1.53,
+        "max_drawdown": 17.17,
+        "sharpe": -0.05,
+        "win_rate": 40.0,
+        "trade_count": 17
+      },
+      "KDJ": {
+        "total_return": 75.22,
+        "annualized_return": 23.0,
+        "max_drawdown": 12.81,
+        "sharpe": 1.01,
+        "win_rate": 37.5,
+        "trade_count": 50
+      },
+      "PE": {
+        "total_return": 0.0,
+        "annualized_return": 0.0,
+        "max_drawdown": 0.0,
+        "sharpe": 0.0,
+        "win_rate": 0.0,
+        "trade_count": 0
+      },
+      "Ensemble": {
+        "total_return": 55.84,
+        "annualized_return": 18.25,
+        "max_drawdown": 16.23,
+        "sharpe": 0.8,
+        "win_rate": 53.33,
+        "trade_count": 30
+      }
+    },
+    {
+      "code": "000547",
+      "name": "航天发展",
+      "sector": "商业航天",
+      "status": "ok",
+      "bars": 730,
+      "date_range": "2023-03-08 ~ 2026-03-13",
+      "MA": {
+        "total_return": 72.76,
+        "annualized_return": 22.74,
+        "max_drawdown": 24.1,
+        "sharpe": 0.88,
+        "win_rate": 50.0,
+        "trade_count": 20
+      },
+      "MACD": {
+        "total_return": 93.77,
+        "annualized_return": 28.4,
+        "max_drawdown": 22.95,
+        "sharpe": 1.02,
+        "win_rate": 47.37,
+        "trade_count": 27
+      },
+      "RSI": {
+        "total_return": 14.22,
+        "annualized_return": 5.07,
+        "max_drawdown": 30.41,
+        "sharpe": 0.21,
+        "win_rate": 42.11,
+        "trade_count": 26
+      },
+      "BOLL": {
+        "total_return": -3.64,
+        "annualized_return": -1.26,
+        "max_drawdown": 17.37,
+        "sharpe": -0.21,
+        "win_rate": 38.1,
+        "trade_count": 24
+      },
+      "KDJ": {
+        "total_return": -28.18,
+        "annualized_return": -11.5,
+        "max_drawdown": 34.14,
+        "sharpe": -0.89,
+        "win_rate": 37.93,
+        "trade_count": 46
+      },
+      "PE": {
+        "total_return": 0.0,
+        "annualized_return": 0.0,
+        "max_drawdown": 0.0,
+        "sharpe": 0.0,
+        "win_rate": 0.0,
+        "trade_count": 0
+      },
+      "Ensemble": {
+        "total_return": 14.13,
+        "annualized_return": 5.12,
+        "max_drawdown": 27.25,
+        "sharpe": 0.21,
+        "win_rate": 40.0,
+        "trade_count": 30
+      }
+    },
+    {
+      "code": "600316",
+      "name": "洪都航空",
+      "sector": "商业航天",
+      "status": "ok",
+      "bars": 730,
+      "date_range": "2023-03-08 ~ 2026-03-13",
+      "MA": {
+        "total_return": -0.08,
+        "annualized_return": -0.03,
+        "max_drawdown": 35.53,
+        "sharpe": -0.05,
+        "win_rate": 27.78,
+        "trade_count": 20
+      },
+      "MACD": {
+        "total_return": 52.9,
+        "annualized_return": 17.4,
+        "max_drawdown": 20.04,
+        "sharpe": 0.72,
+        "win_rate": 42.11,
+        "trade_count": 25
+      },
+      "RSI": {
+        "total_return": 43.23,
+        "annualized_return": 14.29,
+        "max_drawdown": 21.08,
+        "sharpe": 0.61,
+        "win_rate": 47.37,
+        "trade_count": 24
+      },
+      "BOLL": {
+        "total_return": 12.28,
+        "annualized_return": 4.05,
+        "max_drawdown": 16.57,
+        "sharpe": 0.15,
+        "win_rate": 42.11,
+        "trade_count": 26
+      },
+      "KDJ": {
+        "total_return": 2.18,
+        "annualized_return": 0.8,
+        "max_drawdown": 31.6,
+        "sharpe": 0.02,
+        "win_rate": 31.25,
+        "trade_count": 43
+      },
+      "PE": {
+        "total_return": 0.0,
+        "annualized_return": 0.0,
+        "max_drawdown": 0.0,
+        "sharpe": 0.0,
+        "win_rate": 0.0,
+        "trade_count": 0
+      },
+      "Ensemble": {
+        "total_return": 8.18,
+        "annualized_return": 3.01,
+        "max_drawdown": 31.23,
+        "sharpe": 0.12,
+        "win_rate": 31.25,
+        "trade_count": 32
+      }
+    }
+  ]
+}

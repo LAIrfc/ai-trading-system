@@ -625,21 +625,18 @@ class FundamentalFetcher:
         """
         获取日频基本面数据（PE、PB、市值等）
         
-        使用baostock的日K线数据，包含peTTM和pbMRQ字段
+        多数据源降级逻辑：
+        1. Baostock（主力，包含peTTM和pbMRQ字段）
+        2. AKShare实时行情（备用，只能获取单日数据）
         
         Args:
             code: 股票代码（如 '600030'）
-            start_date: 开始日期 'YYYYMMDD'
-            end_date: 结束日期 'YYYYMMDD'
+            start_date: 开始日期 'YYYYMMDD' 或 'YYYY-MM-DD'
+            end_date: 结束日期 'YYYYMMDD' 或 'YYYY-MM-DD'
         
         Returns:
-            DataFrame with columns: date, pe_ttm, pb, turnover_rate
+            DataFrame with columns: date, name, pe_ttm, pb, turnover_rate, market_cap
         """
-        self._ensure_bs_login()
-        import baostock as bs
-        
-        bs_code = self._code_to_bs(code)
-        
         # 转换日期格式 YYYYMMDD -> YYYY-MM-DD
         if start_date and len(start_date) == 8:
             start_date = f"{start_date[:4]}-{start_date[4:6]}-{start_date[6:]}"
@@ -651,7 +648,13 @@ class FundamentalFetcher:
         if not end_date:
             end_date = datetime.now().strftime('%Y-%m-%d')
         
+        # 方案1: Baostock（主力）
         try:
+            self._ensure_bs_login()
+            import baostock as bs
+            
+            bs_code = self._code_to_bs(code)
+            
             rs = bs.query_history_k_data_plus(
                 bs_code,
                 "date,peTTM,pbMRQ,turn",
@@ -665,23 +668,43 @@ class FundamentalFetcher:
             while rs.error_code == '0' and rs.next():
                 rows.append(rs.get_row_data())
             
-            if not rows:
-                return pd.DataFrame()
-            
-            df = pd.DataFrame(rows, columns=['date', 'pe_ttm', 'pb', 'turnover_rate'])
-            df['date'] = pd.to_datetime(df['date'])
-            df['pe_ttm'] = pd.to_numeric(df['pe_ttm'], errors='coerce')
-            df['pb'] = pd.to_numeric(df['pb'], errors='coerce')
-            df['turnover_rate'] = pd.to_numeric(df['turnover_rate'], errors='coerce')
-            
-            df = df.sort_values('date').reset_index(drop=True)
-            
-            logger.info(f"[{code}] 日频基本面 {len(df)}条")
-            return df
-            
+            if rows:
+                df = pd.DataFrame(rows, columns=['date', 'pe_ttm', 'pb', 'turnover_rate'])
+                df['date'] = pd.to_datetime(df['date'])
+                df['pe_ttm'] = pd.to_numeric(df['pe_ttm'], errors='coerce')
+                df['pb'] = pd.to_numeric(df['pb'], errors='coerce')
+                df['turnover_rate'] = pd.to_numeric(df['turnover_rate'], errors='coerce')
+                df = df.sort_values('date').reset_index(drop=True)
+                logger.info(f"✅ Baostock获取 {code} 日频基本面: {len(df)}条")
+                return df
         except Exception as e:
-            logger.error(f"[{code}] 日频基本面获取失败: {e}")
-            return pd.DataFrame()
+            logger.warning(f"⚠️ Baostock获取 {code} 日频基本面失败: {e}")
+        
+        # 方案2: AKShare实时行情（只能获取单日数据）
+        try:
+            import akshare as ak
+            df_spot = ak.stock_zh_a_spot_em()
+            stock_row = df_spot[df_spot['代码'] == code]
+            
+            if not stock_row.empty:
+                row = stock_row.iloc[0]
+                # 构造单日数据
+                today = datetime.now().strftime('%Y-%m-%d')
+                df = pd.DataFrame([{
+                    'date': pd.to_datetime(today),
+                    'name': row['名称'] if '名称' in row else '',
+                    'pe_ttm': float(row['市盈率-动态']) if '市盈率-动态' in row and pd.notna(row['市盈率-动态']) else None,
+                    'pb': float(row['市净率']) if '市净率' in row and pd.notna(row['市净率']) else None,
+                    'turnover_rate': float(row['换手率']) if '换手率' in row and pd.notna(row['换手率']) else None,
+                    'market_cap': float(row['总市值']) if '总市值' in row and pd.notna(row['总市值']) else None,
+                }])
+                logger.info(f"✅ AKShare获取 {code} 实时基本面（单日）")
+                return df
+        except Exception as e:
+            logger.warning(f"⚠️ AKShare获取 {code} 实时基本面失败: {e}")
+        
+        logger.error(f"❌ 所有数据源均失败: {code}")
+        return pd.DataFrame()
     
     # ============================================================
     # 5. AkShare增强接口
