@@ -649,9 +649,12 @@ def main():
 
     with open(md_path, 'w', encoding='utf-8') as f:
         f.write(f"# 📈 每日选股推荐 — {today}\n\n")
+        f.write(f"**生成时间**: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+        f.write(f"**策略类型**: {args.strategy.upper()}\n")
         f.write(f"**MACD参数**: ({args.fast},{args.slow},{args.signal})\n")
         f.write(f"**股票池**: {len(stocks)} 只\n")
-        f.write(f"**有效分析**: {len(df_all)} 只\n\n")
+        f.write(f"**有效分析**: {len(df_all)} 只\n")
+        f.write(f"**政策面评分**: {policy_result.get('score', 0):.2f}\n\n")
 
         # 市场总览
         f.write("## 一、市场总览\n\n")
@@ -660,30 +663,84 @@ def main():
         f.write(f"| 🟢 买入 | {len(buy_stocks)} | {len(buy_stocks)/len(df_all)*100:.1f}% |\n")
         f.write(f"| 🔴 卖出 | {len(sell_stocks)} | {len(sell_stocks)/len(df_all)*100:.1f}% |\n")
         f.write(f"| ⚪ 观望 | {len(hold_stocks)} | {len(hold_stocks)/len(df_all)*100:.1f}% |\n\n")
+        
+        # 行业分布统计
+        if len(buy_stocks) > 0:
+            sector_dist = buy_stocks['sector'].value_counts().head(10)
+            f.write("### 买入信号行业分布 (TOP10)\n\n")
+            f.write("| 行业 | 数量 |\n")
+            f.write("|------|------|\n")
+            for sector, count in sector_dist.items():
+                f.write(f"| {sector} | {count} |\n")
+            f.write("\n")
 
         # 买入推荐
-        f.write("## 二、买入推荐\n\n")
+        f.write("## 二、买入推荐 (详细分析)\n\n")
         if len(buy_stocks) > 0:
-            f.write("| 排名 | 代码 | 名称 | 价格 | 评分 | 信心 | 建议仓位 | 5日涨幅 | 量比 | 趋势 | 理由 |\n")
-            f.write("|------|------|------|------|------|------|---------|--------|------|------|------|\n")
+            f.write("| 排名 | 代码 | 名称 | 价格 | 评分 | 信心 | 建议仓位 | 5日涨幅 | 20日涨幅 | 量比 | 趋势 | 理由 |\n")
+            f.write("|------|------|------|------|------|------|---------|--------|---------|------|------|------|\n")
             for rank, (_, row) in enumerate(buy_stocks.head(args.top).iterrows(), 1):
                 f.write(f"| {rank} | {row['code']} | {row['name']} | "
                         f"¥{row['price']:.2f} | {row['score']:.1f} | "
                         f"{row['confidence']:.0%} | {row['position']:.0%} | "
-                        f"{row['change_5d']:+.2f}% | {row['volume_ratio']:.1f}x | "
+                        f"{row['change_5d']:+.2f}% | {row['change_20d']:+.2f}% | "
+                        f"{row['volume_ratio']:.1f}x | "
                         f"{row['trend']} | {row['reason'][:40]} |\n")
+            
+            # 详细个股分析
+            f.write("\n### 重点个股详细分析\n\n")
+            for rank, (_, row) in enumerate(buy_stocks.head(5).iterrows(), 1):
+                f.write(f"#### {rank}. {row['name']} ({row['code']})\n\n")
+                f.write(f"- **当前价格**: ¥{row['price']:.2f}\n")
+                f.write(f"- **综合评分**: {row['score']:.1f}/100\n")
+                f.write(f"- **信号信心**: {row['confidence']:.0%}\n")
+                f.write(f"- **建议仓位**: {row['position']:.0%}\n")
+                f.write(f"- **所属行业**: {row['sector']}\n")
+                f.write(f"- **技术面**:\n")
+                f.write(f"  - 5日涨幅: {row['change_5d']:+.2f}%\n")
+                f.write(f"  - 20日涨幅: {row['change_20d']:+.2f}%\n")
+                f.write(f"  - 量比: {row['volume_ratio']:.2f}x\n")
+                f.write(f"  - 趋势: {row['trend']}\n")
+                f.write(f"  - MA5: ¥{row['ma5']:.2f}, MA20: ¥{row['ma20']:.2f}\n")
+                f.write(f"  - 距52周高点: {row['distance_from_high']:+.2f}%\n")
+                f.write(f"  - 距52周低点: {row['distance_from_low']:+.2f}%\n")
+                
+                # 基本面信息
+                if row.get('pe_ttm') and row.get('pe_ttm') > 0:
+                    f.write(f"- **基本面**:\n")
+                    f.write(f"  - PE(TTM): {row['pe_ttm']:.2f}")
+                    if row.get('pe_quantile'):
+                        f.write(f" (历史分位: {row['pe_quantile']:.1%})")
+                    f.write(f"\n")
+                    if row.get('pb') and row.get('pb') > 0:
+                        f.write(f"  - PB: {row['pb']:.2f}")
+                        if row.get('pb_quantile'):
+                            f.write(f" (历史分位: {row['pb_quantile']:.1%})")
+                        f.write(f"\n")
+                    f.write(f"  - PE信号: {row.get('pe_signal', 'N/A')}\n")
+                    f.write(f"  - PB信号: {row.get('pb_signal', 'N/A')}\n")
+                
+                # 资金流信息
+                if row.get('fund_flow_signal') and row['fund_flow_signal'] != 'neutral':
+                    f.write(f"- **资金流向**: {row['fund_flow_signal']}")
+                    if row.get('fund_flow_reason'):
+                        f.write(f" ({row['fund_flow_reason']})")
+                    f.write(f"\n")
+                
+                f.write(f"- **选股理由**: {row['reason']}\n\n")
         else:
             f.write("今日无买入信号，建议空仓观望。\n")
 
         # 卖出预警
         f.write("\n## 三、卖出预警\n\n")
         if len(sell_stocks) > 0:
-            f.write("| 排名 | 代码 | 名称 | 价格 | 5日涨幅 | 理由 |\n")
-            f.write("|------|------|------|------|--------|------|\n")
+            f.write("| 排名 | 代码 | 名称 | 价格 | 5日涨幅 | 20日涨幅 | 量比 | 趋势 | 理由 |\n")
+            f.write("|------|------|------|------|--------|---------|------|------|------|\n")
             for rank, (_, row) in enumerate(sell_stocks.head(20).iterrows(), 1):
                 f.write(f"| {rank} | {row['code']} | {row['name']} | "
                         f"¥{row['price']:.2f} | {row['change_5d']:+.2f}% | "
-                        f"{row['reason'][:50]} |\n")
+                        f"{row['change_20d']:+.2f}% | {row['volume_ratio']:.1f}x | "
+                        f"{row['trend']} | {row['reason'][:50]} |\n")
         else:
             f.write("今日无卖出信号。\n")
 
@@ -693,8 +750,8 @@ def main():
             top_buys = buy_stocks.head(min(5, len(buy_stocks)))
             total_score = top_buys['score'].sum()
 
-            f.write("| 代码 | 名称 | 价格 | 建议仓位 | 建议金额 | 手数 | 理由 |\n")
-            f.write("|------|------|------|---------|---------|------|------|\n")
+            f.write("| 代码 | 名称 | 价格 | 建议仓位 | 建议金额 | 手数 | 止损价 | 理由 |\n")
+            f.write("|------|------|------|---------|---------|------|--------|------|\n")
             total_used = 0
             for _, row in top_buys.iterrows():
                 weight = min(row['score'] / total_score, max_per_stock)
@@ -704,22 +761,61 @@ def main():
                     continue
                 actual = shares * row['price']
                 total_used += actual
+                stop_loss = row['price'] * 0.92  # 8%止损
                 f.write(f"| {row['code']} | {row['name']} | ¥{row['price']:.2f} | "
                         f"{weight:.0%} | ¥{actual:,.0f} | {shares}股 | "
-                        f"{row['reason'][:35]} |\n")
+                        f"¥{stop_loss:.2f} | {row['reason'][:35]} |\n")
 
             f.write(f"\n- **预计投入**: ¥{total_used:,.0f}\n")
-            f.write(f"- **预留现金**: ¥{total_capital - total_used:,.0f}\n")
+            f.write(f"- **预留现金**: ¥{total_capital - total_used:,.0f} ({(total_capital - total_used)/total_capital:.1%})\n")
+            f.write(f"- **资金利用率**: {total_used/total_capital:.1%}\n")
         else:
             f.write("今日建议：**空仓观望**，等待MACD金叉信号。\n")
 
+        # 策略统计
+        f.write("\n## 五、策略统计\n\n")
+        if args.strategy == 'ensemble':
+            f.write("### 11策略投票分布\n\n")
+            f.write("本次选股使用11策略加权投票:\n")
+            f.write("- **技术面策略(6个)**: MA均线, MACD, RSI, BOLL, KDJ, DUAL双动量\n")
+            f.write("- **基本面策略(3个)**: PE估值, PB估值, PE+PB综合\n")
+            f.write("- **消息面策略(1个)**: NEWS新闻情感\n")
+            f.write("- **资金面策略(1个)**: MONEY_FLOW主力资金流向\n\n")
+            
+            # 统计各策略贡献
+            if len(buy_stocks) > 0:
+                strategy_votes = defaultdict(int)
+                for _, row in buy_stocks.head(args.top).iterrows():
+                    reason = row['reason']
+                    for strat in ['MA', 'MACD', 'RSI', 'BOLL', 'KDJ', 'DUAL', 'PE', 'PB', 'PEPB', 'NEWS', 'MONEY']:
+                        if strat in reason:
+                            strategy_votes[strat] += 1
+                
+                f.write("**TOP20推荐中各策略贡献次数**:\n\n")
+                f.write("| 策略 | 贡献次数 |\n")
+                f.write("|------|----------|\n")
+                for strat, count in sorted(strategy_votes.items(), key=lambda x: x[1], reverse=True):
+                    f.write(f"| {strat} | {count} |\n")
+                f.write("\n")
+
         # 风险提示
         f.write("\n## ⚠️ 风险提示\n\n")
-        f.write("1. 本推荐基于MACD技术指标分析，仅供参考，不构成投资建议\n")
+        f.write("1. 本推荐基于多策略量化分析，仅供参考，不构成投资建议\n")
         f.write("2. 股市有风险，入市需谨慎\n")
-        f.write("3. 建议设置止损位（买入价-8%），严格执行\n")
-        f.write("4. 单只股票仓位不超过30%，分散风险\n")
-        f.write(f"5. 策略回测5个月平均收益 +9.4%，但历史收益不代表未来\n")
+        f.write("3. **严格执行止损**: 建议设置止损位（买入价-8%），触发立即止损\n")
+        f.write("4. **仓位管理**: 单只股票仓位不超过30%，分散风险\n")
+        f.write("5. **分批建仓**: 建议分2-3次建仓，降低择时风险\n")
+        f.write(f"6. 策略回测5个月平均收益 +9.4%，但历史收益不代表未来\n")
+        f.write(f"7. 本次分析基于 {today} 收盘数据，次日开盘前需再次确认\n")
+        
+        # 附录：数据来源
+        f.write("\n## 📊 附录：数据来源\n\n")
+        f.write(f"- **K线数据**: 本地缓存 (mydate/backtest_kline/)\n")
+        f.write(f"- **基本面数据**: 本地PE/PB缓存 (mydate/pe_cache/)\n")
+        f.write(f"- **实时行情**: Baostock API\n")
+        f.write(f"- **新闻情感**: 东方财富 + AI分析\n")
+        f.write(f"- **资金流向**: 东方财富资金流数据\n")
+        f.write(f"- **政策面**: 新华社/央视新闻 + LLM情感分析\n")
 
     print(f"\n📝 详细报告已保存: {md_path}")
     print(f"\n✅ 分析完成!")
