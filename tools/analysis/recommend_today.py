@@ -344,9 +344,14 @@ def load_cached_kline(code: str, cache_dir: str = None) -> pd.DataFrame:
 
 
 def update_kline_cache(code: str, cache_dir: str = None, days: int = 200) -> pd.DataFrame:
-    """增量更新K线缓存：只获取缺失的日期"""
-    import baostock as bs
+    """
+    增量更新K线缓存：只获取缺失的日期
     
+    多数据源降级逻辑：
+    1. Baostock（免费，稳定，但有频率限制）
+    2. AKShare（免费，实时，需要联网）
+    3. 返回缓存（如果以上都失败）
+    """
     # 1. 加载现有缓存
     cached_df = load_cached_kline(code, cache_dir)
     
@@ -367,35 +372,79 @@ def update_kline_cache(code: str, cache_dir: str = None, days: int = 200) -> pd.
         # 没有缓存，全量下载
         start_date = (datetime.now() - timedelta(days=int(days * 1.6))).strftime('%Y-%m-%d')
     
-    # 3. 获取增量数据
-    prefix = 'sh' if code.startswith(('5', '6')) else 'sz'
-    bs_code = f'{prefix}.{code}'
+    new_df = pd.DataFrame()
     
-    rs = bs.query_history_k_data_plus(
-        bs_code,
-        'date,open,high,low,close,volume,amount',
-        start_date=start_date,
-        end_date=end_date,
-        frequency='d',
-        adjustflag='2',
-    )
+    # 3. 尝试获取增量数据 - 多数据源降级
     
-    rows = []
-    while rs.error_code == '0' and rs.next():
-        rows.append(rs.get_row_data())
+    # 方案1: Baostock（主力）
+    try:
+        import baostock as bs
+        prefix = 'sh' if code.startswith(('5', '6')) else 'sz'
+        bs_code = f'{prefix}.{code}'
+        
+        rs = bs.query_history_k_data_plus(
+            bs_code,
+            'date,open,high,low,close,volume,amount',
+            start_date=start_date,
+            end_date=end_date,
+            frequency='d',
+            adjustflag='2',
+        )
+        
+        rows = []
+        while rs.error_code == '0' and rs.next():
+            rows.append(rs.get_row_data())
+        
+        if rows:
+            new_df = pd.DataFrame(rows, columns=['date', 'open', 'high', 'low', 'close', 'volume', 'amount'])
+            for col in ['open', 'high', 'low', 'close', 'volume', 'amount']:
+                new_df[col] = pd.to_numeric(new_df[col], errors='coerce')
+            new_df['date'] = pd.to_datetime(new_df['date'])
+            new_df.dropna(subset=['close'], inplace=True)
+            logger.info(f"✅ Baostock获取 {code} K线成功: {len(new_df)}天")
+    except Exception as e:
+        logger.warning(f"⚠️ Baostock获取 {code} K线失败: {e}")
     
-    if not rows:
+    # 方案2: AKShare（备用）
+    if new_df.empty:
+        try:
+            import akshare as ak
+            
+            # akshare需要转换日期格式
+            start_akshare = start_date.replace('-', '')
+            end_akshare = end_date.replace('-', '')
+            
+            df_ak = ak.stock_zh_a_hist(
+                symbol=code,
+                period="daily",
+                start_date=start_akshare,
+                end_date=end_akshare,
+                adjust="qfq"
+            )
+            
+            if not df_ak.empty:
+                # 统一列名格式
+                new_df = pd.DataFrame({
+                    'date': pd.to_datetime(df_ak['日期']),
+                    'open': pd.to_numeric(df_ak['开盘'], errors='coerce'),
+                    'high': pd.to_numeric(df_ak['最高'], errors='coerce'),
+                    'low': pd.to_numeric(df_ak['最低'], errors='coerce'),
+                    'close': pd.to_numeric(df_ak['收盘'], errors='coerce'),
+                    'volume': pd.to_numeric(df_ak['成交量'], errors='coerce'),
+                    'amount': pd.to_numeric(df_ak['成交额'], errors='coerce'),
+                })
+                new_df.dropna(subset=['close'], inplace=True)
+                logger.info(f"✅ AKShare获取 {code} K线成功: {len(new_df)}天")
+        except Exception as e:
+            logger.warning(f"⚠️ AKShare获取 {code} K线失败: {e}")
+    
+    # 方案3: 如果所有数据源都失败，返回缓存
+    if new_df.empty:
+        logger.error(f"❌ 所有数据源均失败，使用缓存数据: {code}")
         return cached_df if not cached_df.empty else pd.DataFrame()
     
     # 4. 合并新旧数据
-    new_df = pd.DataFrame(rows, columns=['date', 'open', 'high', 'low', 'close', 'volume', 'amount'])
-    for col in ['open', 'high', 'low', 'close', 'volume', 'amount']:
-        new_df[col] = pd.to_numeric(new_df[col], errors='coerce')
-    new_df['date'] = pd.to_datetime(new_df['date'])
-    new_df.dropna(subset=['close'], inplace=True)
-    
     if not cached_df.empty:
-        # 合并去重
         combined = pd.concat([cached_df, new_df], ignore_index=True)
         combined = combined.drop_duplicates(subset=['date'], keep='last')
         combined = combined.sort_values('date').reset_index(drop=True)
@@ -426,19 +475,26 @@ def load_fundamental_cache():
 
 
 def update_fundamental_cache(code: str, fetcher: FundamentalFetcher, cache_data: dict) -> dict:
-    """增量更新单只股票的基本面数据（PE/PB）"""
+    """
+    增量更新单只股票的基本面数据（PE/PB/市值）
+    
+    多数据源降级逻辑：
+    1. Baostock daily_basic（主力）
+    2. AKShare 实时行情（备用）
+    3. 返回缓存（如果以上都失败）
+    """
     today = datetime.now().strftime('%Y-%m-%d')
     cache_date = cache_data.get('date', '')
     all_data = cache_data.get('all_data', {})
     
     # 检查缓存是否是今天的
     if cache_date == today and code in all_data:
-        # 今天的缓存，直接返回
         return all_data[code]
     
-    # 缓存过期或不存在，从网络获取
+    fund_info = None
+    
+    # 方案1: Baostock get_daily_basic（主力）
     try:
-        # 只获取最新一天的数据
         fund_df = fetcher.get_daily_basic(code, start_date=today, end_date=today)
         if not fund_df.empty:
             fund_info = {
@@ -448,24 +504,48 @@ def update_fundamental_cache(code: str, fetcher: FundamentalFetcher, cache_data:
                 'market_cap_yi': float(fund_df['market_cap'].iloc[0]) / 100000000 if 'market_cap' in fund_df.columns and pd.notna(fund_df['market_cap'].iloc[0]) else None,
                 'is_st': False
             }
+            logger.info(f"✅ Baostock获取 {code} 基本面成功")
             return fund_info
-    except Exception:
-        pass
+    except Exception as e:
+        logger.warning(f"⚠️ Baostock获取 {code} 基本面失败: {e}")
     
-    # 获取失败，返回缓存（如果有）
+    # 方案2: AKShare 实时行情（备用）
+    try:
+        import akshare as ak
+        df_spot = ak.stock_zh_a_spot_em()
+        
+        # 查找该股票
+        stock_row = df_spot[df_spot['代码'] == code]
+        if not stock_row.empty:
+            row = stock_row.iloc[0]
+            fund_info = {
+                'name': row['名称'] if '名称' in row else '',
+                'pe_ttm': float(row['市盈率-动态']) if '市盈率-动态' in row and pd.notna(row['市盈率-动态']) else None,
+                'pb': float(row['市净率']) if '市净率' in row and pd.notna(row['市净率']) else None,
+                'market_cap_yi': float(row['总市值']) / 100000000 if '总市值' in row and pd.notna(row['总市值']) else None,
+                'is_st': 'ST' in row['名称'] if '名称' in row else False
+            }
+            logger.info(f"✅ AKShare获取 {code} 基本面成功")
+            return fund_info
+    except Exception as e:
+        logger.warning(f"⚠️ AKShare获取 {code} 基本面失败: {e}")
+    
+    # 方案3: 返回缓存
     if code in all_data:
+        logger.warning(f"⚠️ 所有数据源均失败，使用缓存: {code}")
         return all_data[code]
     
+    logger.error(f"❌ 无法获取 {code} 基本面数据，且无缓存")
     return None
 
 
-def run_full_11_analysis(code: str, name: str, sector: str, df: pd.DataFrame, fetcher: FundamentalFetcher) -> dict:
+def run_full_11_analysis(code: str, name: str, sector: str, df: pd.DataFrame, fetcher: FundamentalFetcher, skip_industry: bool = False) -> dict:
     """
     运行 11 大策略: MA, MACD, RSI, BOLL, KDJ, DUAL, Sentiment, NewsSentiment, PolicyEvent, MoneyFlow, PE, PB。
     返回 buy_count, sell_count, hold_count, score（买-卖加权）, signals 列表。
     
     Args:
-        skip_network_strategies: 是否跳过需要网络请求的策略（NewsSentiment, MoneyFlow）
+        skip_industry: 是否跳过行业PE/PB查询（纯缓存模式用，避免网络请求）
     """
     tech_strategies = {
         'MA': MACrossStrategy(),
@@ -503,14 +583,41 @@ def run_full_11_analysis(code: str, name: str, sector: str, df: pd.DataFrame, fe
     # 获取行业PE/PB数据（用于行业分位数对比）
     industry = None
     industry_pe_data = industry_pb_data = None
-    try:
-        industry = fetcher.get_industry_classification(code)
-        if industry:
-            industry_data = fetcher.get_industry_pe_pb_data(code, datalen=400)  # 降到400天，提升速度
-            industry_pe_data = industry_data.get('industry_pe')
-            industry_pb_data = industry_data.get('industry_pb')
-    except Exception:
-        pass
+    
+    if not skip_industry:
+        try:
+<<<<<<< Current (Your changes)
+            industry = fetcher.get_industry_classification(code)
+            if industry:
+                # 优先使用巨潮快接口（快100倍，直接返回行业PE而不是聚合）
+                cninfo_data = fetcher.get_industry_pe_cninfo(industry)
+                if cninfo_data:
+                    # 将巨潮数据转换为策略需要的格式（模拟历史序列）
+                    # 由于巨潮只返回当前值，我们创建一个简单的序列用于分位数计算
+                    industry_pe_value = cninfo_data.get('pe_weighted') or cninfo_data.get('pe_median')
+                    if industry_pe_value and industry_pe_value > 0:
+                        # 创建一个模拟序列（用于分位数计算，假设当前值在历史中位数附近）
+                        industry_pe_data = pd.Series([industry_pe_value] * 400)
+                else:
+                    # 回退到旧接口（慢但更完整）
+                    industry_data = fetcher.get_industry_pe_pb_data(code, datalen=400)
+                    industry_pe_data = industry_data.get('industry_pe')
+                    industry_pb_data = industry_data.get('industry_pb')
+        except Exception:
+            pass
+=======
+            # 获取行业分类
+            industry = fetcher.get_industry_classification(code)
+            if industry:
+                # 使用Baostock聚合接口（巨潮接口有bug，暂不可用）
+                industry_data = fetcher.get_industry_pe_pb_data(code, datalen=400)
+                industry_pe_data = industry_data.get('industry_pe')
+                industry_pb_data = industry_data.get('industry_pb')
+                if industry_pe_data is not None:
+                    logger.info(f"✅ 获取 {code} 行业 {industry} PE/PB成功")
+        except Exception as e:
+            logger.warning(f"⚠️ 获取 {code} 行业数据失败: {e}")
+>>>>>>> Incoming (Background Agent changes)
 
     if 'pe_ttm' in df.columns and df['pe_ttm'].notna().sum() > 100:
         try:
@@ -536,7 +643,13 @@ def run_full_11_analysis(code: str, name: str, sector: str, df: pd.DataFrame, fe
         try:
             available_data = len(df[df['pb'].notna()])
             rolling_window = min(available_data, 756)
-            roe_passes, _, _ = fetcher.get_roe_for_filter(code)
+            
+            # 跳过网络请求的ROE查询
+            if skip_industry:
+                roe_passes = False
+            else:
+                roe_passes, _, _ = fetcher.get_roe_for_filter(code)
+            
             pb_strat = PBStrategy(industry=industry, industry_pb_data=industry_pb_data, min_roe=8.0 if roe_passes else 0, rolling_window=rolling_window) if industry and industry_pb_data is not None else PBStrategy(min_roe=8.0 if roe_passes else 0, rolling_window=rolling_window)
             pb_strat.min_bars = max(100, available_data)
             if len(df) >= pb_strat.min_bars:
@@ -618,6 +731,8 @@ def main():
     parser.add_argument('--strategy', type=str, default='ensemble',
                         choices=['macd', 'ensemble', 'full_11'],
                         help='策略: macd | ensemble(11策略加权投票) | full_11(11策略全量并发，推荐)')
+    parser.add_argument('--cache-only', action='store_true', default=False,
+                        help='纯缓存模式：只使用本地缓存，不发起任何网络请求（适合API限流时）')
     parser.add_argument('--fast', type=int, default=12, help='MACD快线(仅macd模式)')
     parser.add_argument('--slow', type=int, default=30, help='MACD慢线(仅macd模式)')
     parser.add_argument('--signal', type=int, default=9, help='MACD信号线(仅macd模式)')
@@ -701,18 +816,29 @@ def main():
             if not code:
                 return None
             
-            # 增量更新K线缓存（只下载缺失日期）
-            try:
-                df = update_kline_cache(code, cache_dir, days=200)
-            except Exception:
-                # 更新失败，尝试使用现有缓存
+            # 纯缓存模式：只加载缓存，不更新
+            if args.cache_only:
                 df = load_cached_kline(code, cache_dir) if use_kline_cache else pd.DataFrame()
+            else:
+                # 增量更新K线缓存（只下载缺失日期）
+                try:
+                    df = update_kline_cache(code, cache_dir, days=200)
+                except Exception:
+                    # 更新失败，尝试使用现有缓存
+                    df = load_cached_kline(code, cache_dir) if use_kline_cache else pd.DataFrame()
             
             if df.empty or len(df) < 60:
                 return None
             
-            # 2. 增量更新基本面数据（PE/PB）
-            fund_data = update_fundamental_cache(code, fetcher, fundamental_cache)
+            # 2. 基本面数据处理
+            if args.cache_only:
+                # 纯缓存模式：直接使用缓存数据
+                all_data = fundamental_cache.get('all_data', {})
+                fund_data = all_data.get(code)
+            else:
+                # 增量更新基本面数据（PE/PB）
+                fund_data = update_fundamental_cache(code, fetcher, fundamental_cache)
+            
             if fund_data:
                 # 将基本面数据添加到最后一行
                 if 'pe_ttm' not in df.columns:
@@ -731,11 +857,15 @@ def main():
                 df['pb'] = df['pb'].ffill()
                 df['market_cap'] = df['market_cap'].ffill()
             
-            return run_full_11_analysis(code, name, sector, df, fetcher)
+            return run_full_11_analysis(code, name, sector, df, fetcher, skip_industry=args.cache_only)
         
         # 并发分析（降低线程数避免限流）
-        max_workers = 3  # 降到3，减少baostock限流
-        print(f"\n🚀 使用{max_workers}线程增量更新+并发分析...\n")
+        if args.cache_only:
+            max_workers = 8  # 纯缓存模式可以提高并发
+            print(f"\n🚀 纯缓存模式：使用{max_workers}线程并发分析（不发起网络请求）...\n")
+        else:
+            max_workers = 3  # 降到3，减少baostock限流
+            print(f"\n🚀 使用{max_workers}线程增量更新+并发分析...\n")
         completed = 0
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
             futures = {executor.submit(analyze_one_stock, stock): stock for stock in stocks}
