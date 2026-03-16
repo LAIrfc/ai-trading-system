@@ -2,12 +2,21 @@
 """
 股票池刷新工具 —— 生成综合股票池（个股 + ETF）
 
+【重要】综合大池 stock_pool_all.json 是每日选股的唯一数据源。
+所有选股工具（recommend_today 等）只从综合大池中选取标的。
+
+综合大池构成:
+  - 沪深300 + 中证500 指数成分股（从 baostock 动态获取，含行业分类）
+  - 7大热门赛道龙头（从 stock_pool.json 加载）
+  - 56只主流ETF（从 etf_pool.json 加载）
+  - 合并去重后约860只
+
 功能:
-  1. 从baostock获取沪深300+中证500成分股
-  2. 从东方财富获取7大热门赛道龙头
+  1. 从baostock动态获取沪深300+中证500最新成分股
+  2. 加载7大热门赛道龙头池
   3. 整合ETF池
   4. 基本面前置过滤（PE 0-100、市值>30亿、排除ST）
-  5. 合并去重，输出 data/stock_pool_all.json
+  5. 合并去重，输出 mydate/stock_pool_all.json
 
 用法:
   python3 tools/data/refresh_stock_pool.py                # 全量刷新
@@ -487,6 +496,73 @@ def fundamental_filter(stocks: list,
 
 
 # ============================================================
+# 指数成分股获取
+# ============================================================
+
+def fetch_index_constituents():
+    """从baostock动态获取沪深300+中证500成分股（含行业分类）"""
+    print("\n  📡 从baostock获取沪深300+中证500成分股...")
+    try:
+        import baostock as bs
+    except ImportError:
+        print("    baostock未安装，跳过指数成分股获取")
+        return {}
+
+    bs.login()
+    today = datetime.now().strftime('%Y-%m-%d')
+    all_stocks = {}
+
+    for index_name, query_fn in [
+        ('沪深300', lambda d: bs.query_hs300_stocks(date=d)),
+        ('中证500', lambda d: bs.query_zz500_stocks(date=d)),
+    ]:
+        rs = query_fn(today)
+        count = 0
+        while rs.error_code == '0' and rs.next():
+            row = rs.get_row_data()
+            code = row[1].split('.')[1] if '.' in row[1] else row[1]
+            name = row[2]
+            if code not in all_stocks:
+                all_stocks[code] = {'code': code, 'name': name}
+                count += 1
+        print(f"    {index_name}: {count} 只 (去重后)")
+
+    # 获取行业分类（批量）
+    print("    获取行业分类...")
+    industry_map = {}
+    codes_list = list(all_stocks.keys())
+    for i, code in enumerate(codes_list):
+        prefix = 'sh' if code.startswith(('5', '6')) else 'sz'
+        try:
+            rs = bs.query_stock_industry(code=f'{prefix}.{code}')
+            if rs.error_code == '0' and rs.next():
+                row = rs.get_row_data()
+                industry = row[3] if len(row) > 3 else '未知'
+                industry_map[code] = industry
+        except Exception:
+            pass
+        if (i + 1) % 200 == 0:
+            print(f"      行业分类进度: {i+1}/{len(codes_list)}")
+
+    bs.logout()
+
+    # 按行业分组
+    sectors = {}
+    for code, info in all_stocks.items():
+        industry = industry_map.get(code, '未知')
+        if industry not in sectors:
+            sectors[industry] = []
+        sectors[industry].append({
+            'code': info['code'],
+            'name': info['name'],
+        })
+
+    total = sum(len(v) for v in sectors.values())
+    print(f"    指数成分股合计: {total} 只, {len(sectors)} 个行业")
+    return sectors
+
+
+# ============================================================
 # 合并生成综合股票池
 # ============================================================
 
@@ -515,23 +591,20 @@ def merge_all_pools(do_filter=True, min_pe=0, max_pe=100, min_cap=30):
                     seen_codes.add(s['code'])
         print(f"  赛道龙头池: +{len([s for s in all_stocks if s['source']=='sector_100'])} 只")
 
-    # 2. 加载指数成分股池（兼容 stocks / sectors 两种格式）
-    if os.path.exists(POOL_ALL_FILE):
-        with open(POOL_ALL_FILE, 'r', encoding='utf-8') as f:
-            p2 = json.load(f)
-        count_before = len(all_stocks)
-        p2_sectors = p2.get('stocks', p2.get('sectors', {}))
-        for sector, stocks in p2_sectors.items():
-            for s in stocks:
-                if s['code'] not in seen_codes:
-                    all_stocks.append({
-                        'code': s['code'],
-                        'name': s.get('name', ''),
-                        'sector': sector,
-                        'source': 'index_800',
-                    })
-                    seen_codes.add(s['code'])
-        print(f"  指数成分股池: +{len(all_stocks) - count_before} 只 (去重后)")
+    # 2. 动态获取沪深300+中证500指数成分股
+    index_sectors = fetch_index_constituents()
+    count_before = len(all_stocks)
+    for sector, stocks in index_sectors.items():
+        for s in stocks:
+            if s['code'] not in seen_codes:
+                all_stocks.append({
+                    'code': s['code'],
+                    'name': s.get('name', ''),
+                    'sector': sector,
+                    'source': 'index_800',
+                })
+                seen_codes.add(s['code'])
+    print(f"  指数成分股: +{len(all_stocks) - count_before} 只 (去重后)")
 
     print(f"  合计个股: {len(all_stocks)} 只")
 

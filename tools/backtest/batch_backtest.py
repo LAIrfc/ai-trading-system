@@ -182,15 +182,12 @@ def _update_pe_cache_incremental(code: str, pe_path: str) -> None:
     失败时静默跳过，不影响回测流程。
     """
     try:
-        import baostock as bs
-        from datetime import datetime, timedelta
-
         old_df = pd.read_parquet(pe_path)
         old_df['date'] = pd.to_datetime(old_df['date'])
         last_date = old_df['date'].max()
         days_behind = (pd.Timestamp.now() - last_date).days
         if days_behind <= 1:
-            return  # 已是最新，跳过
+            return
 
         inc_start = (last_date + pd.Timedelta(days=1)).strftime('%Y-%m-%d')
         today = datetime.now().strftime('%Y-%m-%d')
@@ -199,18 +196,22 @@ def _update_pe_cache_incremental(code: str, pe_path: str) -> None:
             c = c.zfill(6)
             return f'sh.{c}' if c.startswith(('60', '68')) else f'sz.{c}'
 
-        lg = bs.login()
-        if lg.error_code != '0':
+        try:
+            import baostock as bs
+            lg = bs.login()
+            if lg.error_code != '0':
+                return
+            rs = bs.query_history_k_data_plus(
+                code_to_bs(code), "date,peTTM,pbMRQ,turn",
+                start_date=inc_start, end_date=today,
+                frequency="d", adjustflag="3"
+            )
+            rows = []
+            while rs.error_code == '0' and rs.next():
+                rows.append(rs.get_row_data())
+            bs.logout()
+        except Exception:
             return
-        rs = bs.query_history_k_data_plus(
-            code_to_bs(code), "date,peTTM,pbMRQ,turn",
-            start_date=inc_start, end_date=today,
-            frequency="d", adjustflag="3"
-        )
-        rows = []
-        while rs.error_code == '0' and rs.next():
-            rows.append(rs.get_row_data())
-        bs.logout()
 
         if not rows:
             return

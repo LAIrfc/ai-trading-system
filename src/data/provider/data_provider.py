@@ -1,9 +1,13 @@
 """
 统一数据提供层：按配置主备切换，策略层仅调用 get_kline/get_sector_stocks，无需关心底层数据源。
+
+盘中增强：日K线获取成功后，若最新一行不是今天且当前处于交易时段或盘后，
+自动调用实时行情接口拼接当日OHLCV，使策略层在盘中也能获取到当天数据。
 """
 
 import logging
 import time
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import List, Optional, Tuple, Dict
 
@@ -11,7 +15,7 @@ import pandas as pd
 import yaml
 
 from .base import KlineAdapter, SectorAdapter, KLINE_COLUMNS
-from .adapters import KLINE_ADAPTER_REGISTRY
+from .adapters import KLINE_ADAPTER_REGISTRY, fetch_realtime_bar
 from .sector_adapters import SECTOR_ADAPTER_REGISTRY
 
 logger = logging.getLogger(__name__)
@@ -23,7 +27,7 @@ except ImportError:
         pass
 
 # 默认主备顺序，与 docs/data/API_INTERFACES_AND_FETCHERS.md 一致
-DEFAULT_KLINE_SOURCES = ["sina", "eastmoney", "tencent", "tushare"]
+DEFAULT_KLINE_SOURCES = ["sina", "eastmoney", "tencent", "tushare", "baostock"]
 
 
 DEFAULT_ETF_SOURCES = ["akshare_etf", "push2his_etf"]
@@ -142,6 +146,55 @@ class UnifiedDataProvider:
             self._sector_adapters = [SECTOR_ADAPTER_REGISTRY[n]() for n in DEFAULT_SECTOR_SOURCES if n in SECTOR_ADAPTER_REGISTRY]
             logger.warning("[UnifiedDataProvider] 板块数据源无有效配置，使用默认顺序: %s", [a.source_id for a in self._sector_adapters])
 
+    @staticmethod
+    def _is_trading_day_today() -> bool:
+        """粗略判断今天是否为交易日（周一~周五）。"""
+        return datetime.now().weekday() < 5
+
+    @staticmethod
+    def _append_realtime(df: pd.DataFrame, code: str) -> pd.DataFrame:
+        """
+        盘中增强：如果日K线最新日期不是今天，且今天是交易日，
+        就用实时行情接口获取当天OHLCV并拼接到末尾。
+        这样策略层在盘中也能拿到当天数据。
+        """
+        if df is None or df.empty:
+            return df
+        if not UnifiedDataProvider._is_trading_day_today():
+            return df
+
+        now = datetime.now()
+        # 9:15 之前没有盘中数据
+        if now.hour < 9 or (now.hour == 9 and now.minute < 15):
+            return df
+
+        today_str = now.strftime('%Y-%m-%d')
+        try:
+            last_date = pd.Timestamp(df['date'].iloc[-1])
+            if last_date.strftime('%Y-%m-%d') >= today_str:
+                return df
+        except Exception:
+            return df
+
+        try:
+            rt = fetch_realtime_bar(code)
+            if rt is not None and not rt.empty:
+                # 保留原始 df 的列（可能含 data_source, fetched_at 等额外列）
+                for col in df.columns:
+                    if col not in rt.columns:
+                        if col == 'data_source':
+                            rt[col] = 'realtime'
+                        elif col == 'fetched_at':
+                            rt[col] = now.isoformat()
+                        else:
+                            rt[col] = None
+                df = pd.concat([df, rt[df.columns]], ignore_index=True)
+                logger.debug("[UnifiedDataProvider] 标的=%s 已拼接当日实时数据", code)
+        except Exception as e:
+            logger.debug("[UnifiedDataProvider] 标的=%s 拼接实时数据失败: %s", code, e)
+
+        return df
+
     def get_kline(
         self,
         symbol: str,
@@ -200,6 +253,10 @@ class UnifiedDataProvider:
         if is_etf is None:
             is_etf = (code.startswith('5') or code.startswith('159')) and len(code) == 6
 
+        # ETF 数据源有限（baostock 免费版仅返回近几十条），降低最低条数要求
+        if is_etf and min_bars > 20:
+            min_bars = 20
+
         # ETF 使用专用适配器，股票使用普通适配器
         if is_etf and self._etf_adapters:
             adapters_to_use = self._etf_adapters
@@ -241,7 +298,7 @@ class UnifiedDataProvider:
                             "[UnifiedDataProvider] 标的=%s 主源失败(%s)，已用备用 %s 成功",
                             code, primary_err, sid,
                         )
-                    return out
+                    return self._append_realtime(out, code)
                 primary_err = "返回空或条数不足"
             except Exception as e:
                 primary_err = repr(e)
@@ -250,7 +307,9 @@ class UnifiedDataProvider:
                 else:
                     logger.debug("[UnifiedDataProvider] 标的=%s 备用 %s 失败: %s", code, sid, primary_err)
 
-            _circuit_record(sid, False)
+            # local_cache失败不记录（避免因缓存缺失触发熔断）
+            if sid != "local_cache":
+                _circuit_record(sid, False)
             if sid == "tencent":
                 _tencent_record_fail()
             record_fetch(sid, False, time.time() - t0, used_backup=used_backup)
@@ -266,10 +325,12 @@ class UnifiedDataProvider:
                         if df is not None and not df.empty and len(df) >= min_bars:
                             _circuit_record(sid, True)
                             record_fetch(sid, True, time.time() - t1, used_backup=False)
-                            return _tag_df_source(df, sid)
+                            return self._append_realtime(_tag_df_source(df, sid), code)
                     except Exception:
                         pass
-                    _circuit_record(sid, False)
+                    # local_cache失败不记录
+                    if sid != "local_cache":
+                        _circuit_record(sid, False)
                     record_fetch(sid, False, time.time() - t1, used_backup=False)
 
         logger.warning(

@@ -29,6 +29,10 @@ STOCK_DAILY_RETRIES = 3
 # 熔断：连续失败次数阈值、熔断时长（秒），与文档 3.1 一致
 CIRCUIT_FAIL_THRESHOLD = 3
 CIRCUIT_OPEN_SECONDS = 300
+# ETF 源单独设置更宽松的阈值（ETF 数据源少，单个标的失败不代表源不可用）
+_ETF_SOURCES = {"akshare_etf", "push2his_etf", "baostock_etf"}
+CIRCUIT_FAIL_THRESHOLD_ETF = 10
+CIRCUIT_OPEN_SECONDS_ETF = 60
 # 各数据源熔断状态：(连续失败次数, 最后失败时间戳)
 _circuit_state = {
     "sina": [0, 0.0], 
@@ -106,50 +110,86 @@ def _fetch_sina_kline(code: str, datalen: int, timeout: int = STOCK_DAILY_TIMEOU
     prefix, sym = _market_prefix(code)
     symbol = f"{prefix}{sym}"
     url = "https://money.finance.sina.com.cn/quotes_service/api/json_v2.php/CN_MarketData.getKLineData"
-    r = requests.get(
-        url,
-        params={"symbol": symbol, "scale": "240", "ma": "no", "datalen": str(datalen)},
-        headers={"User-Agent": "Mozilla/5.0 (X11; Linux x86_64)"},
-        timeout=timeout,
-    )
-    data = json.loads(r.text) if r.text and r.text.strip() else None
-    if not data:
+    
+    # 添加完整的请求头以避免403错误
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Referer": "https://finance.sina.com.cn/",
+        "Accept": "application/json, text/javascript, */*; q=0.01",
+        "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8",
+        "Accept-Encoding": "gzip, deflate, br",
+        "Connection": "keep-alive",
+    }
+    
+    try:
+        r = requests.get(
+            url,
+            params={"symbol": symbol, "scale": "240", "ma": "no", "datalen": str(datalen)},
+            headers=headers,
+            timeout=timeout,
+        )
+        r.raise_for_status()  # 检查HTTP状态码
+        data = json.loads(r.text) if r.text and r.text.strip() else None
+        if not data:
+            return pd.DataFrame()
+        df = pd.DataFrame(data)
+        df["date"] = pd.to_datetime(df["day"])
+        for c in ["open", "high", "low", "close", "volume"]:
+            df[c] = pd.to_numeric(df[c], errors="coerce")
+        return df
+    except Exception as e:
+        logger.debug(f"新浪K线获取失败 {code}: {e}")
         return pd.DataFrame()
-    df = pd.DataFrame(data)
-    df["date"] = pd.to_datetime(df["day"])
-    for c in ["open", "high", "low", "close", "volume"]:
-        df[c] = pd.to_numeric(df[c], errors="coerce")
-    return df
 
 
 # ------ 备用1：东方财富（akshare 日线，文档推荐）------
-def _fetch_eastmoney_akshare(code: str, datalen: int) -> pd.DataFrame:
-    """东方财富源：通过 akshare stock_zh_a_hist 获取日线。"""
+def _fetch_eastmoney_akshare(code: str, datalen: int, max_retries: int = 2) -> pd.DataFrame:
+    """东方财富源：通过 akshare stock_zh_a_hist 获取日线，带重试机制。"""
     try:
         import akshare as ak
     except ImportError:
         return pd.DataFrame()
-    try:
-        end_d = datetime.now()
-        start_d = end_d - timedelta(days=min(datalen + 60, 800))
-        start_str = start_d.strftime("%Y%m%d")
-        end_str = end_d.strftime("%Y%m%d")
-        symbol = code if len(code) <= 6 else code[-6:] if code.isdigit() else code
-        df = ak.stock_zh_a_hist(symbol=symbol, period="daily", start_date=start_str, end_date=end_str, adjust="")
-        if df is None or df.empty:
-            return pd.DataFrame()
-        col_map = {"日期": "date", "开盘": "open", "收盘": "close", "最高": "high", "最低": "low", "成交量": "volume"}
-        df = df.rename(columns={k: v for k, v in col_map.items() if k in df.columns})
-        if "date" not in df.columns:
-            return pd.DataFrame()
-        df["date"] = pd.to_datetime(df["date"])
-        for c in ["open", "high", "low", "close", "volume"]:
-            if c in df.columns:
-                df[c] = pd.to_numeric(df[c], errors="coerce")
-        return df[["date", "open", "high", "low", "close", "volume"]].dropna(subset=["close"]).tail(datalen).reset_index(drop=True)
-    except Exception as e:
-        logger.debug("东方财富 akshare 日线 %s 失败: %s", code, e)
-        return pd.DataFrame()
+    
+    for attempt in range(max_retries):
+        try:
+            end_d = datetime.now()
+            start_d = end_d - timedelta(days=min(datalen + 60, 800))
+            start_str = start_d.strftime("%Y%m%d")
+            end_str = end_d.strftime("%Y%m%d")
+            symbol = code if len(code) <= 6 else code[-6:] if code.isdigit() else code
+            
+            # 添加超时和重试
+            import time
+            if attempt > 0:
+                time.sleep(1)  # 重试前等待1秒
+            
+            df = ak.stock_zh_a_hist(symbol=symbol, period="daily", start_date=start_str, end_date=end_str, adjust="")
+            if df is None or df.empty:
+                if attempt < max_retries - 1:
+                    continue
+                return pd.DataFrame()
+            
+            col_map = {"日期": "date", "开盘": "open", "收盘": "close", "最高": "high", "最低": "low", "成交量": "volume"}
+            df = df.rename(columns={k: v for k, v in col_map.items() if k in df.columns})
+            if "date" not in df.columns:
+                if attempt < max_retries - 1:
+                    continue
+                return pd.DataFrame()
+            
+            df["date"] = pd.to_datetime(df["date"])
+            for c in ["open", "high", "low", "close", "volume"]:
+                if c in df.columns:
+                    df[c] = pd.to_numeric(df[c], errors="coerce")
+            return df[["date", "open", "high", "low", "close", "volume"]].dropna(subset=["close"]).tail(datalen).reset_index(drop=True)
+        except Exception as e:
+            if attempt < max_retries - 1:
+                logger.debug(f"东方财富 akshare 日线 {code} 失败 (尝试 {attempt+1}/{max_retries}): {e}")
+                continue
+            else:
+                logger.debug(f"东方财富 akshare 日线 {code} 最终失败: {e}")
+                return pd.DataFrame()
+    
+    return pd.DataFrame()
 
 
 # ------ 备用3：tushare 个股日线（与情绪一致：config 或 TUSHARE_TOKEN）------
@@ -238,25 +278,38 @@ def _fetch_tencent_kline(code: str, datalen: int, timeout: int = STOCK_DAILY_TIM
 
 
 def _circuit_allow(source: str) -> bool:
-    """熔断检查：连续失败>=阈值且在开窗期内则不允许请求该源。"""
-    cnt, t0 = _circuit_state[source]
-    if cnt < CIRCUIT_FAIL_THRESHOLD:
+    """熔断检查：连续失败>=阈值且在开窗期内则不允许请求该源。local_cache不受熔断限制。"""
+    if source == "local_cache":
         return True
-    if time.time() - t0 >= CIRCUIT_OPEN_SECONDS:
-        _circuit_state[source][0] = 0  # 半开启：允许一次重试
+
+    cnt, t0 = _circuit_state.get(source, [0, 0.0])
+    threshold = CIRCUIT_FAIL_THRESHOLD_ETF if source in _ETF_SOURCES else CIRCUIT_FAIL_THRESHOLD
+    open_secs = CIRCUIT_OPEN_SECONDS_ETF if source in _ETF_SOURCES else CIRCUIT_OPEN_SECONDS
+    if cnt < threshold:
+        return True
+    if time.time() - t0 >= open_secs:
+        _circuit_state[source][0] = 0
         return True
     return False
 
 
 def _circuit_record(source: str, success: bool) -> None:
-    """记录成功/失败，失败时增加计数并刷新时间。"""
+    """记录成功/失败，失败时增加计数并刷新时间。local_cache不记录失败（不触发熔断）。"""
+    if source == "local_cache" and not success:
+        return
+
+    if source not in _circuit_state:
+        _circuit_state[source] = [0, 0.0]
+
     if success:
         _circuit_state[source][0] = 0
     else:
         _circuit_state[source][0] = _circuit_state[source][0] + 1
         _circuit_state[source][1] = time.time()
-        if _circuit_state[source][0] >= CIRCUIT_FAIL_THRESHOLD:
-            logger.warning("[data_prefetch] 数据源 %s 连续失败达 %d 次，熔断 %d 秒", source, CIRCUIT_FAIL_THRESHOLD, CIRCUIT_OPEN_SECONDS)
+        threshold = CIRCUIT_FAIL_THRESHOLD_ETF if source in _ETF_SOURCES else CIRCUIT_FAIL_THRESHOLD
+        open_secs = CIRCUIT_OPEN_SECONDS_ETF if source in _ETF_SOURCES else CIRCUIT_OPEN_SECONDS
+        if _circuit_state[source][0] >= threshold:
+            logger.warning("[data_prefetch] 数据源 %s 连续失败达 %d 次，熔断 %d 秒", source, threshold, open_secs)
 
 
 def fetch_stock_daily(

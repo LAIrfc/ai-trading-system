@@ -35,88 +35,19 @@ from src.strategies import STRATEGY_REGISTRY, get_all_strategies
 # 数据获取
 # ============================================================
 
-def fetch_stock_data_baostock(code: str, days: int = 300) -> pd.DataFrame:
-    """通过 baostock 获取股票日线数据"""
-    import baostock as bs
+def fetch_data(code: str, days: int = 300, source: str = 'unified') -> pd.DataFrame:
+    """统一数据获取入口（通过 UnifiedDataProvider 多源自动降级）"""
+    from src.data.provider.data_provider import get_default_kline_provider
 
-    prefix = 'sh' if code.startswith(('5', '6')) else 'sz'
-    bs_code = f'{prefix}.{code}'
-
-    end_date = datetime.now().strftime('%Y-%m-%d')
-    start_date = (datetime.now() - timedelta(days=int(days * 1.6))).strftime('%Y-%m-%d')
-
-    rs = bs.query_history_k_data_plus(
-        bs_code,
-        'date,open,high,low,close,volume,amount',
-        start_date=start_date,
-        end_date=end_date,
-        frequency='d',
-        adjustflag='2',  # 前复权
+    provider = get_default_kline_provider()
+    df = provider.get_kline(
+        symbol=code,
+        datalen=days,
+        min_bars=30,
+        retries=2,
+        timeout=10,
     )
-
-    rows = []
-    while rs.error_code == '0' and rs.next():
-        rows.append(rs.get_row_data())
-
-    if not rows:
-        return pd.DataFrame()
-
-    df = pd.DataFrame(rows, columns=['date', 'open', 'high', 'low', 'close', 'volume', 'amount'])
-    for col in ['open', 'high', 'low', 'close', 'volume', 'amount']:
-        df[col] = pd.to_numeric(df[col], errors='coerce')
-    df['date'] = pd.to_datetime(df['date'])
-    df.dropna(subset=['close'], inplace=True)
-
-    return df
-
-
-def fetch_stock_data_eastmoney(code: str, days: int = 300) -> pd.DataFrame:
-    """通过东方财富 HTTP API 获取股票日线数据"""
-    import requests
-
-    market = 1 if code.startswith(('5', '6')) else 0
-    url = 'http://push2his.eastmoney.com/api/qt/stock/kline/get'
-    params = {
-        'secid': f'{market}.{code}',
-        'fields1': 'f1,f2,f3,f4,f5,f6',
-        'fields2': 'f51,f52,f53,f54,f55,f56,f57,f58,f59,f60,f61',
-        'klt': '101', 'fqt': '1', 'lmt': str(days),
-        'end': '20500101', '_': '1',
-    }
-    headers = {
-        'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36',
-        'Referer': 'http://quote.eastmoney.com/',
-    }
-
-    try:
-        resp = requests.get(url, params=params, headers=headers, timeout=10)
-        data = resp.json()
-    except Exception:
-        return pd.DataFrame()
-
-    if not data.get('data') or not data['data'].get('klines'):
-        return pd.DataFrame()
-
-    records = []
-    for line in data['data']['klines']:
-        p = line.split(',')
-        records.append({
-            'date': p[0], 'open': float(p[1]), 'close': float(p[2]),
-            'high': float(p[3]), 'low': float(p[4]),
-            'volume': float(p[5]), 'amount': float(p[6]),
-        })
-
-    df = pd.DataFrame(records)
-    df['date'] = pd.to_datetime(df['date'])
-    return df
-
-
-def fetch_data(code: str, days: int = 300, source: str = 'baostock') -> pd.DataFrame:
-    """统一数据获取入口"""
-    if source == 'eastmoney':
-        return fetch_stock_data_eastmoney(code, days)
-    else:
-        return fetch_stock_data_baostock(code, days)
+    return df if df is not None and not df.empty else pd.DataFrame()
 
 
 # ============================================================
@@ -168,117 +99,71 @@ def run_cross_validation(stocks: list, days: int = 300,
     results = []
     total = len(stocks)
 
-    # baostock 分批重连：每 BATCH_SIZE 只股票重新登录一次，防止长会话超时
-    BATCH_SIZE = 80  # 每批80只，重连一次
+    for idx, stock in enumerate(stocks, 1):
+        code = stock['code']
+        name = stock['name']
+        sector = stock.get('sector', '')
 
-    if source == 'baostock':
-        import baostock as bs
-        bs.login()
-        print(f"baostock 已登录")
+        verbose = total <= 50
+        if verbose:
+            print(f"\r[{idx:3d}/{total}] 获取 {code} {name:8s} ...", end='', flush=True)
+        elif idx == 1 or idx % 50 == 0 or idx == total:
+            pct = idx / total * 100
+            bar = '█' * int(pct / 2) + '░' * (50 - int(pct / 2))
+            print(f"\r  [{bar}] {idx}/{total} ({pct:.0f}%)", end='', flush=True)
 
-    try:
-        for idx, stock in enumerate(stocks, 1):
-            code = stock['code']
-            name = stock['name']
-            sector = stock.get('sector', '')
+        df = fetch_data(code, days=days, source=source)
 
-            # baostock 分批重连
-            if source == 'baostock' and idx > 1 and (idx - 1) % BATCH_SIZE == 0:
-                try:
-                    bs.logout()
-                except Exception:
-                    pass
-                time.sleep(1)
-                bs.login()
-
-            # 进度显示：大批量时只显示进度条
-            verbose = total <= 50
+        if len(df) < 30:
+            fail_count = getattr(run_cross_validation, '_fail', 0) + 1
+            run_cross_validation._fail = fail_count
             if verbose:
-                print(f"\r[{idx:3d}/{total}] 获取 {code} {name:8s} ...", end='', flush=True)
-            elif idx == 1 or idx % 50 == 0 or idx == total:
-                pct = idx / total * 100
-                bar = '█' * int(pct / 2) + '░' * (50 - int(pct / 2))
-                print(f"\r  [{bar}] {idx}/{total} ({pct:.0f}%)", end='', flush=True)
+                print(f" ❌ 数据不足({len(df)}条)")
+            continue
 
-            # 数据获取（带重试）
-            df = pd.DataFrame()
-            for attempt in range(3):
-                df = fetch_data(code, days=days, source=source)
-                if len(df) >= 30:
-                    break
-                if source == 'baostock' and attempt < 2:
-                    # 重连再试
-                    try:
-                        bs.logout()
-                    except Exception:
-                        pass
-                    time.sleep(0.5)
-                    bs.login()
+        if verbose:
+            print(f" ✅ {len(df):3d}条 ", end='')
 
-            if len(df) < 30:
-                fail_count = getattr(run_cross_validation, '_fail', 0) + 1
-                run_cross_validation._fail = fail_count
-                if verbose:
-                    print(f" ❌ 数据不足({len(df)}条)")
+        for strat_name, strat in strategies.items():
+            if len(df) < strat.min_bars:
+                results.append({
+                    'code': code, 'name': name, 'sector': sector,
+                    'strategy': strat_name, 'bars': len(df),
+                    'final_value': initial_cash, 'total_return': 0.0,
+                    'annualized_return': 0.0, 'max_drawdown': 0.0,
+                    'win_rate': 0.0, 'trade_count': 0, 'sharpe': 0.0,
+                    'status': '数据不足',
+                })
                 continue
 
-            if verbose:
-                print(f" ✅ {len(df):3d}条 ", end='')
-
-            # 对每个策略运行回测
-            for strat_name, strat in strategies.items():
-                if len(df) < strat.min_bars:
-                    results.append({
-                        'code': code, 'name': name, 'sector': sector,
-                        'strategy': strat_name, 'bars': len(df),
-                        'final_value': initial_cash, 'total_return': 0.0,
-                        'annualized_return': 0.0, 'max_drawdown': 0.0,
-                        'win_rate': 0.0, 'trade_count': 0, 'sharpe': 0.0,
-                        'status': '数据不足',
-                    })
-                    continue
-
-                try:
-                    bt = strat.backtest(df, initial_cash=initial_cash)
-                    results.append({
-                        'code': code, 'name': name, 'sector': sector,
-                        'strategy': strat_name, 'bars': len(df),
-                        'final_value': bt['final_value'],
-                        'total_return': bt['total_return'],
-                        'annualized_return': bt['annualized_return'],
-                        'max_drawdown': bt['max_drawdown'],
-                        'win_rate': bt['win_rate'],
-                        'trade_count': bt['trade_count'],
-                        'sharpe': bt['sharpe'],
-                        'status': 'OK',
-                    })
-                except Exception as e:
-                    results.append({
-                        'code': code, 'name': name, 'sector': sector,
-                        'strategy': strat_name, 'bars': len(df),
-                        'final_value': initial_cash, 'total_return': 0.0,
-                        'annualized_return': 0.0, 'max_drawdown': 0.0,
-                        'win_rate': 0.0, 'trade_count': 0, 'sharpe': 0.0,
-                        'status': f'错误: {e}',
-                    })
-
-            if verbose:
-                print(f"| {len(strategies)}策略完成")
-
-            # 避免请求过快
-            if source == 'baostock':
-                time.sleep(0.1)
-            else:
-                time.sleep(0.3)
-
-    finally:
-        if source == 'baostock':
-            import baostock as bs
             try:
-                bs.logout()
-            except Exception:
-                pass
-            print(f"\nbaostock 已登出")
+                bt = strat.backtest(df, initial_cash=initial_cash)
+                results.append({
+                    'code': code, 'name': name, 'sector': sector,
+                    'strategy': strat_name, 'bars': len(df),
+                    'final_value': bt['final_value'],
+                    'total_return': bt['total_return'],
+                    'annualized_return': bt['annualized_return'],
+                    'max_drawdown': bt['max_drawdown'],
+                    'win_rate': bt['win_rate'],
+                    'trade_count': bt['trade_count'],
+                    'sharpe': bt['sharpe'],
+                    'status': 'OK',
+                })
+            except Exception as e:
+                results.append({
+                    'code': code, 'name': name, 'sector': sector,
+                    'strategy': strat_name, 'bars': len(df),
+                    'final_value': initial_cash, 'total_return': 0.0,
+                    'annualized_return': 0.0, 'max_drawdown': 0.0,
+                    'win_rate': 0.0, 'trade_count': 0, 'sharpe': 0.0,
+                    'status': f'错误: {e}',
+                })
+
+        if verbose:
+            print(f"| {len(strategies)}策略完成")
+
+        time.sleep(0.05)
 
     fail_count = getattr(run_cross_validation, '_fail', 0)
     if fail_count:
@@ -449,8 +334,8 @@ def main():
     parser.add_argument('--top', type=int, default=0, help='只取前N只股票（默认全部）')
     parser.add_argument('--sector', type=str, default=None, help='只跑某板块（如 光伏）')
     parser.add_argument('--days', type=int, default=300, help='回看天数（默认300）')
-    parser.add_argument('--source', type=str, default='baostock',
-                        choices=['baostock', 'eastmoney'], help='数据源')
+    parser.add_argument('--source', type=str, default='unified',
+                        choices=['unified', 'baostock', 'eastmoney'], help='数据源（默认使用统一接口）')
     parser.add_argument('--cash', type=float, default=100000.0, help='初始资金')
     parser.add_argument('--pool', type=str, default='stock_pool.json',
                         help='股票池文件名（默认 stock_pool.json）')

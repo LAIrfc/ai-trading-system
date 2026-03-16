@@ -1,5 +1,5 @@
 {
-  "updated": "2026-03-11",
+  "updated": "2026-03-16",
   "note": "持仓数据来自券商实盘，成本为持仓均价",
   "holdings": [
     {
@@ -21,7 +21,8 @@
       "name": "芯片指数ETF",
       "avg_cost": 2.127,
       "market_value_ref": 0,
-      "shares": 4700
+      "shares": 0,
+      "comment": "2026-03-16 已清仓"
     },
     {
       "code": "159880",
@@ -45,6 +46,27 @@
       "shares": 16500
     },
     {
+      "code": "603565",
+      "name": "中谷物流",
+      "avg_cost": 11.14,
+      "shares": 900,
+      "comment": "2026-03-16 精选TOP5买入"
+    },
+    {
+      "code": "601919",
+      "name": "中远海控",
+      "avg_cost": 16.07,
+      "shares": 600,
+      "comment": "2026-03-16 精选TOP5买入"
+    },
+    {
+      "code": "600901",
+      "name": "江苏金租",
+      "avg_cost": 6.51,
+      "shares": 1300,
+      "comment": "2026-03-16 精选TOP5买入"
+    },
+    {
       "code": "002281",
       "name": "光迅科技",
       "avg_cost": 75.10,
@@ -66,7 +88,7 @@
       "avg_cost": 1.167,
       "market_value_ref": 8500,
       "shares": 0,
-      "comment": "新浪无数据，暂不跟踪"
+      "comment": "暂不跟踪"
     }
   ]
 }

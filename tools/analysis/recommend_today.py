@@ -19,7 +19,10 @@
     python3 tools/analysis/recommend_today.py --no-policy-filter
 
 11策略: MA | MACD | RSI | BOLL | KDJ | DUAL（技术面6） | PE | PB | PEPB（基本面3） | NEWS | MONEY_FLOW
-默认池: stock_pool_all.json（723只），可 --pool stock_pool.json（48只）缩小范围。
+
+【重要】每日选股只从综合大池 stock_pool_all.json 中选取。
+综合大池 = 沪深300 + 中证500 指数成分股 + 7大赛道龙头 + 56只主流ETF，合计约860只。
+数据获取走 UnifiedDataProvider 统一接口，自动多源降级（sina > eastmoney > tencent > tushare > baostock）。
 
 输出:
     终端报告 + output/daily_recommendation_YYYY-MM-DD.md
@@ -56,41 +59,513 @@ from src.data.fetchers.fundamental_fetcher import FundamentalFetcher
 
 
 # ============================================================
+# 增量报告（累积到单文件，最新日期在前，持仓置顶）
+# ============================================================
+
+REPORT_FILE = os.path.join(os.path.dirname(__file__), '..', '..', 'mydate', 'daily_reports', 'daily_recommendation.md')
+PORTFOLIO_FILE = os.path.join(os.path.dirname(__file__), '..', '..', 'mydate', 'my_portfolio.json')
+DAILY_ARCHIVE_DIR = os.path.join(os.path.dirname(__file__), '..', '..', 'mydate', 'daily_reports')
+
+
+def _load_portfolio() -> list:
+    """加载持仓数据"""
+    if not os.path.exists(PORTFOLIO_FILE):
+        return []
+    try:
+        with open(PORTFOLIO_FILE, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        return [h for h in data.get('holdings', []) if h.get('shares', 0) > 0]
+    except Exception:
+        return []
+
+
+def _render_portfolio_section(holdings: list, provider=None) -> str:
+    """渲染持仓状态区块（带最新价格和盈亏）"""
+    if not holdings:
+        return "## 我的持仓\n\n暂无持仓。\n\n"
+
+    lines = ["## 我的持仓\n"]
+    lines.append("| 代码 | 名称 | 成本价 | 最新价 | 持仓 | 市值 | 盈亏% |")
+    lines.append("|------|------|--------|--------|------|------|-------|")
+
+    total_cost = 0
+    total_value = 0
+    for h in holdings:
+        code = h['code']
+        name = h.get('name', '')
+        cost = h.get('avg_cost', 0)
+        shares = h.get('shares', 0)
+        latest = 0
+        if provider:
+            try:
+                is_etf = (code.startswith('5') or code.startswith('159')) and len(code) == 6
+                df = provider.get_kline(symbol=code, datalen=3, min_bars=1, retries=1, timeout=8, is_etf=is_etf)
+                if df is not None and not df.empty:
+                    latest = float(df['close'].iloc[-1])
+            except Exception:
+                pass
+        cost_total = cost * shares
+        value_total = latest * shares if latest > 0 else 0
+        pnl = ((latest / cost - 1) * 100) if cost > 0 and latest > 0 else 0
+        pnl_str = f"{pnl:+.2f}%" if latest > 0 else "N/A"
+        latest_str = f"¥{latest:.2f}" if latest > 0 else "N/A"
+        value_str = f"¥{value_total:,.0f}" if value_total > 0 else "N/A"
+        total_cost += cost_total
+        total_value += value_total
+        lines.append(f"| {code} | {name} | ¥{cost:.3f} | {latest_str} | {shares} | {value_str} | {pnl_str} |")
+
+    if total_cost > 0 and total_value > 0:
+        total_pnl = (total_value / total_cost - 1) * 100
+        lines.append(f"\n**总市值**: ¥{total_value:,.0f} | **总成本**: ¥{total_cost:,.0f} | **总盈亏**: {total_pnl:+.2f}%\n")
+    lines.append("")
+    return "\n".join(lines)
+
+
+def _render_holding_advice(holdings: list, all_results: list, today: str) -> str:
+    """渲染持仓操作建议（含详细原因分析）"""
+    if not holdings or not all_results:
+        return ""
+    result_map = {r['code']: r for r in all_results}
+    holding_map = {h['code']: h for h in holdings}
+    holding_codes = {h['code'] for h in holdings}
+    found = [result_map[c] for c in holding_codes if c in result_map]
+    if not found:
+        return ""
+
+    lines = [f"## 今日持仓操作建议 ({today})\n"]
+    for r in sorted(found, key=lambda x: x.get('score', 0), reverse=True):
+        code = r['code']
+        score = r.get('score', 0)
+        buy_cnt = r.get('buy_count', 0)
+        sell_cnt = r.get('sell_count', 0)
+        hold_cnt = r.get('hold_count', 0)
+        price = r.get('price', 0)
+        change_5d = r.get('change_5d', 0)
+        change_20d = r.get('change_20d', 0)
+        trend = r.get('trend', '')
+        vol_ratio = r.get('volume_ratio', 0)
+        signals = r.get('signals', [])
+
+        if sell_cnt >= 3 or score < -5:
+            action = "🔴 建议减仓/止损"
+        elif sell_cnt >= 2 or score < 0:
+            action = "🟡 关注风险，考虑减仓"
+        elif buy_cnt >= 3 and score > 5:
+            action = "🟢 可以加仓"
+        elif buy_cnt >= 2:
+            action = "🟢 继续持有"
+        else:
+            action = "⚪ 观望持有"
+
+        # 持仓盈亏
+        h = holding_map.get(code, {})
+        cost = h.get('avg_cost', 0)
+        pnl_str = ""
+        if cost > 0 and price > 0:
+            pnl = (price / cost - 1) * 100
+            pnl_str = f" | 持仓盈亏 {pnl:+.1f}%"
+
+        lines.append(f"#### {r['name']}（{code}）{action}\n")
+        lines.append(f"- **价格** ¥{price:.2f} | **得分** {score:.1f} | **趋势** {trend}{pnl_str}")
+        lines.append(f"- **涨跌幅** 5日 {change_5d:+.2f}% / 20日 {change_20d:+.2f}% | **量比** {vol_ratio:.1f}x")
+
+        # 策略信号
+        if signals:
+            buy_sigs = [f"{sn}({reason})" for sn, act, _, reason in signals if act == 'BUY']
+            sell_sigs = [f"{sn}({reason})" for sn, act, _, reason in signals if act == 'SELL']
+            hold_sigs = [f"{sn}" for sn, act, _, reason in signals if act == 'HOLD']
+            if buy_sigs:
+                lines.append(f"- 🟢 看多: {', '.join(buy_sigs)}")
+            if sell_sigs:
+                lines.append(f"- 🔴 看空: {', '.join(sell_sigs)}")
+            if hold_sigs:
+                lines.append(f"- ⚪ 观望: {', '.join(hold_sigs)}")
+
+        # 操作建议理由
+        reasons = []
+        if score < -5:
+            reasons.append(f"综合得分{score:.1f}偏低，多数策略看空")
+        elif score < 0:
+            reasons.append(f"综合得分{score:.1f}偏弱，存在下行风险")
+        if change_5d < -5:
+            reasons.append(f"近5日下跌{change_5d:+.1f}%，短期走势较弱")
+        if '空头' in trend:
+            reasons.append("均线空头排列，技术面不利")
+        elif '偏空' in trend:
+            reasons.append("股价在MA20下方，中期趋势偏弱")
+        if cost > 0 and price > 0 and (price / cost - 1) < -0.10:
+            reasons.append(f"持仓亏损已超10%，需重新评估持有逻辑")
+        if buy_cnt >= 3:
+            reasons.append(f"{buy_cnt}个策略看多，可考虑加仓或继续持有")
+        elif buy_cnt >= 2 and sell_cnt == 0:
+            reasons.append("技术面偏多且无卖出信号，可继续持有")
+        if change_5d > 5 and sell_cnt == 0:
+            reasons.append(f"近5日上涨{change_5d:+.1f}%且无卖出信号，趋势健康")
+
+        if reasons:
+            lines.append(f"- **分析**: {'；'.join(reasons)}")
+        lines.append("")
+
+    return "\n".join(lines)
+
+
+def _select_elite_top5(top_list: list) -> list:
+    """
+    从 TOP20 中精选 TOP5：多维度加权打分，优中选优。
+
+    评分维度（满分100）：
+      1. 趋势质量 (25分)：多头排列 > 偏多 > 偏空 > 空头
+      2. 量价配合 (20分)：温和放量最佳(1.0-2.0x)，过度放量/缩量扣分
+      3. 涨幅安全 (20分)：5日涨幅0~8%最佳，涨太多追高风险
+      4. 上涨空间 (20分)：距60日高点越远空间越大，但不要跌太深
+      5. 中期动能 (15分)：20日涨幅正且适中最佳
+
+    额外约束：同板块最多入选2只，保证分散。
+    """
+    if not top_list:
+        return []
+
+    scored = []
+    for r in top_list:
+        es = 0.0  # elite score
+        reasons = []
+        trend = r.get('trend', '')
+        vol_ratio = r.get('volume_ratio', 0)
+        change_5d = r.get('change_5d', 0)
+        change_20d = r.get('change_20d', 0)
+        dist_high = r.get('dist_high', 0)
+
+        # 1. 趋势质量 (25分)
+        if '多头' in trend:
+            es += 25
+            reasons.append("多头排列")
+        elif '偏多' in trend:
+            es += 15
+            reasons.append("偏多趋势")
+        elif '偏空' in trend:
+            es += 5
+        else:
+            es += 0
+
+        # 2. 量价配合 (20分)
+        if 1.0 <= vol_ratio <= 2.0:
+            es += 20
+            reasons.append("量价配合好")
+        elif 0.7 <= vol_ratio < 1.0 or 2.0 < vol_ratio <= 3.0:
+            es += 12
+        elif vol_ratio > 3.0:
+            es += 8
+            reasons.append(f"放量{vol_ratio:.1f}x需留意")
+        else:
+            es += 5
+
+        # 3. 涨幅安全 (20分) — 温和上涨最好，追高风险扣分
+        if 0 < change_5d <= 5:
+            es += 20
+            reasons.append("温和上涨安全")
+        elif 5 < change_5d <= 8:
+            es += 15
+            reasons.append("短线动能强")
+        elif 8 < change_5d <= 12:
+            es += 8
+        elif change_5d > 12:
+            es += 3
+        elif -3 < change_5d <= 0:
+            es += 14
+            reasons.append("回踩企稳")
+        elif -5 < change_5d <= -3:
+            es += 10
+        else:
+            es += 4
+
+        # 4. 上涨空间 (20分) — 距60日高点有空间但不要太深
+        if -3 < dist_high <= 0:
+            es += 15
+            reasons.append("接近新高")
+        elif -10 < dist_high <= -3:
+            es += 20
+            reasons.append("上涨空间充足")
+        elif -20 < dist_high <= -10:
+            es += 14
+        elif dist_high <= -20:
+            es += 6
+
+        # 5. 中期动能 (15分)
+        if 3 < change_20d <= 15:
+            es += 15
+            reasons.append("中期趋势向好")
+        elif 0 < change_20d <= 3:
+            es += 10
+        elif 15 < change_20d <= 25:
+            es += 8
+        elif change_20d > 25:
+            es += 4
+        elif -5 < change_20d <= 0:
+            es += 6
+        else:
+            es += 2
+
+        reason_str = '、'.join(reasons[:3]) if reasons else '综合得分靠前'
+        scored.append((r, es, reason_str))
+
+    scored.sort(key=lambda x: x[1], reverse=True)
+
+    # 板块分散：同板块最多入选2只
+    result = []
+    sector_count = {}
+    for r, es, reason in scored:
+        sector = str(r.get('sector', ''))[:10]
+        cnt = sector_count.get(sector, 0)
+        if cnt >= 2:
+            continue
+        result.append((r, es, reason))
+        sector_count[sector] = cnt + 1
+        if len(result) >= 5:
+            break
+
+    return result
+
+
+def _render_daily_section(today: str, top_list: list, strategy_name: str,
+                          pool_size: int, valid_count: int) -> str:
+    """渲染单日推荐区块（每只推荐股附带详细分析理由）"""
+    lines = [f"## {today} 每日推荐\n"]
+    lines.append(f"**策略**: {strategy_name} | **股票池**: {pool_size}只 | **有效**: {valid_count}只\n")
+
+    # 总览表
+    lines.append("| 排名 | 代码 | 名称 | 价格 | 得分 | 买/卖/观 | 趋势 | 5日% | 20日% | 板块 |")
+    lines.append("|------|------|------|------|------|----------|------|------|-------|------|")
+    for rank, r in enumerate(top_list, 1):
+        trend = r.get('trend', '')
+        bsh = f"{r.get('buy_count',0)}/{r.get('sell_count',0)}/{r.get('hold_count',0)}"
+        lines.append(f"| {rank} | {r['code']} | {r['name']} | {r.get('price',0):.2f} | {r.get('score',0):.1f} | "
+                      f"{bsh} | {trend} | "
+                      f"{r.get('change_5d',0):+.2f} | {r.get('change_20d',0):+.2f} | {str(r.get('sector',''))[:15]} |")
+    lines.append("")
+
+    # ====== 精选 TOP5：从 TOP20 中多维度再筛选 ======
+    elite5 = _select_elite_top5(top_list)
+    if elite5:
+        lines.append("### 🏆 精选 TOP5（优中选优）\n")
+        lines.append("从 TOP20 中按「趋势+量价配合+涨幅安全+位置空间+板块分散」五维度综合再筛选。\n")
+        lines.append("| 精选 | 代码 | 名称 | 价格 | 策略得分 | 精选得分 | 趋势 | 量比 | 5日% | 推荐理由 |")
+        lines.append("|------|------|------|------|----------|----------|------|------|------|----------|")
+        for i, (r, elite_score, elite_reason) in enumerate(elite5, 1):
+            vol_ratio = r.get('volume_ratio', 0)
+            vol_str = f"{vol_ratio:.1f}x"
+            lines.append(f"| ⭐{i} | {r['code']} | {r['name']} | {r.get('price',0):.2f} | "
+                          f"{r.get('score',0):.1f} | {elite_score:.0f} | {r.get('trend','')} | "
+                          f"{vol_str} | {r.get('change_5d',0):+.2f} | {elite_reason} |")
+        lines.append("")
+
+    # 每只推荐股的详细分析
+    for rank, r in enumerate(top_list, 1):
+        lines.append(f"### {rank}. {r['code']} {r['name']}  （得分 {r.get('score',0):.1f}）\n")
+
+        # 基本信息行
+        price = r.get('price', 0)
+        trend = r.get('trend', 'N/A')
+        vol_ratio = r.get('volume_ratio', 0)
+        change_5d = r.get('change_5d', 0)
+        change_20d = r.get('change_20d', 0)
+        dist_high = r.get('dist_high', 0)
+        dist_low = r.get('dist_low', 0)
+        sector = r.get('sector', '')
+        pe = r.get('pe_ttm')
+        pb = r.get('pb')
+        ma5 = r.get('ma5', 0)
+        ma10 = r.get('ma10', 0)
+        ma20 = r.get('ma20', 0)
+        ma60 = r.get('ma60', 0)
+
+        lines.append(f"- **价格** ¥{price:.2f} | **板块** {sector}")
+        lines.append(f"- **趋势** {trend} | **量比** {vol_ratio:.1f}x{'（放量）' if vol_ratio > 1.5 else ('（缩量）' if vol_ratio < 0.7 else '')}")
+        lines.append(f"- **涨跌幅** 5日 {change_5d:+.2f}% / 20日 {change_20d:+.2f}%")
+        if ma5 and ma20:
+            lines.append(f"- **均线** MA5={ma5:.2f} / MA10={ma10:.2f} / MA20={ma20:.2f} / MA60={ma60:.2f}")
+        lines.append(f"- **位置** 距60日高点 {dist_high:+.1f}% / 距60日低点 {dist_low:+.1f}%")
+        pe_str = f"PE={pe:.1f}" if pe else "PE=N/A"
+        pb_str = f"PB={pb:.2f}" if pb else "PB=N/A"
+        lines.append(f"- **估值** {pe_str} / {pb_str}")
+
+        # 策略信号明细
+        signals = r.get('signals', [])
+        if signals:
+            buy_sigs = [(sn, conf, reason) for sn, action, conf, reason in signals if action == 'BUY']
+            sell_sigs = [(sn, conf, reason) for sn, action, conf, reason in signals if action == 'SELL']
+            hold_sigs = [(sn, conf, reason) for sn, action, conf, reason in signals if action == 'HOLD']
+            lines.append(f"- **策略投票** 🟢买入{len(buy_sigs)} / 🔴卖出{len(sell_sigs)} / ⚪观望{len(hold_sigs)}")
+
+            if buy_sigs:
+                lines.append(f"  - 看多信号:")
+                for sn, conf, reason in buy_sigs:
+                    lines.append(f"    - 🟢 **{sn}** ({conf:.0%}): {reason}")
+            if sell_sigs:
+                lines.append(f"  - 看空信号:")
+                for sn, conf, reason in sell_sigs:
+                    lines.append(f"    - 🔴 **{sn}** ({conf:.0%}): {reason}")
+            if hold_sigs:
+                lines.append(f"  - 观望信号:")
+                for sn, conf, reason in hold_sigs:
+                    lines.append(f"    - ⚪ **{sn}** ({conf:.0%}): {reason}")
+
+        # 综合推荐理由
+        lines.append("")
+        lines.append(_generate_recommendation_reason(r))
+        lines.append("")
+
+    lines.append("---\n")
+    return "\n".join(lines)
+
+
+def _generate_recommendation_reason(r: dict) -> str:
+    """根据分析数据生成综合推荐理由文字"""
+    parts = []
+    price = r.get('price', 0)
+    trend = r.get('trend', '')
+    vol_ratio = r.get('volume_ratio', 0)
+    change_5d = r.get('change_5d', 0)
+    change_20d = r.get('change_20d', 0)
+    dist_high = r.get('dist_high', 0)
+    buy_count = r.get('buy_count', 0)
+    sell_count = r.get('sell_count', 0)
+    signals = r.get('signals', [])
+
+    # 趋势判断
+    if '多头' in trend:
+        parts.append("均线呈多头排列，短中期趋势向上")
+    elif '偏多' in trend:
+        parts.append("股价站上MA20，中期趋势偏多")
+    elif '偏空' in trend:
+        parts.append("股价位于MA20下方，需注意回调风险")
+    elif '空头' in trend:
+        parts.append("均线空头排列，技术面偏弱，属于超跌反弹型机会")
+
+    # 量价
+    if vol_ratio > 2.0:
+        parts.append(f"量比{vol_ratio:.1f}x显著放量，资金关注度高")
+    elif vol_ratio > 1.5:
+        parts.append(f"量比{vol_ratio:.1f}x温和放量，量价配合良好")
+    elif vol_ratio < 0.5:
+        parts.append(f"量比{vol_ratio:.1f}x明显缩量，需关注后续量能跟进")
+
+    # 涨跌幅
+    if 0 < change_5d <= 5:
+        parts.append(f"近5日温和上涨{change_5d:+.1f}%，上升势头稳健")
+    elif 5 < change_5d <= 10:
+        parts.append(f"近5日上涨{change_5d:+.1f}%，短线动能较强")
+    elif change_5d > 10:
+        parts.append(f"近5日大涨{change_5d:+.1f}%，短线涨幅较大注意追高风险")
+    elif -5 < change_5d < 0:
+        parts.append(f"近5日小幅调整{change_5d:+.1f}%，可能是回踩企稳")
+    elif change_5d <= -5:
+        parts.append(f"近5日下跌{change_5d:+.1f}%，属于超跌博反弹")
+
+    if change_20d > 15:
+        parts.append(f"20日涨幅{change_20d:+.1f}%，中期趋势强劲")
+    elif change_20d < -15:
+        parts.append(f"20日跌幅{change_20d:+.1f}%，中期偏弱需谨慎")
+
+    # 位置
+    if -5 < dist_high <= 0:
+        parts.append("接近60日新高，上方压力较小")
+    elif -15 < dist_high <= -5:
+        parts.append(f"距60日高点{dist_high:+.1f}%，仍有上涨空间")
+    elif dist_high <= -30:
+        parts.append(f"距60日高点{dist_high:+.1f}%，处于相对低位")
+
+    # 策略信号
+    buy_names = [sn for sn, action, _, _ in signals if action == 'BUY']
+    if buy_names:
+        parts.append(f"{len(buy_names)}个策略发出买入信号（{', '.join(buy_names)}）")
+
+    # PE/PB
+    pe = r.get('pe_ttm')
+    pb = r.get('pb')
+    if pe and 0 < pe < 20:
+        parts.append(f"PE={pe:.1f}处于低估值区间")
+    elif pe and pe > 80:
+        parts.append(f"PE={pe:.1f}估值偏高")
+
+    if not parts:
+        parts.append("多维度分析综合得分靠前")
+
+    return f"> **推荐理由**: {'；'.join(parts)}。"
+
+
+def save_incremental_report(today: str, top_list: list, all_results: list,
+                            strategy_name: str, pool_size: int, valid_count: int):
+    """保存增量报告：持仓置顶 + 今日操作建议 + 今日推荐 + 历史（最新在前）"""
+    from src.data.provider.data_provider import get_default_kline_provider
+    provider = get_default_kline_provider()
+    holdings = _load_portfolio()
+
+    os.makedirs(os.path.dirname(REPORT_FILE), exist_ok=True)
+
+    # 读取已有报告中的历史区块（去掉旧的持仓和操作建议，保留各日推荐）
+    old_daily_sections = ""
+    if os.path.exists(REPORT_FILE):
+        with open(REPORT_FILE, 'r', encoding='utf-8') as f:
+            old_content = f.read()
+        # 提取从第一个日期推荐区块开始的内容（格式: ## YYYY-MM-DD 每日推荐）
+        import re
+        parts = re.split(r'(## \d{4}-\d{2}-\d{2} 每日推荐)', old_content)
+        daily_blocks = []
+        for i in range(1, len(parts), 2):
+            header = parts[i]
+            body = parts[i + 1] if i + 1 < len(parts) else ""
+            date_in_header = re.search(r'(\d{4}-\d{2}-\d{2})', header)
+            if date_in_header and date_in_header.group(1) != today:
+                daily_blocks.append(header + body)
+        old_daily_sections = "".join(daily_blocks)
+
+    # 构建新报告
+    report_parts = []
+    report_parts.append(f"# 📈 每日选股推荐\n")
+    report_parts.append(f"> 最后更新: {datetime.now().strftime('%Y-%m-%d %H:%M')} | 数据来源: UnifiedDataProvider (多源自动降级)\n\n")
+
+    # 1. 持仓置顶
+    report_parts.append(_render_portfolio_section(holdings, provider))
+
+    # 2. 今日持仓操作建议
+    report_parts.append(_render_holding_advice(holdings, all_results, today))
+
+    # 3. 今日推荐
+    report_parts.append(_render_daily_section(today, top_list, strategy_name, pool_size, valid_count))
+
+    # 4. 历史推荐（旧的，最新在前）
+    if old_daily_sections.strip():
+        report_parts.append(old_daily_sections)
+
+    with open(REPORT_FILE, 'w', encoding='utf-8') as f:
+        f.write("\n".join(report_parts))
+
+    # 同时保存当日独立归档
+    archive_path = os.path.join(DAILY_ARCHIVE_DIR, f'daily_recommendation_{today}.md')
+    with open(archive_path, 'w', encoding='utf-8') as f:
+        f.write(f"# 📈 每日选股推荐 — {today}\n\n")
+        f.write(_render_daily_section(today, top_list, strategy_name, pool_size, valid_count))
+
+    return REPORT_FILE, archive_path
+
+
+# ============================================================
 # 数据获取
 # ============================================================
 
 def fetch_stock_data(code: str, days: int = 200) -> pd.DataFrame:
-    """通过 baostock 获取数据"""
-    import baostock as bs
+    """通过统一数据接口获取 K 线数据（多数据源自动降级）"""
+    from src.data.provider.data_provider import get_default_kline_provider
 
-    prefix = 'sh' if code.startswith(('5', '6')) else 'sz'
-    bs_code = f'{prefix}.{code}'
-
-    end_date = datetime.now().strftime('%Y-%m-%d')
-    start_date = (datetime.now() - timedelta(days=int(days * 1.6))).strftime('%Y-%m-%d')
-
-    rs = bs.query_history_k_data_plus(
-        bs_code,
-        'date,open,high,low,close,volume,amount',
-        start_date=start_date,
-        end_date=end_date,
-        frequency='d',
-        adjustflag='2',
+    provider = get_default_kline_provider()
+    df = provider.get_kline(
+        symbol=code,
+        datalen=days,
+        min_bars=30,
+        retries=2,
+        timeout=10,
     )
-
-    rows = []
-    while rs.error_code == '0' and rs.next():
-        rows.append(rs.get_row_data())
-
-    if not rows:
-        return pd.DataFrame()
-
-    df = pd.DataFrame(rows, columns=['date', 'open', 'high', 'low', 'close', 'volume', 'amount'])
-    for col in ['open', 'high', 'low', 'close', 'volume', 'amount']:
-        df[col] = pd.to_numeric(df[col], errors='coerce')
-    df['date'] = pd.to_datetime(df['date'])
-    df.dropna(subset=['close'], inplace=True)
-    return df
+    return df if df is not None and not df.empty else pd.DataFrame()
 
 
 def load_stock_pool(pool_file: str, max_count: int = 0) -> list:
@@ -169,7 +644,9 @@ def analyze_stock_extended(df: pd.DataFrame, strat,
 
     # 均线
     ma5 = float(close.iloc[-5:].mean())
+    ma10 = float(close.iloc[-10:].mean()) if len(df) >= 10 else ma5
     ma20 = float(close.iloc[-20:].mean()) if len(df) >= 20 else ma5
+    ma60 = float(close.iloc[-60:].mean()) if len(df) >= 60 else ma20
 
     # 趋势
     if price > ma5 > ma20:
@@ -224,7 +701,9 @@ def analyze_stock_extended(df: pd.DataFrame, strat,
         'change_20d': round(change_20d, 2),
         'volume_ratio': round(vol_ratio, 2),
         'ma5': round(ma5, 2),
+        'ma10': round(ma10, 2),
         'ma20': round(ma20, 2),
+        'ma60': round(ma60, 2),
         'trend': trend,
         'distance_from_high': round(dist_high, 2),
         'distance_from_low': round(dist_low, 2),
@@ -345,119 +824,44 @@ def load_cached_kline(code: str, cache_dir: str = None) -> pd.DataFrame:
 
 def update_kline_cache(code: str, cache_dir: str = None, days: int = 200) -> pd.DataFrame:
     """
-    增量更新K线缓存：只获取缺失的日期
-    
-    多数据源降级逻辑：
-    1. Baostock（免费，稳定，但有频率限制）
-    2. AKShare（免费，实时，需要联网）
-    3. 返回缓存（如果以上都失败）
+    增量更新K线缓存：使用统一数据接口获取数据，合并本地缓存
     """
-    # 1. 加载现有缓存
+    from src.data.provider.data_provider import get_default_kline_provider
+
     cached_df = load_cached_kline(code, cache_dir)
-    
-    end_date = datetime.now().strftime('%Y-%m-%d')
-    
-    # 2. 确定需要更新的日期范围
+
     if not cached_df.empty and 'date' in cached_df.columns:
         last_date = pd.Timestamp(cached_df['date'].max())
         today = pd.Timestamp(datetime.now().date())
-        
-        # 如果缓存是最新的（包含今天或昨天），直接返回
         if (today - last_date).days <= 1:
             return cached_df
-        
-        # 增量更新：从缓存的最后一天开始
-        start_date = (last_date + timedelta(days=1)).strftime('%Y-%m-%d')
-    else:
-        # 没有缓存，全量下载
-        start_date = (datetime.now() - timedelta(days=int(days * 1.6))).strftime('%Y-%m-%d')
-    
-    new_df = pd.DataFrame()
-    
-    # 3. 尝试获取增量数据 - 多数据源降级
-    
-    # 方案1: Baostock（主力）
-    try:
-        import baostock as bs
-        prefix = 'sh' if code.startswith(('5', '6')) else 'sz'
-        bs_code = f'{prefix}.{code}'
-        
-        rs = bs.query_history_k_data_plus(
-            bs_code,
-            'date,open,high,low,close,volume,amount',
-            start_date=start_date,
-            end_date=end_date,
-            frequency='d',
-            adjustflag='2',
-        )
-        
-        rows = []
-        while rs.error_code == '0' and rs.next():
-            rows.append(rs.get_row_data())
-        
-        if rows:
-            new_df = pd.DataFrame(rows, columns=['date', 'open', 'high', 'low', 'close', 'volume', 'amount'])
-            for col in ['open', 'high', 'low', 'close', 'volume', 'amount']:
-                new_df[col] = pd.to_numeric(new_df[col], errors='coerce')
-            new_df['date'] = pd.to_datetime(new_df['date'])
-            new_df.dropna(subset=['close'], inplace=True)
-            logger.info(f"✅ Baostock获取 {code} K线成功: {len(new_df)}天")
-    except Exception as e:
-        logger.warning(f"⚠️ Baostock获取 {code} K线失败: {e}")
-    
-    # 方案2: AKShare（备用）
-    if new_df.empty:
-        try:
-            import akshare as ak
-            
-            # akshare需要转换日期格式
-            start_akshare = start_date.replace('-', '')
-            end_akshare = end_date.replace('-', '')
-            
-            df_ak = ak.stock_zh_a_hist(
-                symbol=code,
-                period="daily",
-                start_date=start_akshare,
-                end_date=end_akshare,
-                adjust="qfq"
-            )
-            
-            if not df_ak.empty:
-                # 统一列名格式
-                new_df = pd.DataFrame({
-                    'date': pd.to_datetime(df_ak['日期']),
-                    'open': pd.to_numeric(df_ak['开盘'], errors='coerce'),
-                    'high': pd.to_numeric(df_ak['最高'], errors='coerce'),
-                    'low': pd.to_numeric(df_ak['最低'], errors='coerce'),
-                    'close': pd.to_numeric(df_ak['收盘'], errors='coerce'),
-                    'volume': pd.to_numeric(df_ak['成交量'], errors='coerce'),
-                    'amount': pd.to_numeric(df_ak['成交额'], errors='coerce'),
-                })
-                new_df.dropna(subset=['close'], inplace=True)
-                logger.info(f"✅ AKShare获取 {code} K线成功: {len(new_df)}天")
-        except Exception as e:
-            logger.warning(f"⚠️ AKShare获取 {code} K线失败: {e}")
-    
-    # 方案3: 如果所有数据源都失败，返回缓存
-    if new_df.empty:
-        logger.error(f"❌ 所有数据源均失败，使用缓存数据: {code}")
+
+    provider = get_default_kline_provider()
+    new_df = provider.get_kline(
+        symbol=code,
+        datalen=days,
+        min_bars=1,
+        retries=2,
+        timeout=10,
+    )
+
+    if new_df is None or new_df.empty:
+        logger.error(f"所有数据源均失败，使用缓存数据: {code}")
         return cached_df if not cached_df.empty else pd.DataFrame()
-    
-    # 4. 合并新旧数据
+
     if not cached_df.empty:
         combined = pd.concat([cached_df, new_df], ignore_index=True)
         combined = combined.drop_duplicates(subset=['date'], keep='last')
         combined = combined.sort_values('date').reset_index(drop=True)
     else:
         combined = new_df
-    
-    # 5. 保存更新后的缓存
+
     if not cache_dir:
         cache_dir = os.path.join(os.path.dirname(__file__), '..', '..', 'mydate', 'backtest_kline')
     os.makedirs(cache_dir, exist_ok=True)
     cache_file = os.path.join(cache_dir, f'{code}.parquet')
     combined.to_parquet(cache_file, index=False)
-    
+
     return combined
 
 
@@ -586,7 +990,6 @@ def run_full_11_analysis(code: str, name: str, sector: str, df: pd.DataFrame, fe
     
     if not skip_industry:
         try:
-<<<<<<< Current (Your changes)
             industry = fetcher.get_industry_classification(code)
             if industry:
                 # 优先使用巨潮快接口（快100倍，直接返回行业PE而不是聚合）
@@ -603,21 +1006,8 @@ def run_full_11_analysis(code: str, name: str, sector: str, df: pd.DataFrame, fe
                     industry_data = fetcher.get_industry_pe_pb_data(code, datalen=400)
                     industry_pe_data = industry_data.get('industry_pe')
                     industry_pb_data = industry_data.get('industry_pb')
-        except Exception:
-            pass
-=======
-            # 获取行业分类
-            industry = fetcher.get_industry_classification(code)
-            if industry:
-                # 使用Baostock聚合接口（巨潮接口有bug，暂不可用）
-                industry_data = fetcher.get_industry_pe_pb_data(code, datalen=400)
-                industry_pe_data = industry_data.get('industry_pe')
-                industry_pb_data = industry_data.get('industry_pb')
-                if industry_pe_data is not None:
-                    logger.info(f"✅ 获取 {code} 行业 {industry} PE/PB成功")
         except Exception as e:
             logger.warning(f"⚠️ 获取 {code} 行业数据失败: {e}")
->>>>>>> Incoming (Background Agent changes)
 
     if 'pe_ttm' in df.columns and df['pe_ttm'].notna().sum() > 100:
         try:
@@ -668,9 +1058,40 @@ def run_full_11_analysis(code: str, name: str, sector: str, df: pd.DataFrame, fe
 
     # 综合得分：买数量*2 - 卖数量*2 + 仓位加权
     score = buy_count * 2 - sell_count * 2 + round(score_sum, 2)
-    price = float(df['close'].iloc[-1])
-    change_5d = (price / float(df['close'].iloc[-6]) - 1) * 100 if len(df) > 5 else 0
-    change_20d = (price / float(df['close'].iloc[-21]) - 1) * 100 if len(df) > 20 else 0
+    close = df['close']
+    volume = df['volume']
+    price = float(close.iloc[-1])
+    change_5d = (price / float(close.iloc[-6]) - 1) * 100 if len(df) > 5 else 0
+    change_20d = (price / float(close.iloc[-21]) - 1) * 100 if len(df) > 20 else 0
+
+    # 均线与趋势
+    ma5 = float(close.iloc[-5:].mean())
+    ma10 = float(close.iloc[-10:].mean()) if len(df) >= 10 else ma5
+    ma20 = float(close.iloc[-20:].mean()) if len(df) >= 20 else ma5
+    ma60 = float(close.iloc[-60:].mean()) if len(df) >= 60 else ma20
+    if price > ma5 > ma20:
+        trend = '多头排列↑'
+    elif price < ma5 < ma20:
+        trend = '空头排列↓'
+    elif price > ma20:
+        trend = '偏多↗'
+    else:
+        trend = '偏空↘'
+
+    # 量比
+    avg_vol_5 = float(volume.iloc[-6:-1].mean()) if len(df) > 5 else 1
+    vol_ratio = float(volume.iloc[-1]) / avg_vol_5 if avg_vol_5 > 0 else 1
+
+    # 60日高低点距离
+    high_60 = float(close.iloc[-60:].max()) if len(df) >= 60 else float(close.max())
+    low_60 = float(close.iloc[-60:].min()) if len(df) >= 60 else float(close.min())
+    dist_high = (price / high_60 - 1) * 100
+    dist_low = (price / low_60 - 1) * 100
+
+    # PE/PB
+    pe_ttm = float(df['pe_ttm'].iloc[-1]) if 'pe_ttm' in df.columns and pd.notna(df['pe_ttm'].iloc[-1]) else None
+    pb_val = float(df['pb'].iloc[-1]) if 'pb' in df.columns and pd.notna(df['pb'].iloc[-1]) else None
+
     return {
         'code': code,
         'name': name,
@@ -683,6 +1104,16 @@ def run_full_11_analysis(code: str, name: str, sector: str, df: pd.DataFrame, fe
         'change_5d': round(change_5d, 2),
         'change_20d': round(change_20d, 2),
         'signals': signals,
+        'trend': trend,
+        'volume_ratio': round(vol_ratio, 2),
+        'ma5': round(ma5, 2),
+        'ma10': round(ma10, 2),
+        'ma20': round(ma20, 2),
+        'ma60': round(ma60, 2),
+        'dist_high': round(dist_high, 2),
+        'dist_low': round(dist_low, 2),
+        'pe_ttm': pe_ttm,
+        'pb': pb_val,
     }
 
 
@@ -726,7 +1157,8 @@ def _check_policy_filter() -> dict:
 
 def main():
     parser = argparse.ArgumentParser(description='每日选股推荐')
-    parser.add_argument('--pool', type=str, default='stock_pool_all.json', help='股票池（默认大池 812 只）')
+    parser.add_argument('--pool', type=str, default='stock_pool_all.json',
+                        help='股票池（默认综合大池 stock_pool_all.json，约860只，每日选股只从此池选取）')
     parser.add_argument('--max-pool', type=int, default=0, help='最多扫描池内前 N 只（0=全部）')
     parser.add_argument('--strategy', type=str, default='ensemble',
                         choices=['macd', 'ensemble', 'full_11'],
@@ -781,8 +1213,6 @@ def main():
         print(f"📌 推荐TOP: {args.top} 只")
         print()
 
-        import baostock as bs
-        
         # 检查缓存
         cache_dir = os.path.join(os.path.dirname(__file__), '..', '..', 'mydate', 'backtest_kline')
         use_kline_cache = os.path.exists(cache_dir)
@@ -803,7 +1233,6 @@ def main():
         else:
             print(f"⚠️  基本面缓存: 无缓存，将全量获取")
         
-        bs.login()
         fetcher = FundamentalFetcher()
         full_results = []
         fail_count = 0
@@ -864,7 +1293,7 @@ def main():
             max_workers = 8  # 纯缓存模式可以提高并发
             print(f"\n🚀 纯缓存模式：使用{max_workers}线程并发分析（不发起网络请求）...\n")
         else:
-            max_workers = 3  # 降到3，减少baostock限流
+            max_workers = 3
             print(f"\n🚀 使用{max_workers}线程增量更新+并发分析...\n")
         completed = 0
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
@@ -917,36 +1346,16 @@ def main():
             for sn, action, conf, reason in r['signals']:
                 em = '🟢' if action == 'BUY' else ('🔴' if action == 'SELL' else '⚪')
                 print(f"      {sn:>12} {em} {action:>4} {conf:.0%} {reason[:45]}")
-        output_dir = os.path.join(os.path.dirname(__file__), '..', 'output')
-        os.makedirs(output_dir, exist_ok=True)
-        md_path = os.path.join(output_dir, f'daily_recommendation_{today}.md')
-        with open(md_path, 'w', encoding='utf-8') as f:
-            f.write(f"# 📈 每日选股推荐 — {today}（11策略+大池）\n\n")
-            f.write(f"**策略**: {strategy_name}\n")
-            f.write(f"**股票池**: {len(stocks)} 只，有效 {len(full_results)} 只\n\n")
-            
-            # TOP 推荐表格
-            f.write("## TOP 推荐\n\n")
-            f.write("| 排名 | 代码 | 名称 | 价格 | 得分 | 买 | 卖 | 观 | 5日% | 20日% | 板块 |\n")
-            f.write("|------|------|------|------|------|----|----|----|------|-------|------|\n")
-            for rank, r in enumerate(top_list, 1):
-                f.write(f"| {rank} | {r['code']} | {r['name']} | {r['price']:.2f} | {r['score']:.1f} | "
-                        f"{r['buy_count']} | {r['sell_count']} | {r['hold_count']} | "
-                        f"{r['change_5d']:+.2f} | {r['change_20d']:+.2f} | {r['sector']} |\n")
-            
-            # 详细分析（TOP 10）
-            f.write("\n## 详细分析\n\n")
-            for rank, r in enumerate(top_list, 1):
-                f.write(f"### {rank}. {r['code']} {r['name']}\n\n")
-                f.write(f"**得分**: {r['score']:.1f} | **价格**: ¥{r['price']:.2f} | ")
-                f.write(f"**5日涨幅**: {r['change_5d']:+.2f}% | **20日涨幅**: {r['change_20d']:+.2f}%\n\n")
-                f.write(f"**策略信号** (买{r['buy_count']}/卖{r['sell_count']}/观{r['hold_count']}):\n\n")
-                for sn, action, conf, reason in r['signals']:
-                    em = '🟢' if action == 'BUY' else ('🔴' if action == 'SELL' else '⚪')
-                    f.write(f"- {em} **{sn}** ({action}, {conf:.0%}): {reason}\n")
-                f.write("\n---\n\n")
-        
-        print(f"\n📝 报告已保存: {md_path}")
+        report_path, archive_path = save_incremental_report(
+            today=today,
+            top_list=top_list,
+            all_results=full_results,
+            strategy_name=strategy_name,
+            pool_size=len(stocks),
+            valid_count=len(full_results),
+        )
+        print(f"\n📝 增量报告已保存: {report_path}")
+        print(f"📝 当日归档已保存: {archive_path}")
         print("\n✅ 分析完成!")
         return
 
@@ -972,9 +1381,6 @@ def main():
     print(f"📌 推荐TOP: {args.top} 只")
     print()
 
-    import baostock as bs
-    bs.login()
-    BATCH_SIZE = 80
     all_results = []
     fail_count = 0
 
@@ -982,15 +1388,6 @@ def main():
         code = stock['code']
         name = stock['name']
         sector = stock.get('sector', '')
-
-        # 分批重连
-        if i > 1 and (i - 1) % BATCH_SIZE == 0:
-            try:
-                bs.logout()
-            except Exception:
-                pass
-            time.sleep(0.5)
-            bs.login()
 
         # 进度
         if len(stocks) <= 50:
@@ -1000,19 +1397,8 @@ def main():
             bar = '█' * int(pct / 2) + '░' * (50 - int(pct / 2))
             print(f"\r  [{bar}] {i}/{len(stocks)} ({pct:.0f}%)", end='', flush=True)
 
-        # 获取数据（带重试）
-        df = pd.DataFrame()
-        for attempt in range(3):
-            df = fetch_stock_data(code, 200)
-            if len(df) >= strat.min_bars:
-                break
-            if attempt < 2:
-                try:
-                    bs.logout()
-                except Exception:
-                    pass
-                time.sleep(0.3)
-                bs.login()
+        # 获取数据（统一接口自带重试和降级）
+        df = fetch_stock_data(code, 200)
 
         if len(df) < strat.min_bars:
             fail_count += 1
@@ -1056,6 +1442,10 @@ def main():
             'change_20d': info['change_20d'],
             'volume_ratio': info['volume_ratio'],
             'trend': info['trend'],
+            'ma5': info['ma5'],
+            'ma10': info['ma10'],
+            'ma20': info['ma20'],
+            'ma60': info['ma60'],
             'dist_high': info['distance_from_high'],
             'dist_low': info['distance_from_low'],
             'score': score,
@@ -1072,11 +1462,6 @@ def main():
         })
 
         time.sleep(0.05)
-
-    try:
-        bs.logout()
-    except Exception:
-        pass
 
     if fail_count:
         print(f"\n⚠️  {fail_count} 只数据不足，已跳过")
@@ -1188,183 +1573,50 @@ def main():
         print(f"\n  💤 今日建议：空仓观望，等待MACD金叉信号")
 
     # ============================================================
-    # 保存 Markdown 报告
+    # 保存增量报告
     # ============================================================
-    output_dir = os.path.join(os.path.dirname(__file__), '..', 'output')
-    os.makedirs(output_dir, exist_ok=True)
-    md_path = os.path.join(output_dir, f'daily_recommendation_{today}.md')
+    # 将 ensemble/macd 结果转换为统一格式
+    unified_results = []
+    for _, row in df_all.iterrows():
+        buy_count = 1 if row['action'] == 'BUY' else 0
+        sell_count = 1 if row['action'] == 'SELL' else 0
+        hold_count = 1 if row['action'] == 'HOLD' else 0
+        unified_results.append({
+            'code': row['code'],
+            'name': row['name'],
+            'price': row['price'],
+            'score': row['score'],
+            'buy_count': buy_count,
+            'sell_count': sell_count,
+            'hold_count': hold_count,
+            'change_5d': row.get('change_5d', 0),
+            'change_20d': row.get('change_20d', 0),
+            'sector': row.get('sector', ''),
+            'signals': [],
+            'trend': row.get('trend', ''),
+            'volume_ratio': row.get('volume_ratio', 0),
+            'ma5': row.get('ma5', 0),
+            'ma10': row.get('ma10', 0),
+            'ma20': row.get('ma20', 0),
+            'ma60': row.get('ma60', 0),
+            'dist_high': row.get('dist_high', 0),
+            'dist_low': row.get('dist_low', 0),
+            'pe_ttm': row.get('pe_ttm'),
+            'pb': row.get('pb'),
+        })
+    unified_results.sort(key=lambda x: x['score'], reverse=True)
+    top_list = unified_results[:args.top]
 
-    with open(md_path, 'w', encoding='utf-8') as f:
-        f.write(f"# 📈 每日选股推荐 — {today}\n\n")
-        f.write(f"**生成时间**: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
-        f.write(f"**策略类型**: {args.strategy.upper()}\n")
-        f.write(f"**MACD参数**: ({args.fast},{args.slow},{args.signal})\n")
-        f.write(f"**股票池**: {len(stocks)} 只\n")
-        f.write(f"**有效分析**: {len(df_all)} 只\n")
-        f.write(f"**政策面评分**: {policy_result.get('score', 0):.2f}\n\n")
-
-        # 市场总览
-        f.write("## 一、市场总览\n\n")
-        f.write(f"| 信号 | 数量 | 占比 |\n")
-        f.write(f"|------|------|------|\n")
-        f.write(f"| 🟢 买入 | {len(buy_stocks)} | {len(buy_stocks)/len(df_all)*100:.1f}% |\n")
-        f.write(f"| 🔴 卖出 | {len(sell_stocks)} | {len(sell_stocks)/len(df_all)*100:.1f}% |\n")
-        f.write(f"| ⚪ 观望 | {len(hold_stocks)} | {len(hold_stocks)/len(df_all)*100:.1f}% |\n\n")
-        
-        # 行业分布统计
-        if len(buy_stocks) > 0:
-            sector_dist = buy_stocks['sector'].value_counts().head(10)
-            f.write("### 买入信号行业分布 (TOP10)\n\n")
-            f.write("| 行业 | 数量 |\n")
-            f.write("|------|------|\n")
-            for sector, count in sector_dist.items():
-                f.write(f"| {sector} | {count} |\n")
-            f.write("\n")
-
-        # 买入推荐
-        f.write("## 二、买入推荐 (详细分析)\n\n")
-        if len(buy_stocks) > 0:
-            f.write("| 排名 | 代码 | 名称 | 价格 | 评分 | 信心 | 建议仓位 | 5日涨幅 | 20日涨幅 | 量比 | 趋势 | 理由 |\n")
-            f.write("|------|------|------|------|------|------|---------|--------|---------|------|------|------|\n")
-            for rank, (_, row) in enumerate(buy_stocks.head(args.top).iterrows(), 1):
-                f.write(f"| {rank} | {row['code']} | {row['name']} | "
-                        f"¥{row['price']:.2f} | {row['score']:.1f} | "
-                        f"{row['confidence']:.0%} | {row['position']:.0%} | "
-                        f"{row['change_5d']:+.2f}% | {row['change_20d']:+.2f}% | "
-                        f"{row['volume_ratio']:.1f}x | "
-                        f"{row['trend']} | {row['reason'][:40]} |\n")
-            
-            # 详细个股分析
-            f.write("\n### 重点个股详细分析\n\n")
-            for rank, (_, row) in enumerate(buy_stocks.head(5).iterrows(), 1):
-                f.write(f"#### {rank}. {row['name']} ({row['code']})\n\n")
-                f.write(f"- **当前价格**: ¥{row['price']:.2f}\n")
-                f.write(f"- **综合评分**: {row['score']:.1f}/100\n")
-                f.write(f"- **信号信心**: {row['confidence']:.0%}\n")
-                f.write(f"- **建议仓位**: {row['position']:.0%}\n")
-                f.write(f"- **所属行业**: {row['sector']}\n")
-                f.write(f"- **技术面**:\n")
-                f.write(f"  - 5日涨幅: {row['change_5d']:+.2f}%\n")
-                f.write(f"  - 20日涨幅: {row['change_20d']:+.2f}%\n")
-                f.write(f"  - 量比: {row['volume_ratio']:.2f}x\n")
-                f.write(f"  - 趋势: {row['trend']}\n")
-                f.write(f"  - MA5: ¥{row['ma5']:.2f}, MA20: ¥{row['ma20']:.2f}\n")
-                f.write(f"  - 距52周高点: {row['distance_from_high']:+.2f}%\n")
-                f.write(f"  - 距52周低点: {row['distance_from_low']:+.2f}%\n")
-                
-                # 基本面信息
-                if row.get('pe_ttm') and row.get('pe_ttm') > 0:
-                    f.write(f"- **基本面**:\n")
-                    f.write(f"  - PE(TTM): {row['pe_ttm']:.2f}")
-                    if row.get('pe_quantile'):
-                        f.write(f" (历史分位: {row['pe_quantile']:.1%})")
-                    f.write(f"\n")
-                    if row.get('pb') and row.get('pb') > 0:
-                        f.write(f"  - PB: {row['pb']:.2f}")
-                        if row.get('pb_quantile'):
-                            f.write(f" (历史分位: {row['pb_quantile']:.1%})")
-                        f.write(f"\n")
-                    f.write(f"  - PE信号: {row.get('pe_signal', 'N/A')}\n")
-                    f.write(f"  - PB信号: {row.get('pb_signal', 'N/A')}\n")
-                
-                # 资金流信息
-                if row.get('fund_flow_signal') and row['fund_flow_signal'] != 'neutral':
-                    f.write(f"- **资金流向**: {row['fund_flow_signal']}")
-                    if row.get('fund_flow_reason'):
-                        f.write(f" ({row['fund_flow_reason']})")
-                    f.write(f"\n")
-                
-                f.write(f"- **选股理由**: {row['reason']}\n\n")
-        else:
-            f.write("今日无买入信号，建议空仓观望。\n")
-
-        # 卖出预警
-        f.write("\n## 三、卖出预警\n\n")
-        if len(sell_stocks) > 0:
-            f.write("| 排名 | 代码 | 名称 | 价格 | 5日涨幅 | 20日涨幅 | 量比 | 趋势 | 理由 |\n")
-            f.write("|------|------|------|------|--------|---------|------|------|------|\n")
-            for rank, (_, row) in enumerate(sell_stocks.head(20).iterrows(), 1):
-                f.write(f"| {rank} | {row['code']} | {row['name']} | "
-                        f"¥{row['price']:.2f} | {row['change_5d']:+.2f}% | "
-                        f"{row['change_20d']:+.2f}% | {row['volume_ratio']:.1f}x | "
-                        f"{row['trend']} | {row['reason'][:50]} |\n")
-        else:
-            f.write("今日无卖出信号。\n")
-
-        # 操盘建议
-        f.write("\n## 四、操盘建议（10万元资金）\n\n")
-        if len(buy_stocks) > 0:
-            top_buys = buy_stocks.head(min(5, len(buy_stocks)))
-            total_score = top_buys['score'].sum()
-
-            f.write("| 代码 | 名称 | 价格 | 建议仓位 | 建议金额 | 手数 | 止损价 | 理由 |\n")
-            f.write("|------|------|------|---------|---------|------|--------|------|\n")
-            total_used = 0
-            for _, row in top_buys.iterrows():
-                weight = min(row['score'] / total_score, max_per_stock)
-                amount = total_capital * weight
-                shares = int(amount / row['price'] / 100) * 100
-                if shares <= 0:
-                    continue
-                actual = shares * row['price']
-                total_used += actual
-                stop_loss = row['price'] * 0.92  # 8%止损
-                f.write(f"| {row['code']} | {row['name']} | ¥{row['price']:.2f} | "
-                        f"{weight:.0%} | ¥{actual:,.0f} | {shares}股 | "
-                        f"¥{stop_loss:.2f} | {row['reason'][:35]} |\n")
-
-            f.write(f"\n- **预计投入**: ¥{total_used:,.0f}\n")
-            f.write(f"- **预留现金**: ¥{total_capital - total_used:,.0f} ({(total_capital - total_used)/total_capital:.1%})\n")
-            f.write(f"- **资金利用率**: {total_used/total_capital:.1%}\n")
-        else:
-            f.write("今日建议：**空仓观望**，等待MACD金叉信号。\n")
-
-        # 策略统计
-        f.write("\n## 五、策略统计\n\n")
-        if args.strategy == 'ensemble':
-            f.write("### 11策略投票分布\n\n")
-            f.write("本次选股使用11策略加权投票:\n")
-            f.write("- **技术面策略(6个)**: MA均线, MACD, RSI, BOLL, KDJ, DUAL双动量\n")
-            f.write("- **基本面策略(3个)**: PE估值, PB估值, PE+PB综合\n")
-            f.write("- **消息面策略(1个)**: NEWS新闻情感\n")
-            f.write("- **资金面策略(1个)**: MONEY_FLOW主力资金流向\n\n")
-            
-            # 统计各策略贡献
-            if len(buy_stocks) > 0:
-                strategy_votes = defaultdict(int)
-                for _, row in buy_stocks.head(args.top).iterrows():
-                    reason = row['reason']
-                    for strat in ['MA', 'MACD', 'RSI', 'BOLL', 'KDJ', 'DUAL', 'PE', 'PB', 'PEPB', 'NEWS', 'MONEY']:
-                        if strat in reason:
-                            strategy_votes[strat] += 1
-                
-                f.write("**TOP20推荐中各策略贡献次数**:\n\n")
-                f.write("| 策略 | 贡献次数 |\n")
-                f.write("|------|----------|\n")
-                for strat, count in sorted(strategy_votes.items(), key=lambda x: x[1], reverse=True):
-                    f.write(f"| {strat} | {count} |\n")
-                f.write("\n")
-
-        # 风险提示
-        f.write("\n## ⚠️ 风险提示\n\n")
-        f.write("1. 本推荐基于多策略量化分析，仅供参考，不构成投资建议\n")
-        f.write("2. 股市有风险，入市需谨慎\n")
-        f.write("3. **严格执行止损**: 建议设置止损位（买入价-8%），触发立即止损\n")
-        f.write("4. **仓位管理**: 单只股票仓位不超过30%，分散风险\n")
-        f.write("5. **分批建仓**: 建议分2-3次建仓，降低择时风险\n")
-        f.write(f"6. 策略回测5个月平均收益 +9.4%，但历史收益不代表未来\n")
-        f.write(f"7. 本次分析基于 {today} 收盘数据，次日开盘前需再次确认\n")
-        
-        # 附录：数据来源
-        f.write("\n## 📊 附录：数据来源\n\n")
-        f.write(f"- **K线数据**: 本地缓存 (mydate/backtest_kline/)\n")
-        f.write(f"- **基本面数据**: 本地PE/PB缓存 (mydate/pe_cache/)\n")
-        f.write(f"- **实时行情**: Baostock API\n")
-        f.write(f"- **新闻情感**: 东方财富 + AI分析\n")
-        f.write(f"- **资金流向**: 东方财富资金流数据\n")
-        f.write(f"- **政策面**: 新华社/央视新闻 + LLM情感分析\n")
-
-    print(f"\n📝 详细报告已保存: {md_path}")
+    report_path, archive_path = save_incremental_report(
+        today=today,
+        top_list=top_list,
+        all_results=unified_results,
+        strategy_name=strategy_name,
+        pool_size=len(stocks),
+        valid_count=len(df_all),
+    )
+    print(f"\n📝 增量报告已保存: {report_path}")
+    print(f"📝 当日归档已保存: {archive_path}")
     print(f"\n✅ 分析完成!")
 
 

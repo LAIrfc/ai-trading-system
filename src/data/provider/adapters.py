@@ -8,11 +8,33 @@
 from datetime import datetime, timedelta
 from typing import Optional
 import os
+import threading
 from pathlib import Path
 
 import pandas as pd
 
 from .base import KlineAdapter, KLINE_COLUMNS
+
+
+_bs_lock = threading.Lock()
+_bs_logged_in = False
+
+
+def _ensure_bs_login():
+    """确保 baostock 已 login（进程级单例，线程安全）。"""
+    global _bs_logged_in
+    if _bs_logged_in:
+        return
+    with _bs_lock:
+        if _bs_logged_in:
+            return
+        try:
+            import baostock as bs
+            lg = bs.login()
+            if lg.error_code == '0':
+                _bs_logged_in = True
+        except Exception:
+            pass
 
 
 def _ensure_columns(df: pd.DataFrame) -> pd.DataFrame:
@@ -181,7 +203,7 @@ class AkshareETFAdapter(KlineAdapter):
                 time.sleep(random.uniform(0.5, 2))
                 df = fetch_func(**fetch_kwargs)
                 out = self._normalize_etf_df(df)
-                if out is not None and len(out) >= 60:
+                if out is not None and len(out) >= 10:
                     logger.debug(f"[AkshareETFAdapter] {code} 从 {source_name} 获取成功")
                     return out
             except Exception as e:
@@ -209,7 +231,7 @@ class AkshareETFAdapter(KlineAdapter):
         df['date'] = pd.to_datetime(df['date'], errors='coerce')
         df = df[['date'] + required].dropna(subset=['close', 'date'])
         df = df.sort_values('date').reset_index(drop=True)
-        return df if len(df) >= 60 else None
+        return df if len(df) >= 10 else None
 
 
 class Push2hisETFAdapter(KlineAdapter):
@@ -271,7 +293,7 @@ class Push2hisETFAdapter(KlineAdapter):
             df["date"] = pd.to_datetime(df["date"])
             df = df[KLINE_COLUMNS].sort_values("date").reset_index(drop=True)
             logger.debug(f"[Push2hisETFAdapter] {code} 获取成功: {len(df)} 条")
-            return df if len(df) >= 60 else pd.DataFrame()
+            return df if len(df) >= 10 else pd.DataFrame()
         except Exception as e:
             logger.debug(f"[Push2hisETFAdapter] {code} 请求失败: {e}")
             return pd.DataFrame()
@@ -357,6 +379,73 @@ class LocalCacheAdapter(KlineAdapter):
         return pd.DataFrame()
 
 
+class BaostockStockAdapter(KlineAdapter):
+    """baostock 股票 K 线适配器：免费数据源，稳定可靠，作为股票 K 线的最后网络备用。"""
+
+    @property
+    def source_id(self) -> str:
+        return "baostock"
+
+    def get_kline(
+        self,
+        symbol: str,
+        start_date: Optional[str] = None,
+        end_date: Optional[str] = None,
+        datalen: Optional[int] = None,
+        timeout: int = 10,
+        **kwargs,
+    ) -> pd.DataFrame:
+        import logging
+
+        logger = logging.getLogger(__name__)
+        code = symbol.strip()
+
+        try:
+            import baostock as bs
+            _ensure_bs_login()
+
+            prefix = "sh" if code.startswith(("5", "6")) else "sz"
+            bs_code = f"{prefix}.{code}"
+
+            if end_date:
+                end_str = f"{end_date[:4]}-{end_date[4:6]}-{end_date[6:]}"
+            else:
+                end_str = datetime.now().strftime("%Y-%m-%d")
+
+            if start_date:
+                start_str = f"{start_date[:4]}-{start_date[4:6]}-{start_date[6:]}"
+            else:
+                days_back = int((datalen or 800) * 1.6)
+                start_str = (datetime.now() - timedelta(days=days_back)).strftime("%Y-%m-%d")
+
+            rs = bs.query_history_k_data_plus(
+                bs_code,
+                "date,open,high,low,close,volume",
+                start_date=start_str,
+                end_date=end_str,
+                frequency="d",
+                adjustflag="2",
+            )
+
+            if rs.error_code != "0":
+                logger.debug("[BaostockStockAdapter] %s 查询失败: %s", code, rs.error_msg)
+                return pd.DataFrame()
+
+            rows = []
+            while rs.next():
+                rows.append(rs.get_row_data())
+
+            if not rows:
+                return pd.DataFrame()
+
+            df = pd.DataFrame(rows, columns=["date", "open", "high", "low", "close", "volume"])
+            return _ensure_columns(df)
+
+        except Exception as e:
+            logger.debug("[BaostockStockAdapter] %s 异常: %s", code, e)
+            return pd.DataFrame()
+
+
 class BaostockETFAdapter(KlineAdapter):
     """baostock ETF 适配器，作为最后的备用方案。"""
 
@@ -373,39 +462,34 @@ class BaostockETFAdapter(KlineAdapter):
         timeout: int = 10,
         **kwargs,
     ) -> pd.DataFrame:
-        """
-        使用 baostock 获取 ETF 数据
-        """
         import logging
-        
+
         logger = logging.getLogger(__name__)
         code = symbol.strip()
-        
+
         try:
             import baostock as bs
-            
-            # 判断交易所
+            _ensure_bs_login()
+
             if code.startswith('5') or code.startswith('6'):
                 exchange = 'sh'
             elif code.startswith('159') or code.startswith('15'):
                 exchange = 'sz'
             else:
                 exchange = 'sz'
-            
+
             bs_code = f'{exchange}.{code}'
-            
-            # 日期范围
+
             if end_date:
                 end_str = f"{end_date[:4]}-{end_date[4:6]}-{end_date[6:]}"
             else:
                 end_str = datetime.now().strftime('%Y-%m-%d')
-            
+
             if start_date:
                 start_str = f"{start_date[:4]}-{start_date[4:6]}-{start_date[6:]}"
             else:
                 start_str = (datetime.now() - timedelta(days=1200)).strftime('%Y-%m-%d')
-            
-            # 查询数据
+
             rs = bs.query_history_k_data_plus(
                 bs_code,
                 "date,open,high,low,close,volume",
@@ -414,30 +498,98 @@ class BaostockETFAdapter(KlineAdapter):
                 frequency="d",
                 adjustflag="2"
             )
-            
+
             if rs.error_code != '0':
-                logger.debug(f"[BaostockETFAdapter] {code} baostock 查询失败: {rs.error_msg}")
+                logger.debug("[BaostockETFAdapter] %s 查询失败: %s", code, rs.error_msg)
                 return pd.DataFrame()
-            
+
             rows = []
             while rs.next():
                 rows.append(rs.get_row_data())
-            
+
             if not rows:
                 return pd.DataFrame()
-            
+
             df = pd.DataFrame(rows, columns=['date', 'open', 'high', 'low', 'close', 'volume'])
-            df['date'] = pd.to_datetime(df['date'])
-            for col in ['open', 'high', 'low', 'close', 'volume']:
-                df[col] = pd.to_numeric(df[col], errors='coerce')
-            df = df.dropna(subset=['close']).sort_values('date').reset_index(drop=True)
-            
-            logger.debug(f"[BaostockETFAdapter] {code} 获取成功: {len(df)} 条")
-            return df if len(df) >= 60 else pd.DataFrame()
-            
+            out = _ensure_columns(df)
+            logger.debug("[BaostockETFAdapter] %s 获取成功: %d 条", code, len(out))
+            return out
+
         except Exception as e:
-            logger.debug(f"[BaostockETFAdapter] {code} 异常: {e}")
+            logger.debug("[BaostockETFAdapter] %s 异常: %s", code, e)
             return pd.DataFrame()
+
+
+# ============================================================
+# 实时行情获取（盘中拼接当日数据）
+# ============================================================
+
+def fetch_realtime_bar(code: str) -> Optional[pd.DataFrame]:
+    """
+    获取单只股票/ETF的当日实时行情，返回一行标准 KLINE_COLUMNS 格式。
+    多源降级：东方财富push2 → 新浪hq → 返回None。
+    仅在交易日盘中/盘后调用，用于拼接到历史日K线末尾。
+    """
+    import logging
+    import requests
+
+    logger = logging.getLogger(__name__)
+    today_str = datetime.now().strftime('%Y-%m-%d')
+
+    # 源1: 东方财富 push2 实时
+    try:
+        market = '1' if code.startswith(('5', '6')) else '0'
+        url = 'http://push2.eastmoney.com/api/qt/stock/get'
+        params = {
+            'secid': f'{market}.{code}',
+            'fields': 'f43,f44,f45,f46,f47',
+            'fltt': '2',
+        }
+        r = requests.get(url, params=params, timeout=5,
+                         headers={'User-Agent': 'Mozilla/5.0', 'Referer': 'http://quote.eastmoney.com/'})
+        d = r.json().get('data', {})
+        if d and d.get('f43') and d['f43'] != '-':
+            latest = float(d['f43'])
+            if latest > 0:
+                df = pd.DataFrame([{
+                    'date': pd.Timestamp(today_str),
+                    'open': float(d.get('f46', latest)),
+                    'high': float(d.get('f44', latest)),
+                    'low': float(d.get('f45', latest)),
+                    'close': latest,
+                    'volume': float(d.get('f47', 0)),
+                }])
+                return df
+    except Exception as e:
+        logger.debug("[realtime] 东方财富 %s 失败: %s", code, e)
+
+    # 源2: 新浪 hq.sinajs 实时
+    try:
+        prefix = 'sh' if code.startswith(('5', '6')) else 'sz'
+        url = f'https://hq.sinajs.cn/list={prefix}{code}'
+        headers = {
+            'Referer': 'https://finance.sina.com.cn/',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        }
+        r = requests.get(url, headers=headers, timeout=5)
+        text = r.text.strip()
+        if 'hq_str' in text and '="' in text:
+            data_str = text.split('="')[1].rstrip('";')
+            fields = data_str.split(',')
+            if len(fields) > 10 and fields[3] and float(fields[3]) > 0:
+                df = pd.DataFrame([{
+                    'date': pd.Timestamp(today_str),
+                    'open': float(fields[1]),
+                    'high': float(fields[4]),
+                    'low': float(fields[5]),
+                    'close': float(fields[3]),
+                    'volume': float(fields[8]),
+                }])
+                return df
+    except Exception as e:
+        logger.debug("[realtime] 新浪 %s 失败: %s", code, e)
+
+    return None
 
 
 # 注册名 -> 适配器类，供 UnifiedDataProvider 按配置实例化
@@ -446,6 +598,7 @@ KLINE_ADAPTER_REGISTRY = {
     "eastmoney": EastMoneyKlineAdapter,
     "tencent": TencentKlineAdapter,
     "tushare": TushareKlineAdapter,
+    "baostock": BaostockStockAdapter,
     "akshare_etf": AkshareETFAdapter,
     "push2his_etf": Push2hisETFAdapter,
     "baostock_etf": BaostockETFAdapter,

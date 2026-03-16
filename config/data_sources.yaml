@@ -1,14 +1,21 @@
-# 策略数据源配置（V3.3）
+# 策略数据源配置（V3.4）
 # 占位 [指定数据商] 在接入前可替换为 akshare / tushare / Wind 等
 
 # 所有数据源配置统一在此维护，换源只改这里，代码无需修改
 kline:
   # 股票 K 线数据源顺序（互斥降级：主源失败自动切换备用）
-  # 可选: sina, eastmoney, tencent, tushare
-  sources: [sina, eastmoney, tencent, tushare]
+  # 可选: sina, eastmoney, tencent, tushare, baostock
+  sources: [sina, eastmoney, tencent, tushare, baostock]
   # ETF K 线数据源顺序（互斥降级，自动识别 5/159 开头的 6 位代码）
   # 可选: local_cache, akshare_etf, push2his_etf, baostock_etf
   etf_sources: [local_cache, akshare_etf, push2his_etf, baostock_etf]
+
+# 盘中实时行情（自动拼接到日K线末尾，无需手动调用）
+# get_kline 返回前，若最新K线不是今天且处于交易时段，自动降级获取当天OHLCV
+# 降级顺序: eastmoney_push2 → sina_hq → 放弃（不影响历史K线数据）
+realtime:
+  sources: [eastmoney_push2, sina_hq]
+  enabled: true
 
 sector:
   # 板块成分股数据源顺序（全量合并：所有源都尝试，结果去重后按市值排序）

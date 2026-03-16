@@ -42,39 +42,43 @@ from src.data.fetchers.fundamental_fetcher import FundamentalFetcher
 # ============================================================
 
 def fetch_data_bs(code: str, datalen: int = 800) -> pd.DataFrame:
-    """用baostock获取日K线+PE/PB"""
-    import baostock as bs
-    
-    prefix = 'sh' if code.startswith(('5', '6', '9')) else 'sz'
-    bs_code = f'{prefix}.{code}'
-    
-    end_date = datetime.now().strftime('%Y-%m-%d')
-    start_date = (datetime.now() - timedelta(days=int(datalen * 1.6))).strftime('%Y-%m-%d')
-    
-    # 获取行情+PE/PB
-    rs = bs.query_history_k_data_plus(
-        bs_code,
-        'date,open,high,low,close,volume,amount,peTTM,pbMRQ,turn',
-        start_date=start_date,
-        end_date=end_date,
-        frequency='d',
-        adjustflag='2',  # 前复权
-    )
-    
-    rows = []
-    while rs.error_code == '0' and rs.next():
-        rows.append(rs.get_row_data())
-    
-    if not rows:
+    """通过统一接口获取日K线，再通过 baostock 补充 PE/PB 数据"""
+    from src.data.provider.data_provider import get_default_kline_provider
+
+    provider = get_default_kline_provider()
+    df = provider.get_kline(symbol=code, datalen=datalen, min_bars=60, retries=2, timeout=10)
+    if df is None or df.empty:
         return pd.DataFrame()
-    
-    df = pd.DataFrame(rows, columns=['date', 'open', 'high', 'low', 'close', 
-                                      'volume', 'amount', 'pe_ttm', 'pb', 'turnover_rate'])
-    df['date'] = pd.to_datetime(df['date'])
-    for col in ['open', 'high', 'low', 'close', 'volume', 'amount', 'pe_ttm', 'pb', 'turnover_rate']:
-        df[col] = pd.to_numeric(df[col], errors='coerce')
-    
-    df.dropna(subset=['close'], inplace=True)
+
+    try:
+        import baostock as bs
+
+        prefix = 'sh' if code.startswith(('5', '6', '9')) else 'sz'
+        bs_code = f'{prefix}.{code}'
+        start_str = df['date'].iloc[0].strftime('%Y-%m-%d')
+        end_str = df['date'].iloc[-1].strftime('%Y-%m-%d')
+
+        rs = bs.query_history_k_data_plus(
+            bs_code,
+            'date,peTTM,pbMRQ,turn',
+            start_date=start_str,
+            end_date=end_str,
+            frequency='d',
+            adjustflag='3',
+        )
+        rows = []
+        while rs.error_code == '0' and rs.next():
+            rows.append(rs.get_row_data())
+
+        if rows:
+            pe_df = pd.DataFrame(rows, columns=['date', 'pe_ttm', 'pb', 'turnover_rate'])
+            pe_df['date'] = pd.to_datetime(pe_df['date'])
+            for col in ['pe_ttm', 'pb', 'turnover_rate']:
+                pe_df[col] = pd.to_numeric(pe_df[col], errors='coerce')
+            df = df.merge(pe_df, on='date', how='left')
+    except Exception:
+        pass
+
     return df
 
 
@@ -213,9 +217,6 @@ class EnhancedMACDStrategy(MACDStrategy):
 
 def run_comparison(stocks: list, datalen: int = 800):
     """运行对比回测"""
-    import baostock as bs
-    bs.login()
-    
     fetcher = FundamentalFetcher()
     
     pure_macd = MACDStrategy(fast_period=12, slow_period=30, signal_period=9)
@@ -314,7 +315,6 @@ def run_comparison(stocks: list, datalen: int = 800):
         if i % 20 == 0:
             time.sleep(0.5)
     
-    bs.logout()
     fetcher._bs_logout()
     
     return results_a, results_b, skipped_by_roe, enhanced_by_pe

@@ -40,87 +40,11 @@ from src.strategies.ensemble import (
 from src.data.fetchers.fundamental_fetcher import FundamentalFetcher
 from src.data.fetchers.market_data import MarketData
 from src.data.provider.data_provider import get_default_kline_provider
-import akshare as ak
-import baostock as bs
 
-
-def get_stock_data_bs(code):
-    """使用baostock获取历史数据（优先）"""
-    prefix = 'sh' if code.startswith(('5', '6')) else 'sz'
-    bs_code = f'{prefix}.{code}'
-    end_date = datetime.now().strftime('%Y-%m-%d')
-    start_date = (datetime.now() - timedelta(days=1200)).strftime('%Y-%m-%d')
-    
-    rs = bs.query_history_k_data_plus(bs_code, "date,open,high,low,close,volume,amount", 
-                                       start_date=start_date, end_date=end_date, 
-                                       frequency="d", adjustflag="2")
-    rows = []
-    while rs.error_code == '0' and rs.next():
-        rows.append(rs.get_row_data())
-    
-    if rows and len(rows) >= 60:
-        df = pd.DataFrame(rows, columns=['date', 'open', 'high', 'low', 'close', 'volume', 'amount'])
-        df['date'] = pd.to_datetime(df['date'])
-        for col in ['open', 'high', 'low', 'close', 'volume', 'amount']:
-            df[col] = pd.to_numeric(df[col], errors='coerce')
-        df = df.sort_values('date').reset_index(drop=True)
-        return df
-    return None
-
-
-def get_stock_data_akshare(code):
-    """使用akshare获取最新数据（备用）"""
-    try:
-        if code.startswith('6') or code.startswith('5'):
-            symbol = f'sh{code}'
-        else:
-            symbol = f'sz{code}'
-        
-        end_date = datetime.now().strftime('%Y%m%d')
-        start_date = (datetime.now() - timedelta(days=1200)).strftime('%Y%m%d')
-        
-        # 尝试多种akshare接口
-        df = None
-        try:
-            df = ak.stock_zh_a_hist(symbol=symbol, period="daily", start_date=start_date, end_date=end_date, adjust="qfq")
-            if not df.empty:
-                df = df.rename(columns={
-                    '日期': 'date',
-                    '开盘': 'open',
-                    '收盘': 'close',
-                    '最高': 'high',
-                    '最低': 'low',
-                    '成交量': 'volume',
-                    '成交额': 'amount'
-                })
-                df['date'] = pd.to_datetime(df['date'])
-                df = df.sort_values('date').reset_index(drop=True)
-                return df
-        except Exception:
-            pass
-        
-        # 备用方法：使用实时行情
-        try:
-            spot_df = ak.stock_zh_a_spot_em()
-            stock_info = spot_df[spot_df['代码'] == code]
-            if not stock_info.empty:
-                # 至少返回一个数据点
-                current_price = float(stock_info.iloc[0]['最新价'])
-                df = pd.DataFrame([{
-                    'date': datetime.now(),
-                    'open': current_price,
-                    'high': current_price,
-                    'low': current_price,
-                    'close': current_price,
-                    'volume': 0,
-                    'amount': 0
-                }])
-                return df
-        except Exception:
-            pass
-    except Exception:
-        pass
-    return None
+try:
+    import akshare as ak
+except ImportError:
+    ak = None
 
 
 def get_etf_data_akshare(code):
@@ -286,50 +210,31 @@ def analyze_stock(code: str, name: str = None):
         print(f"⚠️  无法获取实时价格")
     print()
     
-    # 初始化数据源
     fetcher = FundamentalFetcher()
-    bs.login()
     
     # 获取历史数据（使用 UnifiedDataProvider 统一多源获取）
     print("📡 正在获取历史数据...")
     is_etf = (code.startswith('5') or code.startswith('159')) and len(code) == 6
     
     df = None
-    # 先尝试 baostock（股票）
-    if not is_etf:
-        try:
-            df = get_stock_data_bs(code)
-            if df is not None and len(df) >= 60:
-                print("  ✅ 使用baostock获取数据")
-        except Exception:
-            pass
-    
-    # 使用 UnifiedDataProvider 多源获取
-    if df is None or len(df) < 60:
-        if is_etf:
-            print("  ⚠️  baostock数据不足，尝试 ETF 专用接口...")
-        try:
-            provider = get_default_kline_provider()
-            df = provider.get_kline(
-                symbol=code,
-                datalen=800,
-                min_bars=60,
-                retries=2,
-                timeout=10,
-                is_etf=is_etf
-            )
-            if df is not None and len(df) >= 60:
-                source = df['data_source'].iloc[0] if 'data_source' in df.columns else 'provider'
-                print(f"  ✅ 使用 {source} 获取数据成功")
-        except Exception as e:
-            print(f"  ⚠️  UnifiedDataProvider 失败: {str(e)[:50]}")
+    try:
+        provider = get_default_kline_provider()
+        df = provider.get_kline(
+            symbol=code,
+            datalen=800,
+            min_bars=60,
+            retries=2,
+            timeout=10,
+            is_etf=is_etf
+        )
+        if df is not None and len(df) >= 60:
+            source = df['data_source'].iloc[0] if 'data_source' in df.columns else 'provider'
+            print(f"  ✅ 使用 {source} 获取数据成功")
+    except Exception as e:
+        print(f"  ⚠️  UnifiedDataProvider 失败: {str(e)[:50]}")
     
     if df is None or len(df) < 60:
         print("  ❌ 所有数据源均失败，历史数据不足，无法运行策略分析")
-        try:
-            bs.logout()
-        except Exception:
-            pass
         return
     
     print(f"  ✅ 历史数据: {len(df)}条 ({df['date'].iloc[0].strftime('%Y-%m-%d')} ~ {df['date'].iloc[-1].strftime('%Y-%m-%d')})")
@@ -594,7 +499,6 @@ def analyze_stock(code: str, name: str = None):
             print(f"  📈 平均信心度: {avg_confidence:.1%}")
     
     print()
-    bs.logout()
 
 
 def main():

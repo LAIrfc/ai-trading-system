@@ -35,37 +35,12 @@ SIGNAL_RANGE = [5, 7, 9]                       # 信号线
 
 
 def fetch_stock_data(code: str, days: int = 300) -> pd.DataFrame:
-    """通过 baostock 获取数据"""
-    import baostock as bs
+    """通过统一数据接口获取 K 线数据"""
+    from src.data.provider.data_provider import get_default_kline_provider
 
-    prefix = 'sh' if code.startswith(('5', '6')) else 'sz'
-    bs_code = f'{prefix}.{code}'
-
-    end_date = datetime.now().strftime('%Y-%m-%d')
-    start_date = (datetime.now() - timedelta(days=int(days * 1.6))).strftime('%Y-%m-%d')
-
-    rs = bs.query_history_k_data_plus(
-        bs_code,
-        'date,open,high,low,close,volume,amount',
-        start_date=start_date,
-        end_date=end_date,
-        frequency='d',
-        adjustflag='2',
-    )
-
-    rows = []
-    while rs.error_code == '0' and rs.next():
-        rows.append(rs.get_row_data())
-
-    if not rows:
-        return pd.DataFrame()
-
-    df = pd.DataFrame(rows, columns=['date', 'open', 'high', 'low', 'close', 'volume', 'amount'])
-    for col in ['open', 'high', 'low', 'close', 'volume', 'amount']:
-        df[col] = pd.to_numeric(df[col], errors='coerce')
-    df['date'] = pd.to_datetime(df['date'])
-    df.dropna(subset=['close'], inplace=True)
-    return df
+    provider = get_default_kline_provider()
+    df = provider.get_kline(symbol=code, datalen=days, min_bars=30, retries=2, timeout=10)
+    return df if df is not None and not df.empty else pd.DataFrame()
 
 
 def load_stock_pool(pool_file: str, top: int = None) -> list:
@@ -198,8 +173,6 @@ def main():
 
     # 预加载数据
     print(f"\n📥 预加载股票数据...")
-    import baostock as bs
-    bs.login()
 
     stocks_data = {}
     fail = 0
@@ -213,7 +186,6 @@ def main():
         else:
             fail += 1
 
-    bs.logout()
     print(f"\n✅ 加载完成: {len(stocks_data)} 只有效 ({fail} 只跳过)")
 
     # 参数扫描

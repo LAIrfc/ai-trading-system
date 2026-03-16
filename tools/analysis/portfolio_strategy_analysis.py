@@ -58,33 +58,14 @@ from src.strategies.fundamental_pb import PBStrategy
 from src.data.fetchers.fundamental_fetcher import FundamentalFetcher
 from src.data.fetchers.market_data import MarketData
 from src.data.provider.data_provider import get_default_kline_provider
-import akshare as ak
-import baostock as bs
+
+try:
+    import akshare as ak
+except ImportError:
+    ak = None
+
 import time
 import random
-
-def get_stock_data_bs(code):
-    """使用baostock获取历史数据（股票）"""
-    prefix = 'sh' if code.startswith(('5', '6')) else 'sz'
-    bs_code = f'{prefix}.{code}'
-    end_date = datetime.now().strftime('%Y-%m-%d')
-    start_date = (datetime.now() - timedelta(days=1200)).strftime('%Y-%m-%d')
-    
-    rs = bs.query_history_k_data_plus(bs_code, "date,open,high,low,close,volume", 
-                                       start_date=start_date, end_date=end_date, 
-                                       frequency="d", adjustflag="2")
-    rows = []
-    while rs.error_code == '0' and rs.next():
-        rows.append(rs.get_row_data())
-    
-    if rows and len(rows) >= 60:
-        df = pd.DataFrame(rows, columns=['date', 'open', 'high', 'low', 'close', 'volume'])
-        df['date'] = pd.to_datetime(df['date'])
-        for col in ['open', 'high', 'low', 'close', 'volume']:
-            df[col] = pd.to_numeric(df[col], errors='coerce')
-        df = df.sort_values('date').reset_index(drop=True)
-        return df
-    return None
 
 def _normalize_etf_df(df, min_bars=60):
     """将各源返回的 ETF DataFrame 统一为 date, open, high, low, close, volume"""
@@ -225,7 +206,6 @@ def main():
         portfolio = json.load(f)
     
     fetcher = FundamentalFetcher()
-    bs.login()
     
     print("=" * 100)
     print("📊 持仓多策略分析报告（11大策略）")
@@ -259,28 +239,18 @@ def main():
         
         print()
         
-        # 获取历史数据（多层容错：baostock -> UnifiedDataProvider -> 旧版 ETF 函数）
         is_etf = (code.startswith('5') or code.startswith('159')) and len(code) == 6
         
         df = None
         
-        # 第1层：本地缓存（ETF 优先）
+        # 本地缓存优先（ETF）
         if is_etf:
             df = load_etf_cache(code)
             if df is not None and len(df) >= 60:
                 print(f"  ✅ 使用本地缓存 ETF 数据（{len(df)} 条）")
         
-        # 第2层：baostock（股票）
+        # 统一数据接口（自动降级所有数据源）
         if df is None or len(df) < 60:
-            if not is_etf:
-                df = get_stock_data_bs(code)
-                if df is not None and len(df) >= 60:
-                    print(f"  ✅ 使用 baostock 获取数据")
-        
-        # 第3层：UnifiedDataProvider（统一多源）
-        if df is None or len(df) < 60:
-            if is_etf:
-                print("  ⚠️  baostock 数据不足，尝试 ETF 专用接口...")
             try:
                 provider = get_default_kline_provider()
                 df = provider.get_kline(
@@ -299,25 +269,6 @@ def main():
             except Exception as e:
                 print(f"  ⚠️  UnifiedDataProvider 失败: {str(e)[:50]}")
         
-        # 第4层：旧版 ETF 专用函数（最后备用）
-        if (df is None or len(df) < 60) and is_etf:
-            print("  ⚠️  尝试旧版 ETF 接口...")
-            df = get_etf_data_akshare(code)
-            if df is not None and len(df) >= 60:
-                save_etf_cache(code, df)
-                print(f"  ✅ 旧版 ETF 接口(akshare)获取成功")
-            if df is None or len(df) < 60:
-                df = get_etf_data_marketdata(code)
-                if df is not None and len(df) >= 60:
-                    save_etf_cache(code, df)
-                    print(f"  ✅ 旧版 ETF 接口(MarketData)获取成功")
-            if df is None or len(df) < 60:
-                df = get_etf_data_direct(code)
-                if df is not None and len(df) >= 60:
-                    save_etf_cache(code, df)
-                    print(f"  ✅ 旧版 ETF 接口(直接 push2his)获取成功")
-        
-        # 数据不足则跳过
         if df is None or len(df) < 60:
             print("  ⚠️  所有数据源均失败，历史数据不足，无法运行策略分析\n")
             continue
@@ -473,7 +424,6 @@ def main():
         print(f"建议: {suggestion}")
         print()
     
-    bs.logout()
     fetcher._bs_logout()
     
     print("=" * 100)
