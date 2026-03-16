@@ -82,41 +82,43 @@ def _adx(high: pd.Series, low: pd.Series, close: pd.Series, period: int = 14) ->
 
 
 def _trend_filter_buy(df: pd.DataFrame) -> bool:
-    """买入端趋势过滤：MACD 柱 3 日斜率<0、股价创 5 日新低、ADX>25。"""
+    """买入端趋势过滤：MACD柱斜率<0、股价创5日新低、ADX>20，满足2/3即通过。"""
     close = df["close"].astype(float)
     high = df["high"].astype(float) if "high" in df.columns else close
     low = df["low"].astype(float) if "low" in df.columns else close
     if len(close) < PRICE_LOOKBACK + 30:
         return False
+    hits = 0
     slope = _macd_hist_slope(close, slope_n=MACD_SLOPE_WINDOW)
-    if slope is None or slope >= 0:
-        return False
+    if slope is not None and slope < 0:
+        hits += 1
     five_low = close.iloc[-PRICE_LOOKBACK:].min()
-    if close.iloc[-1] > five_low:
-        return False
+    if close.iloc[-1] <= five_low:
+        hits += 1
     adx = _adx(high, low, close, ADX_PERIOD)
-    if adx is None or adx <= ADX_TREND_THRESHOLD:
-        return False
-    return True
+    if adx is not None and adx > 20:
+        hits += 1
+    return hits >= 2
 
 
 def _trend_filter_sell(df: pd.DataFrame) -> bool:
-    """卖出端趋势过滤：MACD 柱 3 日斜率<0、股价创 5 日新高、ADX>25。"""
+    """卖出端趋势过滤：MACD柱斜率<0、股价创5日新高、ADX>20，满足2/3即通过。"""
     close = df["close"].astype(float)
     high = df["high"].astype(float) if "high" in df.columns else close
     low = df["low"].astype(float) if "low" in df.columns else close
     if len(close) < PRICE_LOOKBACK + 30:
         return False
+    hits = 0
     slope = _macd_hist_slope(close, slope_n=MACD_SLOPE_WINDOW)
-    if slope is None or slope >= 0:
-        return False
+    if slope is not None and slope < 0:
+        hits += 1
     five_high = close.iloc[-PRICE_LOOKBACK:].max()
-    if close.iloc[-1] < five_high:
-        return False
+    if close.iloc[-1] >= five_high:
+        hits += 1
     adx = _adx(high, low, close, ADX_PERIOD)
-    if adx is None or adx <= ADX_TREND_THRESHOLD:
-        return False
-    return True
+    if adx is not None and adx > 20:
+        hits += 1
+    return hits >= 2
 
 
 def _get_sentiment_v2_last_two(lookback_days: int = 80) -> Optional[pd.DataFrame]:

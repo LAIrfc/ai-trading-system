@@ -353,12 +353,11 @@ class EnsembleStrategy(Strategy):
             reason = f"{cost_info['触发类型']}+技术面无买入支撑，建议减仓"
 
         # ========= 仓位管理 =========
-        # 根据信号方向和强度给出建议仓位：
-        #   BUY  强信号(conf≥0.7) → 满仓(0.8)  弱信号 → 半仓(0.5)
-        #   SELL → 清仓(0.0)
-        #   HOLD → 维持加权平均仓位
+        # BUY: 取子策略加权平均仓位，下限0.4防过低，上限0.95防满仓
+        # SELL: 清仓
+        # HOLD: 维持加权平均仓位
         if action == 'BUY':
-            suggested_position = 0.8 if conf >= 0.7 else 0.5
+            suggested_position = round(min(0.95, max(0.4, avg_position)), 2)
         elif action == 'SELL':
             suggested_position = 0.0
         else:

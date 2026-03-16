@@ -225,6 +225,9 @@ def _select_elite_top5(top_list: list) -> list:
     if not top_list:
         return []
 
+    # 过滤科创板（688开头），散户无法交易
+    top_list = [r for r in top_list if not str(r.get('code', '')).startswith('688')]
+
     scored = []
     for r in top_list:
         es = 0.0  # elite score
@@ -279,7 +282,10 @@ def _select_elite_top5(top_list: list) -> list:
             es += 4
 
         # 4. 上涨空间 (20分) — 距60日高点有空间但不要太深
-        if -3 < dist_high <= 0:
+        if dist_high > 0:
+            es += 12
+            reasons.append("突破新高趋势强")
+        elif -3 < dist_high <= 0:
             es += 15
             reasons.append("接近新高")
         elif -10 < dist_high <= -3:
@@ -749,7 +755,7 @@ def compute_score(info: dict) -> float:
     elif '空头' in info['trend']:
         score -= 20
 
-    # 3. 量比 (15分) — 放量更好
+    # 3. 量比 (15分) — 放量配合方向
     if sig.action == 'BUY':
         if info['volume_ratio'] > 1.5:
             score += 15  # 放量金叉
@@ -757,6 +763,15 @@ def compute_score(info: dict) -> float:
             score += 8
         else:
             score += 3   # 缩量金叉信号偏弱
+    elif sig.action == 'SELL':
+        if info['volume_ratio'] > 2.0:
+            score -= 15  # 放量下跌，恐慌出逃
+        elif info['volume_ratio'] > 1.5:
+            score -= 10  # 明显放量卖出
+        elif info['volume_ratio'] > 1.0:
+            score -= 5
+        else:
+            score -= 2   # 缩量下跌，抛压较轻
 
     # 4. 近期涨幅 (10分) — 短线追涨动量
     if 0 < info['change_5d'] < 10:
@@ -963,21 +978,31 @@ def run_full_11_analysis(code: str, name: str, sector: str, df: pd.DataFrame, fe
         'PolicyEvent': PolicyEventStrategy(),
         'MoneyFlow': MoneyFlowStrategy(symbol=code),
     }
+    # 策略权重（与 EnsembleStrategy 一致，基于 v3 回测结果）
+    strat_weights = {
+        'BOLL': 1.5, 'MACD': 1.3, 'KDJ': 1.1, 'MA': 1.0,
+        'DUAL': 0.9, 'RSI': 0.8, 'Sentiment': 0.7,
+        'NewsSentiment': 0.5, 'PolicyEvent': 0.7, 'MoneyFlow': 0.4,
+    }
     buy_count = sell_count = hold_count = 0
+    weighted_buy = weighted_sell = 0.0
     signals = []
-    score_sum = 0.0  # BUY +position, SELL -position, HOLD 0
+    score_sum = 0.0
 
     for strat_name, strat in tech_strategies.items():
         try:
             if len(df) < strat.min_bars:
                 continue
             sig = strat.safe_analyze(df)
+            w = strat_weights.get(strat_name, 1.0)
             if sig.action == 'BUY':
                 buy_count += 1
-                score_sum += sig.position
+                weighted_buy += w
+                score_sum += w * sig.confidence
             elif sig.action == 'SELL':
                 sell_count += 1
-                score_sum -= sig.position
+                weighted_sell += w
+                score_sum -= w * sig.confidence
             else:
                 hold_count += 1
             signals.append((strat_name, sig.action, sig.confidence, sig.reason[:40]))
@@ -1017,12 +1042,15 @@ def run_full_11_analysis(code: str, name: str, sector: str, df: pd.DataFrame, fe
             pe_strat.min_bars = max(100, available_data)
             if len(df) >= pe_strat.min_bars:
                 pe_sig = pe_strat.safe_analyze(df)
+                pe_w = 0.6
                 if pe_sig.action == 'BUY':
                     buy_count += 1
-                    score_sum += pe_sig.position
+                    weighted_buy += pe_w
+                    score_sum += pe_w * pe_sig.confidence
                 elif pe_sig.action == 'SELL':
                     sell_count += 1
-                    score_sum -= pe_sig.position
+                    weighted_sell += pe_w
+                    score_sum -= pe_w * pe_sig.confidence
                 else:
                     hold_count += 1
                 signals.append(('PE', pe_sig.action, pe_sig.confidence, pe_sig.reason[:40]))
@@ -1044,20 +1072,23 @@ def run_full_11_analysis(code: str, name: str, sector: str, df: pd.DataFrame, fe
             pb_strat.min_bars = max(100, available_data)
             if len(df) >= pb_strat.min_bars:
                 pb_sig = pb_strat.safe_analyze(df)
+                pb_w = 0.6
                 if pb_sig.action == 'BUY':
                     buy_count += 1
-                    score_sum += pb_sig.position
+                    weighted_buy += pb_w
+                    score_sum += pb_w * pb_sig.confidence
                 elif pb_sig.action == 'SELL':
                     sell_count += 1
-                    score_sum -= pb_sig.position
+                    weighted_sell += pb_w
+                    score_sum -= pb_w * pb_sig.confidence
                 else:
                     hold_count += 1
                 signals.append(('PB', pb_sig.action, pb_sig.confidence, pb_sig.reason[:40]))
         except Exception:
             pass
 
-    # 综合得分：买数量*2 - 卖数量*2 + 仓位加权
-    score = buy_count * 2 - sell_count * 2 + round(score_sum, 2)
+    # 综合得分：加权买票 - 加权卖票 + confidence加权得分
+    score = round(weighted_buy * 2 - weighted_sell * 2 + score_sum, 2)
     close = df['close']
     volume = df['volume']
     price = float(close.iloc[-1])
