@@ -863,9 +863,10 @@ def update_kline_cache(code: str, cache_dir: str = None, days: int = 200) -> pd.
 
     now = datetime.now()
     today_str = now.strftime('%Y-%m-%d')
-    is_trading_hours = (now.weekday() < 5) and (
-        (9, 15) <= (now.hour, now.minute) <= (15, 0)
-    )
+    is_weekday = now.weekday() < 5
+    is_trading_hours = is_weekday and ((9, 15) <= (now.hour, now.minute) <= (15, 0))
+    # 收盘后至次日凌晨：交易日15:00之后，缓存是昨天的，应当拉取今日收盘数据
+    is_after_close = is_weekday and (now.hour, now.minute) > (15, 0)
 
     if not cached_df.empty and 'date' in cached_df.columns:
         last_date = pd.Timestamp(cached_df['date'].max())
@@ -875,8 +876,8 @@ def update_kline_cache(code: str, cache_dir: str = None, days: int = 200) -> pd.
             # 已经有今日数据（收盘后写入），直接返回
             return cached_df
 
-        if days_behind == 1 and not is_trading_hours:
-            # 昨收数据，非交易时间，直接用缓存
+        if days_behind == 1 and not is_trading_hours and not is_after_close:
+            # 昨收数据，且当前既不在盘中也不在收盘后（即周末/假日/非交易日深夜），直接用缓存
             return cached_df
 
     # 需要更新：下载最新数据
