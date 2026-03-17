@@ -21,6 +21,9 @@ import pandas as pd
 
 logger = logging.getLogger(__name__)
 
+# 进程级沪深300指数缓存：{ symbol -> (fetch_date_str, DataFrame) }
+_INDEX_CACHE: Dict[str, tuple] = {}
+
 # 市场状态判定：趋势市 ADX>25 且 HV20<30%
 ADX_TREND_THRESHOLD = 25
 HV20_TREND_MAX = 0.30  # 30%
@@ -101,10 +104,15 @@ def _hv20_series(close: pd.Series, window: int = 20) -> pd.Series:
 
 
 def fetch_index_for_state(symbol: str = "000300", days: int = 60) -> Optional[pd.DataFrame]:
-    """获取沪深300近期日线用于 ADX/HV20。列需含 date, high, low, close。"""
+    """获取沪深300近期日线用于 ADX/HV20。列需含 date, high, low, close。当天内结果缓存复用。"""
+    today = datetime.now().strftime("%Y%m%d")
+    cache_key = f"{symbol}_{days}"
+    cached = _INDEX_CACHE.get(cache_key)
+    if cached and cached[0] == today:
+        return cached[1]
     try:
         import akshare as ak
-        end = datetime.now().strftime("%Y%m%d")
+        end = today
         start = (datetime.now() - timedelta(days=days + 20)).strftime("%Y%m%d")
         df = ak.stock_zh_index_hist_csindex(symbol=symbol, start_date=start, end_date=end)
         if df is None or len(df) < 30:
@@ -117,7 +125,9 @@ def fetch_index_for_state(symbol: str = "000300", days: int = 60) -> Optional[pd
         df["high"] = pd.to_numeric(df["high"], errors="coerce").fillna(df["close"])
         df["low"] = pd.to_numeric(df["low"], errors="coerce").fillna(df["close"])
         df["close"] = pd.to_numeric(df["close"], errors="coerce")
-        return df.dropna(subset=["close"]).sort_values("date").reset_index(drop=True)
+        result = df.dropna(subset=["close"]).sort_values("date").reset_index(drop=True)
+        _INDEX_CACHE[cache_key] = (today, result)
+        return result
     except Exception as e:
         logger.debug("fetch_index_for_state 失败: %s", e)
         return None

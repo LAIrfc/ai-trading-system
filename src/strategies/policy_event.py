@@ -7,7 +7,7 @@
 """
 
 import logging
-from typing import Optional
+from typing import Dict, Optional
 
 import pandas as pd
 
@@ -18,13 +18,20 @@ logger = logging.getLogger(__name__)
 # 买入时要求：行业/指数当日涨幅 < 2%（无行业映射时用沪深300）
 MAX_INDEX_RETURN_FOR_BUY = 0.02
 
+# 进程级缓存：{ lookback_days -> (fetch_date_str, return_value) }
+_INDEX_RETURN_CACHE: Dict[int, tuple] = {}
+
 
 def _get_recent_index_return(lookback_days: int = 5) -> Optional[float]:
-    """近期指数涨跌幅（如 1 日或 5 日）。无数据返回 None。"""
+    """近期指数涨跌幅（如 1 日或 5 日）。无数据返回 None。当天内结果缓存复用。"""
+    from datetime import datetime, timedelta
+    today = datetime.now().strftime("%Y%m%d")
+    cached = _INDEX_RETURN_CACHE.get(lookback_days)
+    if cached and cached[0] == today:
+        return cached[1]
     try:
         import akshare as ak
-        from datetime import datetime, timedelta
-        end = datetime.now().strftime("%Y%m%d")
+        end = today
         start = (datetime.now() - timedelta(days=lookback_days + 15)).strftime("%Y%m%d")
         df = ak.stock_zh_index_hist_csindex(symbol="000300", start_date=start, end_date=end)
         if df is None or len(df) < lookback_days + 1:
@@ -35,7 +42,9 @@ def _get_recent_index_return(lookback_days: int = 5) -> Optional[float]:
         close = pd.to_numeric(df["close"], errors="coerce")
         if len(close) < lookback_days + 1:
             return None
-        return float(close.iloc[-1] / close.iloc[-1 - lookback_days] - 1.0)
+        result = float(close.iloc[-1] / close.iloc[-1 - lookback_days] - 1.0)
+        _INDEX_RETURN_CACHE[lookback_days] = (today, result)
+        return result
     except Exception as e:
         logger.debug("获取近期指数涨幅失败: %s", e)
         return None

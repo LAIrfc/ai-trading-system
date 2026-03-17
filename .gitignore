@@ -71,3 +71,8 @@ mydate/temp_*.json
 mylog/*.log
 *.pyc
 __pycache__/
+
+# K线数据缓存（二进制，频繁更新，不提交）
+mydate/backtest_kline/
+mydate/daily_kline/
+

@@ -196,19 +196,30 @@ class EnsembleStrategy(Strategy):
         end_str = end_d.strftime('%Y%m%d')
         idx_df = None
         try:
-            import akshare as ak
-            raw = ak.stock_zh_index_hist_csindex(symbol='000300', start_date=start_str, end_date=end_str)
-            if raw is not None and len(raw) >= 30:
-                raw = raw.rename(columns={'日期': 'date', '收盘': 'close', '最高': 'high', '最低': 'low'})
-                raw['date'] = pd.to_datetime(raw['date'])
-                for c in ['high', 'low']:
-                    if c not in raw.columns:
-                        raw[c] = raw['close']
-                for c in ['high', 'low', 'close']:
-                    raw[c] = pd.to_numeric(raw[c], errors='coerce').fillna(raw['close'])
-                idx_df = raw.dropna(subset=['close']).sort_values('date').reset_index(drop=True)
-        except Exception as e:
-            logger.debug('prepare_backtest 预取沪深300失败: %s', e)
+            # 优先复用 v33_weights 的进程级缓存，减少重复网络请求
+            from src.strategies.v33_weights import fetch_index_for_state
+            days_needed = max(90, (end_d - start_d).days + 30)
+            idx_df = fetch_index_for_state(symbol='000300', days=days_needed)
+            if idx_df is not None and not idx_df.empty:
+                # 截取需要的时间范围
+                idx_df = idx_df[idx_df['date'] >= pd.Timestamp(start_d)].reset_index(drop=True)
+        except Exception:
+            pass
+        if idx_df is None or idx_df.empty:
+            try:
+                import akshare as ak
+                raw = ak.stock_zh_index_hist_csindex(symbol='000300', start_date=start_str, end_date=end_str)
+                if raw is not None and len(raw) >= 30:
+                    raw = raw.rename(columns={'日期': 'date', '收盘': 'close', '最高': 'high', '最低': 'low'})
+                    raw['date'] = pd.to_datetime(raw['date'])
+                    for c in ['high', 'low']:
+                        if c not in raw.columns:
+                            raw[c] = raw['close']
+                    for c in ['high', 'low', 'close']:
+                        raw[c] = pd.to_numeric(raw[c], errors='coerce').fillna(raw['close'])
+                    idx_df = raw.dropna(subset=['close']).sort_values('date').reset_index(drop=True)
+            except Exception as e:
+                logger.debug('prepare_backtest 预取沪深300失败: %s', e)
         self._backtest_index_df = idx_df
 
     def _update_dynamic_weights(self, as_of: pd.Timestamp) -> None:
