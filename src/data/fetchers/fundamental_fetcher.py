@@ -68,12 +68,19 @@ class FundamentalFetcher:
         return self._akshare_available
     
     def _ensure_bs_login(self):
-        """确保baostock已登录"""
+        """确保baostock已登录，并设置 socket 超时防止无限等待"""
         if not self._bs_logged_in:
             import baostock as bs
             lg = bs.login()
             if lg.error_code == '0':
                 self._bs_logged_in = True
+                try:
+                    from baostock.data import resultset
+                    ctx_sock = resultset.sock.context.default_socket
+                    if ctx_sock and ctx_sock.gettimeout() is None:
+                        ctx_sock.settimeout(10)
+                except Exception:
+                    pass
             else:
                 logger.error(f"baostock登录失败: {lg.error_msg}")
                 raise RuntimeError(f"baostock登录失败: {lg.error_msg}")
@@ -272,9 +279,13 @@ class FundamentalFetcher:
             - reason: 原因说明
         """
         try:
-            fina_df = self.get_financial_indicators(code, 
-                                                     start_year=datetime.now().year - min_years - 2,
-                                                     end_year=datetime.now().year)
+            from concurrent.futures import ThreadPoolExecutor as _TPE, TimeoutError as _FTE
+            with _TPE(max_workers=1) as _ex:
+                fina_df = _ex.submit(
+                    self.get_financial_indicators, code,
+                    start_year=datetime.now().year - min_years - 2,
+                    end_year=datetime.now().year
+                ).result(timeout=15)
             if fina_df.empty:
                 return True, 0.0, '无ROE数据，暂不过滤'
             
@@ -309,6 +320,9 @@ class FundamentalFetcher:
                     f'有{len(failed_years)}年不达标，可能是价值陷阱'
                 )
             
+        except _FTE:
+            logger.warning(f"[{code}] ROE过滤查询超时(15s)，跳过")
+            return True, 0.0, 'ROE查询超时，暂不过滤'
         except Exception as e:
             logger.warning(f"[{code}] ROE过滤检查失败: {e}")
             return True, 0.0, f'ROE检查异常({e})，暂不过滤'
@@ -539,7 +553,7 @@ class FundamentalFetcher:
         # 检查缓存
         if os.path.exists(pe_cache) and os.path.exists(pb_cache):
             cache_mtime = os.path.getmtime(pe_cache)
-            if time.time() - cache_mtime < 3 * 86400:  # 3天有效
+            if time.time() - cache_mtime < 7 * 86400:  # 7天有效（行业PE变化缓慢）
                 try:
                     pe_df = pd.read_csv(pe_cache)
                     pb_df = pd.read_csv(pb_cache)
@@ -565,7 +579,11 @@ class FundamentalFetcher:
         start_date = (datetime.now() - timedelta(days=datalen * 1.5)).strftime('%Y-%m-%d')
         
         fetched = 0
-        for i, s_code in enumerate(same_industry[:50]):  # 最多50只，避免太慢
+        _deadline = time.time() + 20  # 整个行业PE/PB聚合最多20s（原60s太慢）
+        for i, s_code in enumerate(same_industry[:15]):  # 最多15只，避免太慢
+            if time.time() > _deadline:
+                logger.warning(f"行业'{industry}' PE/PB聚合超时(20s)，已获取{fetched}只")
+                break
             bs_code = self._code_to_bs(s_code)
             try:
                 rs = bs.query_history_k_data_plus(
@@ -592,7 +610,6 @@ class FundamentalFetcher:
             except Exception as e:
                 logger.debug(f"[{s_code}] 获取失败: {e}")
             
-            # 限速
             if (i + 1) % 20 == 0:
                 time.sleep(1)
         
@@ -621,18 +638,19 @@ class FundamentalFetcher:
     # ============================================================
     
     def get_daily_basic(self, code: str, start_date: str = None,
-                       end_date: str = None) -> pd.DataFrame:
+                       end_date: str = None, spot_df: pd.DataFrame = None) -> pd.DataFrame:
         """
         获取日频基本面数据（PE、PB、市值等）
         
         多数据源降级逻辑：
         1. Baostock（主力，包含peTTM和pbMRQ字段）
-        2. AKShare实时行情（备用，只能获取单日数据）
+        2. 预加载的全市场 spot_df 查表（备用，零网络开销）
         
         Args:
             code: 股票代码（如 '600030'）
             start_date: 开始日期 'YYYYMMDD' 或 'YYYY-MM-DD'
             end_date: 结束日期 'YYYYMMDD' 或 'YYYY-MM-DD'
+            spot_df: 预加载的 ak.stock_zh_a_spot_em() DataFrame，避免重复网络请求
         
         Returns:
             DataFrame with columns: date, name, pe_ttm, pb, turnover_rate, market_cap
@@ -680,30 +698,27 @@ class FundamentalFetcher:
         except Exception as e:
             logger.warning(f"⚠️ Baostock获取 {code} 日频基本面失败: {e}")
         
-        # 方案2: AKShare实时行情（只能获取单日数据）
-        try:
-            import akshare as ak
-            df_spot = ak.stock_zh_a_spot_em()
-            stock_row = df_spot[df_spot['代码'] == code]
-            
-            if not stock_row.empty:
-                row = stock_row.iloc[0]
-                # 构造单日数据
-                today = datetime.now().strftime('%Y-%m-%d')
-                df = pd.DataFrame([{
-                    'date': pd.to_datetime(today),
-                    'name': row['名称'] if '名称' in row else '',
-                    'pe_ttm': float(row['市盈率-动态']) if '市盈率-动态' in row and pd.notna(row['市盈率-动态']) else None,
-                    'pb': float(row['市净率']) if '市净率' in row and pd.notna(row['市净率']) else None,
-                    'turnover_rate': float(row['换手率']) if '换手率' in row and pd.notna(row['换手率']) else None,
-                    'market_cap': float(row['总市值']) if '总市值' in row and pd.notna(row['总市值']) else None,
-                }])
-                logger.info(f"✅ AKShare获取 {code} 实时基本面（单日）")
-                return df
-        except Exception as e:
-            logger.warning(f"⚠️ AKShare获取 {code} 实时基本面失败: {e}")
+        # 方案2: 从预加载的全市场 DataFrame 查表（零网络开销）
+        _spot = spot_df if spot_df is not None else getattr(self, '_spot_df_cache', None)
+        if _spot is not None and not _spot.empty:
+            try:
+                stock_row = _spot[_spot['代码'] == code]
+                if not stock_row.empty:
+                    row = stock_row.iloc[0]
+                    today = datetime.now().strftime('%Y-%m-%d')
+                    df = pd.DataFrame([{
+                        'date': pd.to_datetime(today),
+                        'name': row.get('名称', ''),
+                        'pe_ttm': float(row['市盈率-动态']) if '市盈率-动态' in row and pd.notna(row['市盈率-动态']) else None,
+                        'pb': float(row['市净率']) if '市净率' in row and pd.notna(row['市净率']) else None,
+                        'turnover_rate': float(row['换手率']) if '换手率' in row and pd.notna(row['换手率']) else None,
+                        'market_cap': float(row['总市值']) if '总市值' in row and pd.notna(row['总市值']) else None,
+                    }])
+                    return df
+            except Exception:
+                pass
         
-        logger.error(f"❌ 所有数据源均失败: {code}")
+        logger.debug(f"所有数据源均失败: {code}")
         return pd.DataFrame()
     
     # ============================================================
@@ -727,39 +742,58 @@ class FundamentalFetcher:
         if not self._check_akshare():
             return None
         
-        # 缓存key
         if date is None:
             date = datetime.now().strftime('%Y%m%d')
         cache_file = os.path.join(self._CACHE_DIR, f'industry_pe_cninfo_{date}.json')
         
-        # 读缓存（1天有效）
-        if os.path.exists(cache_file):
-            try:
-                with open(cache_file, 'r') as f:
-                    all_data = json.load(f)
-                if industry_name:
-                    for item in all_data:
-                        if industry_name in item.get('industry_name', ''):
-                            return item
-                    return None
-                return all_data
-            except Exception:
-                pass
+        # 读缓存：先当天，没有就找近 14 天的
+        def _try_load_cache(path):
+            if os.path.exists(path):
+                try:
+                    with open(path, 'r') as f:
+                        return json.load(f)
+                except Exception:
+                    pass
+            return None
+        
+        all_data = _try_load_cache(cache_file)
+        if not all_data:
+            for delta in range(1, 15):
+                old_date = (datetime.now() - timedelta(days=delta)).strftime('%Y%m%d')
+                old_path = os.path.join(self._CACHE_DIR, f'industry_pe_cninfo_{old_date}.json')
+                all_data = _try_load_cache(old_path)
+                if all_data:
+                    break
+        
+        if all_data:
+            if industry_name:
+                for item in all_data:
+                    if industry_name in item.get('industry_name', ''):
+                        return item
+                return None
+            return all_data
+        
+        # 熔断：如果巨潮接口已经失败过，直接返回 None 不再重试
+        if getattr(self, '_cninfo_pe_broken', False):
+            return None
         
         try:
             import akshare as ak
-            # 用国证行业分类（层级更细）
-            df = ak.stock_industry_pe_ratio_cninfo(symbol="国证行业分类", date=date)
+            from concurrent.futures import ThreadPoolExecutor as _TPE, TimeoutError as _FTE
+
+            def _fetch_cninfo():
+                _df = ak.stock_industry_pe_ratio_cninfo(symbol="国证行业分类", date=date)
+                if _df.empty:
+                    _df = ak.stock_industry_pe_ratio_cninfo(symbol="证监会行业分类", date=date)
+                return _df
+
+            with _TPE(max_workers=1) as _ex:
+                df = _ex.submit(_fetch_cninfo).result(timeout=20)
             
             if df.empty:
-                # 回退到证监会分类
-                df = ak.stock_industry_pe_ratio_cninfo(symbol="证监会行业分类", date=date)
-            
-            if df.empty:
-                logger.warning(f"巨潮行业PE数据为空 ({date})")
+                self._cninfo_pe_broken = True
                 return None
             
-            # 转换为标准格式
             all_data = []
             for _, row in df.iterrows():
                 item = {
@@ -774,7 +808,6 @@ class FundamentalFetcher:
                 }
                 all_data.append(item)
             
-            # 缓存
             try:
                 with open(cache_file, 'w') as f:
                     json.dump(all_data, f, ensure_ascii=False, indent=2)
@@ -784,19 +817,21 @@ class FundamentalFetcher:
             logger.info(f"巨潮行业PE获取成功: {len(all_data)}个行业")
             
             if industry_name:
-                # 模糊匹配行业名
                 for item in all_data:
                     if industry_name in item.get('industry_name', ''):
                         return item
-                # 再找一层
                 for item in all_data:
                     if any(k in item.get('industry_name', '') for k in industry_name):
                         return item
                 return None
             return all_data
             
+        except _FTE:
+            self._cninfo_pe_broken = True
+            return None
         except Exception as e:
-            logger.warning(f"巨潮行业PE获取失败: {e}")
+            self._cninfo_pe_broken = True
+            logger.debug(f"巨潮行业PE获取失败: {e}")
             return None
     
     def get_valuation_baidu(self, code: str, indicator: str = "市盈率(TTM)",

@@ -1,17 +1,15 @@
 """
 数据获取器模块
 
-统一的数据获取接口，支持多种数据源：
-- 市场数据（日线、实时行情）
-- 基本面数据（PE、PB、ROE等）
-- ETF数据
-- 日线：统一 DataProvider（config 配置主备顺序），见 docs/data/API_INTERFACES_AND_FETCHERS.md
+统一的数据获取接口：
+- 基本面数据（PE、PB、ROE等）: FundamentalFetcher
+- 实时行情: RealtimeDataFetcher
+- K线日线（多源自动降级）: get_default_kline_provider（推荐入口）
+- 市场全景: market_panorama
 """
 
-from .market_data import MarketData
 from .realtime_data import RealtimeDataFetcher, MarketDataManager
 from .fundamental_fetcher import FundamentalFetcher, create_mock_fundamental_data
-from .etf_data_fetcher import ETFDataFetcher
 from .data_prefetch import (
     fetch_stock_daily,
     get_realtime_snapshot_sina,
@@ -35,12 +33,10 @@ except ImportError:
     UnifiedDataProvider = None  # type: ignore
 
 __all__ = [
-    'MarketData',
     'RealtimeDataFetcher',
     'MarketDataManager',
     'FundamentalFetcher',
     'create_mock_fundamental_data',
-    'ETFDataFetcher',
     'fetch_stock_daily',
     'get_realtime_snapshot_sina',
     'get_realtime_snapshot_eastmoney',

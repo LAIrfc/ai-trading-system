@@ -28,7 +28,7 @@ _backtest_sentiment_cache: dict = {}
 MACD_SLOPE_WINDOW = 3
 PRICE_LOOKBACK = 5
 ADX_PERIOD = 14
-ADX_TREND_THRESHOLD = 25
+ADX_TREND_THRESHOLD = 20
 
 
 def _macd_hist_slope(close: pd.Series, fast: int = 12, slow: int = 26, signal: int = 9, slope_n: int = 3) -> Optional[float]:
@@ -96,7 +96,7 @@ def _trend_filter_buy(df: pd.DataFrame) -> bool:
     if close.iloc[-1] <= five_low:
         hits += 1
     adx = _adx(high, low, close, ADX_PERIOD)
-    if adx is not None and adx > 20:
+    if adx is not None and adx > ADX_TREND_THRESHOLD:
         hits += 1
     return hits >= 2
 
@@ -116,7 +116,7 @@ def _trend_filter_sell(df: pd.DataFrame) -> bool:
     if close.iloc[-1] >= five_high:
         hits += 1
     adx = _adx(high, low, close, ADX_PERIOD)
-    if adx is not None and adx > 20:
+    if adx is not None and adx > ADX_TREND_THRESHOLD:
         hits += 1
     return hits >= 2
 

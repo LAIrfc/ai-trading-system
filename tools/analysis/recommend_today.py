@@ -33,12 +33,15 @@ import os
 import json
 import time
 import argparse
+import logging
 from datetime import datetime, timedelta
 from collections import defaultdict
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import ThreadPoolExecutor, as_completed, TimeoutError
 
 import pandas as pd
 import numpy as np
+
+logger = logging.getLogger(__name__)
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../..'))
 
@@ -98,10 +101,17 @@ def _render_portfolio_section(holdings: list, provider=None) -> str:
         latest = 0
         if provider:
             try:
-                is_etf = (code.startswith('5') or code.startswith('159')) and len(code) == 6
-                df = provider.get_kline(symbol=code, datalen=3, min_bars=1, retries=1, timeout=8, is_etf=is_etf)
+                # 先用通用接口（覆盖范围更广），ETF 专用接口常被封
+                df = provider.get_kline(symbol=code, datalen=3, min_bars=1, retries=1, timeout=8)
                 if df is not None and not df.empty:
                     latest = float(df['close'].iloc[-1])
+                else:
+                    # 通用接口失败，再试 ETF 专用
+                    is_etf = (code.startswith('5') or code.startswith('159')) and len(code) == 6
+                    if is_etf:
+                        df2 = provider.get_kline(symbol=code, datalen=3, min_bars=1, retries=1, timeout=8, is_etf=True)
+                        if df2 is not None and not df2.empty:
+                            latest = float(df2['close'].iloc[-1])
             except Exception:
                 pass
         cost_total = cost * shares
@@ -281,20 +291,20 @@ def _select_elite_top5(top_list: list) -> list:
         else:
             es += 4
 
-        # 4. 上涨空间 (20分) — 距60日高点有空间但不要太深
+        # 4. 上涨空间 (20分) — 距60日高点越近越强，突破新高是最强信号
         if dist_high > 0:
-            es += 12
+            es += 20  # 突破60日新高，趋势最强
             reasons.append("突破新高趋势强")
         elif -3 < dist_high <= 0:
-            es += 15
+            es += 17
             reasons.append("接近新高")
         elif -10 < dist_high <= -3:
-            es += 20
+            es += 13
             reasons.append("上涨空间充足")
         elif -20 < dist_high <= -10:
-            es += 14
+            es += 8
         elif dist_high <= -20:
-            es += 6
+            es += 3
 
         # 5. 中期动能 (15分)
         if 3 < change_20d <= 15:
@@ -839,18 +849,37 @@ def load_cached_kline(code: str, cache_dir: str = None) -> pd.DataFrame:
 
 def update_kline_cache(code: str, cache_dir: str = None, days: int = 200) -> pd.DataFrame:
     """
-    增量更新K线缓存：使用统一数据接口获取数据，合并本地缓存
+    增量更新K线缓存：使用统一数据接口获取数据，合并本地缓存。
+    
+    缓存策略：
+    - 缓存已是今日数据 → 直接返回（不重复请求）
+    - 缓存是昨日收盘数据 + 当前在交易时间 → 调 provider.get_kline（会自动拼接今日盘中数据），
+      但不写入缓存文件（盘中数据不完整，不应持久化）
+    - 缓存超过1天以上 → 下载并更新缓存文件
     """
     from src.data.provider.data_provider import get_default_kline_provider
 
     cached_df = load_cached_kline(code, cache_dir)
 
+    now = datetime.now()
+    today_str = now.strftime('%Y-%m-%d')
+    is_trading_hours = (now.weekday() < 5) and (
+        (9, 15) <= (now.hour, now.minute) <= (15, 0)
+    )
+
     if not cached_df.empty and 'date' in cached_df.columns:
         last_date = pd.Timestamp(cached_df['date'].max())
-        today = pd.Timestamp(datetime.now().date())
-        if (today - last_date).days <= 1:
+        days_behind = (pd.Timestamp(now.date()) - last_date).days
+
+        if days_behind == 0:
+            # 已经有今日数据（收盘后写入），直接返回
             return cached_df
 
+        if days_behind == 1 and not is_trading_hours:
+            # 昨收数据，非交易时间，直接用缓存
+            return cached_df
+
+    # 需要更新：下载最新数据
     provider = get_default_kline_provider()
     new_df = provider.get_kline(
         symbol=code,
@@ -870,6 +899,11 @@ def update_kline_cache(code: str, cache_dir: str = None, days: int = 200) -> pd.
         combined = combined.sort_values('date').reset_index(drop=True)
     else:
         combined = new_df
+
+    # 盘中实时数据（最新行是今天）不写入缓存文件，避免覆盖昨日完整数据
+    has_today = 'date' in combined.columns and combined['date'].max() >= pd.Timestamp(today_str)
+    if is_trading_hours and has_today:
+        return combined  # 仅在内存中使用，不落盘
 
     if not cache_dir:
         cache_dir = os.path.join(os.path.dirname(__file__), '..', '..', 'mydate', 'backtest_kline')
@@ -893,28 +927,40 @@ def load_fundamental_cache():
     return {'date': '', 'all_data': {}}
 
 
-def update_fundamental_cache(code: str, fetcher: FundamentalFetcher, cache_data: dict) -> dict:
+def _preload_akshare_spot() -> pd.DataFrame:
+    """预加载 AKShare 全市场实时行情（只调一次），失败返回空 DataFrame"""
+    try:
+        import akshare as ak
+        from concurrent.futures import ThreadPoolExecutor as _TPE, TimeoutError as _FTE
+        with _TPE(max_workers=1) as _ex:
+            df = _ex.submit(ak.stock_zh_a_spot_em).result(timeout=20)
+        if df is not None and not df.empty:
+            print(f"✅ AKShare全市场行情预加载成功: {len(df)} 只")
+            return df
+    except Exception as e:
+        print(f"⚠️ AKShare全市场行情预加载失败: {e}，将使用缓存数据")
+    return pd.DataFrame()
+
+
+def update_fundamental_cache(code: str, fetcher: FundamentalFetcher, cache_data: dict, spot_df: pd.DataFrame = None) -> dict:
     """
     增量更新单只股票的基本面数据（PE/PB/市值）
     
     多数据源降级逻辑：
     1. Baostock daily_basic（主力）
-    2. AKShare 实时行情（备用）
+    2. 预加载的 AKShare 全市场行情 DataFrame 查表（备用，无网络请求）
     3. 返回缓存（如果以上都失败）
     """
     today = datetime.now().strftime('%Y-%m-%d')
     cache_date = cache_data.get('date', '')
     all_data = cache_data.get('all_data', {})
     
-    # 检查缓存是否是今天的
     if cache_date == today and code in all_data:
         return all_data[code]
     
-    fund_info = None
-    
-    # 方案1: Baostock get_daily_basic（主力）
+    # 方案1: Baostock get_daily_basic（传入 spot_df 作为备用）
     try:
-        fund_df = fetcher.get_daily_basic(code, start_date=today, end_date=today)
+        fund_df = fetcher.get_daily_basic(code, start_date=today, end_date=today, spot_df=spot_df)
         if not fund_df.empty:
             fund_info = {
                 'name': fund_df['name'].iloc[0] if 'name' in fund_df.columns else '',
@@ -923,38 +969,32 @@ def update_fundamental_cache(code: str, fetcher: FundamentalFetcher, cache_data:
                 'market_cap_yi': float(fund_df['market_cap'].iloc[0]) / 100000000 if 'market_cap' in fund_df.columns and pd.notna(fund_df['market_cap'].iloc[0]) else None,
                 'is_st': False
             }
-            logger.info(f"✅ Baostock获取 {code} 基本面成功")
             return fund_info
     except Exception as e:
-        logger.warning(f"⚠️ Baostock获取 {code} 基本面失败: {e}")
+        logger.debug(f"Baostock获取 {code} 基本面失败: {e}")
     
-    # 方案2: AKShare 实时行情（备用）
-    try:
-        import akshare as ak
-        df_spot = ak.stock_zh_a_spot_em()
-        
-        # 查找该股票
-        stock_row = df_spot[df_spot['代码'] == code]
-        if not stock_row.empty:
-            row = stock_row.iloc[0]
-            fund_info = {
-                'name': row['名称'] if '名称' in row else '',
-                'pe_ttm': float(row['市盈率-动态']) if '市盈率-动态' in row and pd.notna(row['市盈率-动态']) else None,
-                'pb': float(row['市净率']) if '市净率' in row and pd.notna(row['市净率']) else None,
-                'market_cap_yi': float(row['总市值']) / 100000000 if '总市值' in row and pd.notna(row['总市值']) else None,
-                'is_st': 'ST' in row['名称'] if '名称' in row else False
-            }
-            logger.info(f"✅ AKShare获取 {code} 基本面成功")
-            return fund_info
-    except Exception as e:
-        logger.warning(f"⚠️ AKShare获取 {code} 基本面失败: {e}")
+    # 方案2: 从预加载的全市场 DataFrame 查表（零网络开销）
+    if spot_df is not None and not spot_df.empty:
+        try:
+            stock_row = spot_df[spot_df['代码'] == code]
+            if not stock_row.empty:
+                row = stock_row.iloc[0]
+                fund_info = {
+                    'name': row.get('名称', ''),
+                    'pe_ttm': float(row['市盈率-动态']) if '市盈率-动态' in row and pd.notna(row['市盈率-动态']) else None,
+                    'pb': float(row['市净率']) if '市净率' in row and pd.notna(row['市净率']) else None,
+                    'market_cap_yi': float(row['总市值']) / 100000000 if '总市值' in row and pd.notna(row['总市值']) else None,
+                    'is_st': 'ST' in str(row.get('名称', ''))
+                }
+                return fund_info
+        except Exception:
+            pass
     
     # 方案3: 返回缓存
     if code in all_data:
-        logger.warning(f"⚠️ 所有数据源均失败，使用缓存: {code}")
         return all_data[code]
     
-    logger.error(f"❌ 无法获取 {code} 基本面数据，且无缓存")
+    logger.warning(f"❌ 所有数据源均失败: {code}")
     return None
 
 
@@ -1009,7 +1049,7 @@ def run_full_11_analysis(code: str, name: str, sector: str, df: pd.DataFrame, fe
         except Exception:
             pass
 
-    # 获取行业PE/PB数据（用于行业分位数对比）
+    # 获取行业PE/PB数据（用于行业分位数对比，总超时15s防止卡死）
     industry = None
     industry_pe_data = industry_pb_data = None
     
@@ -1017,22 +1057,13 @@ def run_full_11_analysis(code: str, name: str, sector: str, df: pd.DataFrame, fe
         try:
             industry = fetcher.get_industry_classification(code)
             if industry:
-                # 优先使用巨潮快接口（快100倍，直接返回行业PE而不是聚合）
                 cninfo_data = fetcher.get_industry_pe_cninfo(industry)
                 if cninfo_data:
-                    # 将巨潮数据转换为策略需要的格式（模拟历史序列）
-                    # 由于巨潮只返回当前值，我们创建一个简单的序列用于分位数计算
-                    industry_pe_value = cninfo_data.get('pe_weighted') or cninfo_data.get('pe_median')
-                    if industry_pe_value and industry_pe_value > 0:
-                        # 创建一个模拟序列（用于分位数计算，假设当前值在历史中位数附近）
-                        industry_pe_data = pd.Series([industry_pe_value] * 400)
-                else:
-                    # 回退到旧接口（慢但更完整）
-                    industry_data = fetcher.get_industry_pe_pb_data(code, datalen=400)
-                    industry_pe_data = industry_data.get('industry_pe')
-                    industry_pb_data = industry_data.get('industry_pb')
-        except Exception as e:
-            logger.warning(f"⚠️ 获取 {code} 行业数据失败: {e}")
+                    pe_val = cninfo_data.get('pe_weighted') or cninfo_data.get('pe_median')
+                    if pe_val and pe_val > 0:
+                        industry_pe_data = pd.Series([pe_val] * 400)
+        except Exception:
+            pass
 
     if 'pe_ttm' in df.columns and df['pe_ttm'].notna().sum() > 100:
         try:
@@ -1268,39 +1299,44 @@ def main():
         full_results = []
         fail_count = 0
         
-        # 定义单股分析函数（用于并发）
-        def analyze_one_stock(stock_info):
+        # ========== 阶段1: 串行获取数据（baostock 非线程安全） ==========
+        spot_df = pd.DataFrame()
+        if not args.cache_only:
+            print("📡 预加载全市场行情数据...")
+            spot_df = _preload_akshare_spot()
+        
+        print(f"\n📊 阶段1: 串行获取数据 ({len(stocks)} 只)...")
+        prepared_stocks = []
+        data_fail = 0
+        for i, stock_info in enumerate(stocks):
             code = stock_info.get('code') or stock_info.get('symbol', '')
             name = stock_info.get('name', '')
             sector = stock_info.get('sector', '')
             if not code:
-                return None
+                data_fail += 1
+                continue
             
-            # 纯缓存模式：只加载缓存，不更新
             if args.cache_only:
                 df = load_cached_kline(code, cache_dir) if use_kline_cache else pd.DataFrame()
             else:
-                # 增量更新K线缓存（只下载缺失日期）
                 try:
                     df = update_kline_cache(code, cache_dir, days=200)
                 except Exception:
-                    # 更新失败，尝试使用现有缓存
                     df = load_cached_kline(code, cache_dir) if use_kline_cache else pd.DataFrame()
             
             if df.empty or len(df) < 60:
-                return None
+                data_fail += 1
+                if (i + 1) % 100 == 0:
+                    print(f"\r  数据获取: {i+1}/{len(stocks)}", end='', flush=True)
+                continue
             
-            # 2. 基本面数据处理
             if args.cache_only:
-                # 纯缓存模式：直接使用缓存数据
                 all_data = fundamental_cache.get('all_data', {})
                 fund_data = all_data.get(code)
             else:
-                # 增量更新基本面数据（PE/PB）
-                fund_data = update_fundamental_cache(code, fetcher, fundamental_cache)
+                fund_data = update_fundamental_cache(code, fetcher, fundamental_cache, spot_df)
             
             if fund_data:
-                # 将基本面数据添加到最后一行
                 if 'pe_ttm' not in df.columns:
                     df['pe_ttm'] = None
                 if 'pb' not in df.columns:
@@ -1308,52 +1344,63 @@ def main():
                 if 'market_cap' not in df.columns:
                     df['market_cap'] = None
                 
-                # 用最新数据填充最后一行
                 df.loc[df.index[-1], 'pe_ttm'] = fund_data.get('pe_ttm')
                 df.loc[df.index[-1], 'pb'] = fund_data.get('pb')
                 df.loc[df.index[-1], 'market_cap'] = fund_data.get('market_cap_yi', 0) * 100000000 if fund_data.get('market_cap_yi') else None
-                # 向前填充
                 df['pe_ttm'] = df['pe_ttm'].ffill()
                 df['pb'] = df['pb'].ffill()
                 df['market_cap'] = df['market_cap'].ffill()
             
-            return run_full_11_analysis(code, name, sector, df, fetcher, skip_industry=args.cache_only)
-        
-        # 并发分析（降低线程数避免限流）
-        if args.cache_only:
-            max_workers = 8  # 纯缓存模式可以提高并发
-            print(f"\n🚀 纯缓存模式：使用{max_workers}线程并发分析（不发起网络请求）...\n")
-        else:
-            max_workers = 3
-            print(f"\n🚀 使用{max_workers}线程增量更新+并发分析...\n")
-        completed = 0
-        with ThreadPoolExecutor(max_workers=max_workers) as executor:
-            futures = {executor.submit(analyze_one_stock, stock): stock for stock in stocks}
+            prepared_stocks.append((code, name, sector, df))
             
-            for future in as_completed(futures):
-                completed += 1
-                if completed % 50 == 0 or completed == len(stocks):
-                    pct = completed / len(stocks) * 100
-                    bar = '█' * int(pct / 2) + '░' * (50 - int(pct / 2))
-                    print(f"\r  [{bar}] {completed}/{len(stocks)} ({pct:.0f}%)", end='', flush=True)
-                
-                try:
-                    result = future.result()
-                    if result:
-                        full_results.append(result)
-                    else:
-                        fail_count += 1
-                except Exception:
-                    fail_count += 1
-
+            if (i + 1) % 100 == 0:
+                print(f"\r  数据获取: {i+1}/{len(stocks)} (有效{len(prepared_stocks)})", end='', flush=True)
+        
         try:
+            import baostock as bs
             bs.logout()
         except Exception:
             pass
         fetcher._bs_logout()
-
+        
+        print(f"\n✅ 数据获取完成: {len(prepared_stocks)}只有效, {data_fail}只跳过")
+        
+        # ========== 阶段2: 多线程并行策略分析（纯CPU计算） ==========
+        max_workers = 8
+        print(f"\n🚀 阶段2: {max_workers}线程并行策略分析...\n")
+        
+        def analyze_stock(item):
+            code, name, sector, df = item
+            try:
+                return run_full_11_analysis(code, name, sector, df, fetcher, skip_industry=True)
+            except Exception:
+                return None
+        
+        completed = 0
+        analysis_timeout = 1200
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            futures = {executor.submit(analyze_stock, item): item for item in prepared_stocks}
+            try:
+                for future in as_completed(futures, timeout=analysis_timeout):
+                    completed += 1
+                    if completed % 50 == 0 or completed == len(prepared_stocks):
+                        pct = completed / len(prepared_stocks) * 100
+                        bar = '█' * int(pct / 2) + '░' * (50 - int(pct / 2))
+                        print(f"\r  [{bar}] {completed}/{len(prepared_stocks)} ({pct:.0f}%)", end='', flush=True)
+                    try:
+                        result = future.result(timeout=0)
+                        if result:
+                            full_results.append(result)
+                        else:
+                            fail_count += 1
+                    except Exception:
+                        fail_count += 1
+            except TimeoutError:
+                not_done = sum(1 for f in futures if not f.done())
+                fail_count += not_done
+                print(f"\n⏱️  策略分析总超时({analysis_timeout}s)，{not_done}只未完成")
         if fail_count:
-            print(f"\n⚠️  {fail_count} 只数据不足，已跳过")
+            print(f"\n⚠️  {fail_count} 只数据不足或失败，已跳过")
         if not full_results:
             print("\n⚠️ 无有效分析结果")
             return
