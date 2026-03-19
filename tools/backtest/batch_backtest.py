@@ -55,6 +55,35 @@ from src.strategies.policy_event import PolicyEventStrategy
 from src.strategies.money_flow import MoneyFlowStrategy
 from src.data.fetchers.fundamental_fetcher import FundamentalFetcher, create_mock_fundamental_data
 
+
+def is_st_stock(name: str) -> bool:
+    """
+    检查是否为ST股票（特别处理股票）
+    
+    ST股票包括：
+    - ST: 连续两年亏损
+    - *ST: 连续三年亏损，有退市风险
+    - S*ST: 连续三年亏损且未完成股改
+    - SST: 连续两年亏损且未完成股改
+    - S: 未完成股改
+    
+    Returns:
+        True: 是ST股票，应过滤
+        False: 正常股票
+    """
+    if not name:
+        return False
+    name_upper = name.upper()
+    # 检查ST相关关键词
+    st_keywords = ['ST', '*ST', 'S*ST', 'SST']
+    if any(kw in name_upper for kw in st_keywords):
+        return True
+    # 单独的S需要更严格匹配（避免误判，如"深圳"）
+    if name_upper.startswith('S ') or name_upper.startswith('S\t'):
+        return True
+    return False
+
+
 # V3.3 Phase 6.1：未来函数约束校验（可选）。逐日/截面回测时请使用 src.core.backtest_constraints 过滤新闻/政策/龙虎榜
 try:
     from src.core.backtest_constraints import check_sentiment_no_future, filter_news_by_time, is_lhb_visible_at_date
@@ -600,6 +629,16 @@ def main():
     with ThreadPoolExecutor(max_workers=args.workers) as executor:
         futures = {}
         for stock in stocks:
+            # 过滤ST股票（风险高、涨跌幅限制不同、回测失真）
+            if is_st_stock(stock.get('name', '')):
+                skip += 1
+                all_results.append({
+                    'code': stock['code'], 'name': stock['name'],
+                    'sector': stock.get('sector', ''), 'status': 'skip',
+                    'reason': 'ST股票已过滤'
+                })
+                continue
+            
             future = executor.submit(
                 backtest_one_stock, stock,
                 {}, None,

@@ -61,6 +61,34 @@ from src.strategies.money_flow import MoneyFlowStrategy
 from src.data.fetchers.fundamental_fetcher import FundamentalFetcher
 
 
+def is_st_stock(name: str) -> bool:
+    """
+    检查是否为ST股票（特别处理股票）
+    
+    ST股票包括：
+    - ST: 连续两年亏损
+    - *ST: 连续三年亏损，有退市风险
+    - S*ST: 连续三年亏损且未完成股改
+    - SST: 连续两年亏损且未完成股改
+    - S: 未完成股改
+    
+    Returns:
+        True: 是ST股票，应过滤
+        False: 正常股票
+    """
+    if not name:
+        return False
+    name_upper = name.upper()
+    # 检查ST相关关键词
+    st_keywords = ['ST', '*ST', 'S*ST', 'SST']
+    if any(kw in name_upper for kw in st_keywords):
+        return True
+    # 单独的S需要更严格匹配（避免误判，如"深圳"）
+    if name_upper.startswith('S ') or name_upper.startswith('S\t'):
+        return True
+    return False
+
+
 # ============================================================
 # 增量报告（累积到单文件，最新日期在前，持仓置顶）
 # ============================================================
@@ -235,8 +263,10 @@ def _select_elite_top5(top_list: list) -> list:
     if not top_list:
         return []
 
-    # 过滤科创板（688开头），散户无法交易
-    top_list = [r for r in top_list if not str(r.get('code', '')).startswith('688')]
+    # 过滤科创板（688开头）和ST股票
+    top_list = [r for r in top_list 
+                if not str(r.get('code', '')).startswith('688')
+                and not is_st_stock(r.get('name', ''))]
 
     scored = []
     for r in top_list:
@@ -509,8 +539,16 @@ def _generate_recommendation_reason(r: dict) -> str:
     return f"> **推荐理由**: {'；'.join(parts)}。"
 
 
-def save_incremental_report(today: str, top_list: list, all_results: list,
-                            strategy_name: str, pool_size: int, valid_count: int):
+def save_incremental_report(
+    today: str,
+    top_list: list,
+    all_results: list,
+    strategy_name: str,
+    pool_size: int,
+    valid_count: int,
+    *,
+    holdings_only: bool = False,
+):
     """保存增量报告：持仓置顶 + 今日操作建议 + 今日推荐 + 历史（最新在前）"""
     from src.data.provider.data_provider import get_default_kline_provider
     provider = get_default_kline_provider()
@@ -520,6 +558,7 @@ def save_incremental_report(today: str, top_list: list, all_results: list,
 
     # 读取已有报告中的历史区块（去掉旧的持仓和操作建议，保留各日推荐）
     old_daily_sections = ""
+    today_daily_block = ""
     if os.path.exists(REPORT_FILE):
         with open(REPORT_FILE, 'r', encoding='utf-8') as f:
             old_content = f.read()
@@ -531,8 +570,13 @@ def save_incremental_report(today: str, top_list: list, all_results: list,
             header = parts[i]
             body = parts[i + 1] if i + 1 < len(parts) else ""
             date_in_header = re.search(r'(\d{4}-\d{2}-\d{2})', header)
-            if date_in_header and date_in_header.group(1) != today:
-                daily_blocks.append(header + body)
+            if not date_in_header:
+                continue
+            d = date_in_header.group(1)
+            if d == today:
+                today_daily_block = header + body
+                continue
+            daily_blocks.append(header + body)
         old_daily_sections = "".join(daily_blocks)
 
     # 构建新报告
@@ -547,7 +591,14 @@ def save_incremental_report(today: str, top_list: list, all_results: list,
     report_parts.append(_render_holding_advice(holdings, all_results, today))
 
     # 3. 今日推荐
-    report_parts.append(_render_daily_section(today, top_list, strategy_name, pool_size, valid_count))
+    if holdings_only and (not top_list):
+        # 仅持仓模式：不覆盖今日推荐（若已有则保留），避免把 top20 清空
+        if today_daily_block.strip():
+            report_parts.append(today_daily_block)
+        else:
+            report_parts.append(_render_daily_section(today, [], strategy_name, pool_size, valid_count))
+    else:
+        report_parts.append(_render_daily_section(today, top_list, strategy_name, pool_size, valid_count))
 
     # 4. 历史推荐（旧的，最新在前）
     if old_daily_sections.strip():
@@ -558,9 +609,10 @@ def save_incremental_report(today: str, top_list: list, all_results: list,
 
     # 同时保存当日独立归档
     archive_path = os.path.join(DAILY_ARCHIVE_DIR, f'daily_recommendation_{today}.md')
-    with open(archive_path, 'w', encoding='utf-8') as f:
-        f.write(f"# 📈 每日选股推荐 — {today}\n\n")
-        f.write(_render_daily_section(today, top_list, strategy_name, pool_size, valid_count))
+    if not (holdings_only and (not top_list)):
+        with open(archive_path, 'w', encoding='utf-8') as f:
+            f.write(f"# 📈 每日选股推荐 — {today}\n\n")
+            f.write(_render_daily_section(today, top_list, strategy_name, pool_size, valid_count))
 
     return REPORT_FILE, archive_path
 
@@ -860,7 +912,7 @@ def update_kline_cache(code: str, cache_dir: str = None, days: int = 200) -> pd.
     from src.data.provider.data_provider import get_default_kline_provider
 
     cached_df = load_cached_kline(code, cache_dir)
-
+    
     now = datetime.now()
     today_str = now.strftime('%Y-%m-%d')
     is_weekday = now.weekday() < 5
@@ -871,11 +923,11 @@ def update_kline_cache(code: str, cache_dir: str = None, days: int = 200) -> pd.
     if not cached_df.empty and 'date' in cached_df.columns:
         last_date = pd.Timestamp(cached_df['date'].max())
         days_behind = (pd.Timestamp(now.date()) - last_date).days
-
+        
         if days_behind == 0:
             # 已经有今日数据（收盘后写入），直接返回
             return cached_df
-
+        
         if days_behind == 1 and not is_trading_hours and not is_after_close:
             # 昨收数据，且当前既不在盘中也不在收盘后（即周末/假日/非交易日深夜），直接用缓存
             return cached_df
@@ -883,7 +935,7 @@ def update_kline_cache(code: str, cache_dir: str = None, days: int = 200) -> pd.
     # 需要更新：下载最新数据
     provider = get_default_kline_provider()
     new_df = provider.get_kline(
-        symbol=code,
+                symbol=code,
         datalen=days,
         min_bars=1,
         retries=2,
@@ -893,14 +945,14 @@ def update_kline_cache(code: str, cache_dir: str = None, days: int = 200) -> pd.
     if new_df is None or new_df.empty:
         logger.error(f"所有数据源均失败，使用缓存数据: {code}")
         return cached_df if not cached_df.empty else pd.DataFrame()
-
+    
     if not cached_df.empty:
         combined = pd.concat([cached_df, new_df], ignore_index=True)
         combined = combined.drop_duplicates(subset=['date'], keep='last')
         combined = combined.sort_values('date').reset_index(drop=True)
     else:
         combined = new_df
-
+    
     # 盘中实时数据（最新行是今天）不写入缓存文件，避免覆盖昨日完整数据
     has_today = 'date' in combined.columns and combined['date'].max() >= pd.Timestamp(today_str)
     if is_trading_hours and has_today:
@@ -911,7 +963,7 @@ def update_kline_cache(code: str, cache_dir: str = None, days: int = 200) -> pd.
     os.makedirs(cache_dir, exist_ok=True)
     cache_file = os.path.join(cache_dir, f'{code}.parquet')
     combined.to_parquet(cache_file, index=False)
-
+    
     return combined
 
 
@@ -1236,6 +1288,8 @@ def main():
                         help='启用基本面分析(PE/PB)')
     parser.add_argument('--no-policy-filter', action='store_true', default=False,
                         help='跳过政策面大盘过滤（强制执行选股）')
+    parser.add_argument('--only-holdings', action='store_true', default=False,
+                        help='只分析持仓：不跑股票池扫描，仅用最新数据分析持仓并更新报告')
     args = parser.parse_args()
 
     # 优先使用 mydate 目录，如果不存在则使用 data 目录
@@ -1248,6 +1302,55 @@ def main():
     stocks = load_stock_pool(pool_file, max_count=args.max_pool if args.max_pool > 0 else 0)
 
     today = datetime.now().strftime('%Y-%m-%d')
+
+    # ========== 仅持仓分析模式 ==========
+    if args.only_holdings:
+        holdings = _load_portfolio()
+        if not holdings:
+            print("⚠️ 无持仓，退出")
+            return
+        print(f"{'='*70}")
+        print(f"📌 仅持仓分析 — {today}（使用日内最新/收盘数据）")
+        print(f"{'='*70}")
+
+        from src.data.provider.data_provider import get_default_kline_provider
+        provider = get_default_kline_provider()
+        fetcher = FundamentalFetcher()
+
+        # 只为持仓拉取最新数据并分析（避免跑 808 只）
+        full_results = []
+        for h in holdings:
+            code = h.get("code", "")
+            name = h.get("name", "")
+            if not code:
+                continue
+            try:
+                df = provider.get_kline(symbol=code, datalen=200, min_bars=60, retries=2, timeout=10)
+                if df is None or df.empty or len(df) < 60:
+                    # ETF/个别标的可能无日K，持仓区仍可用 spot 价，但策略分析需要日K，失败则跳过分析
+                    continue
+                r = run_full_11_analysis(code, name, "", df, fetcher, skip_industry=True)
+                if r:
+                    full_results.append(r)
+            except Exception:
+                continue
+
+        # 仅更新报告中的“持仓区块”和“持仓建议”，不影响历史累计内容结构
+        try:
+            report_path, archive_path = save_incremental_report(
+                today=today,
+                top_list=[],
+                all_results=full_results,
+                strategy_name="仅持仓分析(11策略)",
+                pool_size=0,
+                valid_count=len(full_results),
+                holdings_only=True,
+            )
+            print(f"\n📝 持仓报告已更新: {report_path}")
+            print(f"📝 当日归档已保存: {archive_path}")
+        except Exception as e:
+            print(f"\n⚠️ 更新报告失败: {e}")
+        return
 
     # ========= 政策面大盘过滤 =========
     policy_result = {'blocked': False, 'score': 0.0, 'reason': '未启用政策面过滤'}
@@ -1275,7 +1378,7 @@ def main():
         print(f"📌 股票池: {len(stocks)} 只")
         print(f"📌 推荐TOP: {args.top} 只")
         print()
-
+        
         # 检查缓存
         cache_dir = os.path.join(os.path.dirname(__file__), '..', '..', 'mydate', 'backtest_kline')
         use_kline_cache = os.path.exists(cache_dir)
@@ -1314,6 +1417,11 @@ def main():
             name = stock_info.get('name', '')
             sector = stock_info.get('sector', '')
             if not code:
+                data_fail += 1
+                continue
+            
+            # 过滤ST股票（风险高、涨跌幅限制不同）
+            if is_st_stock(name):
                 data_fail += 1
                 continue
             
@@ -1477,7 +1585,7 @@ def main():
             print(f"\r  [{bar}] {i}/{len(stocks)} ({pct:.0f}%)", end='', flush=True)
 
         # 获取数据（统一接口自带重试和降级）
-        df = fetch_stock_data(code, 200)
+            df = fetch_stock_data(code, 200)
 
         if len(df) < strat.min_bars:
             fail_count += 1
