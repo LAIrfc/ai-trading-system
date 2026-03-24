@@ -1,0 +1,362 @@
+{
+  "buy0.03_sell-0.03": {
+    "buy_threshold": 0.03,
+    "sell_threshold": -0.03,
+    "stock_count": 299,
+    "avg_sharpe": 0.050283612040133784,
+    "median_sharpe": 0.0676,
+    "avg_total_return_pct": 8.651304347826088,
+    "positive_return_pct": 0.6722408026755853,
+    "avg_trades": 25.762541806020067
+  },
+  "buy0.03_sell-0.05": {
+    "buy_threshold": 0.03,
+    "sell_threshold": -0.05,
+    "stock_count": 299,
+    "avg_sharpe": 0.059454849498327765,
+    "median_sharpe": 0.0627,
+    "avg_total_return_pct": 9.120200668896322,
+    "positive_return_pct": 0.6688963210702341,
+    "avg_trades": 25.11371237458194
+  },
+  "buy0.03_sell-0.07": {
+    "buy_threshold": 0.03,
+    "sell_threshold": -0.07,
+    "stock_count": 299,
+    "avg_sharpe": 0.07191471571906353,
+    "median_sharpe": 0.0741,
+    "avg_total_return_pct": 9.515785953177257,
+    "positive_return_pct": 0.6588628762541806,
+    "avg_trades": 24.438127090301002
+  },
+  "buy0.03_sell-0.10": {
+    "buy_threshold": 0.03,
+    "sell_threshold": -0.1,
+    "stock_count": 299,
+    "avg_sharpe": 0.08131638795986622,
+    "median_sharpe": 0.0728,
+    "avg_total_return_pct": 9.987357859531771,
+    "positive_return_pct": 0.6588628762541806,
+    "avg_trades": 23.36454849498328
+  },
+  "buy0.03_sell-0.12": {
+    "buy_threshold": 0.03,
+    "sell_threshold": -0.12,
+    "stock_count": 299,
+    "avg_sharpe": 0.08276521739130435,
+    "median_sharpe": 0.0706,
+    "avg_total_return_pct": 9.996521739130435,
+    "positive_return_pct": 0.6588628762541806,
+    "avg_trades": 22.79933110367893
+  },
+  "buy0.03_sell-0.15": {
+    "buy_threshold": 0.03,
+    "sell_threshold": -0.15,
+    "stock_count": 299,
+    "avg_sharpe": 0.09369698996655518,
+    "median_sharpe": 0.0915,
+    "avg_total_return_pct": 10.37505016722408,
+    "positive_return_pct": 0.6722408026755853,
+    "avg_trades": 22.17391304347826
+  },
+  "buy0.05_sell-0.03": {
+    "buy_threshold": 0.05,
+    "sell_threshold": -0.03,
+    "stock_count": 299,
+    "avg_sharpe": 0.05359732441471572,
+    "median_sharpe": 0.0726,
+    "avg_total_return_pct": 8.727458193979935,
+    "positive_return_pct": 0.6755852842809364,
+    "avg_trades": 25.023411371237458
+  },
+  "buy0.05_sell-0.05": {
+    "buy_threshold": 0.05,
+    "sell_threshold": -0.05,
+    "stock_count": 299,
+    "avg_sharpe": 0.0629695652173913,
+    "median_sharpe": 0.0734,
+    "avg_total_return_pct": 9.197926421404683,
+    "positive_return_pct": 0.6755852842809364,
+    "avg_trades": 24.387959866220736
+  },
+  "buy0.05_sell-0.07": {
+    "buy_threshold": 0.05,
+    "sell_threshold": -0.07,
+    "stock_count": 299,
+    "avg_sharpe": 0.07533812709030101,
+    "median_sharpe": 0.0812,
+    "avg_total_return_pct": 9.578260869565218,
+    "positive_return_pct": 0.6722408026755853,
+    "avg_trades": 23.729096989966557
+  },
+  "buy0.05_sell-0.10": {
+    "buy_threshold": 0.05,
+    "sell_threshold": -0.1,
+    "stock_count": 299,
+    "avg_sharpe": 0.08489598662207357,
+    "median_sharpe": 0.081,
+    "avg_total_return_pct": 10.057725752508361,
+    "positive_return_pct": 0.6789297658862876,
+    "avg_trades": 22.67558528428094
+  },
+  "buy0.05_sell-0.12": {
+    "buy_threshold": 0.05,
+    "sell_threshold": -0.12,
+    "stock_count": 299,
+    "avg_sharpe": 0.08615652173913045,
+    "median_sharpe": 0.0795,
+    "avg_total_return_pct": 10.072107023411373,
+    "positive_return_pct": 0.6722408026755853,
+    "avg_trades": 22.120401337792643
+  },
+  "buy0.05_sell-0.15": {
+    "buy_threshold": 0.05,
+    "sell_threshold": -0.15,
+    "stock_count": 299,
+    "avg_sharpe": 0.09708595317725753,
+    "median_sharpe": 0.0795,
+    "avg_total_return_pct": 10.435317725752508,
+    "positive_return_pct": 0.6889632107023411,
+    "avg_trades": 21.53846153846154
+  },
+  "buy0.07_sell-0.03": {
+    "buy_threshold": 0.07,
+    "sell_threshold": -0.03,
+    "stock_count": 299,
+    "avg_sharpe": 0.05043578595317726,
+    "median_sharpe": 0.0697,
+    "avg_total_return_pct": 8.749030100334448,
+    "positive_return_pct": 0.6755852842809364,
+    "avg_trades": 24.217391304347824
+  },
+  "buy0.07_sell-0.05": {
+    "buy_threshold": 0.07,
+    "sell_threshold": -0.05,
+    "stock_count": 299,
+    "avg_sharpe": 0.0604351170568562,
+    "median_sharpe": 0.0734,
+    "avg_total_return_pct": 9.239464882943144,
+    "positive_return_pct": 0.6722408026755853,
+    "avg_trades": 23.60535117056856
+  },
+  "buy0.07_sell-0.07": {
+    "buy_threshold": 0.07,
+    "sell_threshold": -0.07,
+    "stock_count": 299,
+    "avg_sharpe": 0.07199598662207357,
+    "median_sharpe": 0.0772,
+    "avg_total_return_pct": 9.60561872909699,
+    "positive_return_pct": 0.6688963210702341,
+    "avg_trades": 22.96655518394649
+  },
+  "buy0.07_sell-0.10": {
+    "buy_threshold": 0.07,
+    "sell_threshold": -0.1,
+    "stock_count": 299,
+    "avg_sharpe": 0.08402943143812709,
+    "median_sharpe": 0.0771,
+    "avg_total_return_pct": 10.086287625418061,
+    "positive_return_pct": 0.6789297658862876,
+    "avg_trades": 21.93645484949833
+  },
+  "buy0.07_sell-0.12": {
+    "buy_threshold": 0.07,
+    "sell_threshold": -0.12,
+    "stock_count": 299,
+    "avg_sharpe": 0.08549230769230769,
+    "median_sharpe": 0.0795,
+    "avg_total_return_pct": 10.115183946488294,
+    "positive_return_pct": 0.6755852842809364,
+    "avg_trades": 21.39799331103679
+  },
+  "buy0.07_sell-0.15": {
+    "buy_threshold": 0.07,
+    "sell_threshold": -0.15,
+    "stock_count": 299,
+    "avg_sharpe": 0.0955973244147157,
+    "median_sharpe": 0.0909,
+    "avg_total_return_pct": 10.458361204013379,
+    "positive_return_pct": 0.68561872909699,
+    "avg_trades": 20.846153846153847
+  },
+  "buy0.10_sell-0.03": {
+    "buy_threshold": 0.1,
+    "sell_threshold": -0.03,
+    "stock_count": 299,
+    "avg_sharpe": 0.05024247491638797,
+    "median_sharpe": 0.0607,
+    "avg_total_return_pct": 8.767123745819397,
+    "positive_return_pct": 0.6755852842809364,
+    "avg_trades": 23.036789297658864
+  },
+  "buy0.10_sell-0.05": {
+    "buy_threshold": 0.1,
+    "sell_threshold": -0.05,
+    "stock_count": 299,
+    "avg_sharpe": 0.060704013377926413,
+    "median_sharpe": 0.0689,
+    "avg_total_return_pct": 9.277357859531774,
+    "positive_return_pct": 0.6789297658862876,
+    "avg_trades": 22.468227424749163
+  },
+  "buy0.10_sell-0.07": {
+    "buy_threshold": 0.1,
+    "sell_threshold": -0.07,
+    "stock_count": 299,
+    "avg_sharpe": 0.07307859531772576,
+    "median_sharpe": 0.0744,
+    "avg_total_return_pct": 9.701371237458194,
+    "positive_return_pct": 0.6789297658862876,
+    "avg_trades": 21.872909698996654
+  },
+  "buy0.10_sell-0.10": {
+    "buy_threshold": 0.1,
+    "sell_threshold": -0.1,
+    "stock_count": 299,
+    "avg_sharpe": 0.0838541806020067,
+    "median_sharpe": 0.0804,
+    "avg_total_return_pct": 10.13695652173913,
+    "positive_return_pct": 0.6822742474916388,
+    "avg_trades": 20.899665551839465
+  },
+  "buy0.10_sell-0.12": {
+    "buy_threshold": 0.1,
+    "sell_threshold": -0.12,
+    "stock_count": 299,
+    "avg_sharpe": 0.0849190635451505,
+    "median_sharpe": 0.0804,
+    "avg_total_return_pct": 10.14515050167224,
+    "positive_return_pct": 0.6722408026755853,
+    "avg_trades": 20.39464882943144
+  },
+  "buy0.10_sell-0.15": {
+    "buy_threshold": 0.1,
+    "sell_threshold": -0.15,
+    "stock_count": 299,
+    "avg_sharpe": 0.09302040133779264,
+    "median_sharpe": 0.0786,
+    "avg_total_return_pct": 10.421137123745819,
+    "positive_return_pct": 0.6822742474916388,
+    "avg_trades": 19.879598662207357
+  },
+  "buy0.12_sell-0.03": {
+    "buy_threshold": 0.12,
+    "sell_threshold": -0.03,
+    "stock_count": 299,
+    "avg_sharpe": 0.04895351170568562,
+    "median_sharpe": 0.0621,
+    "avg_total_return_pct": 8.769899665551838,
+    "positive_return_pct": 0.6655518394648829,
+    "avg_trades": 22.357859531772576
+  },
+  "buy0.12_sell-0.05": {
+    "buy_threshold": 0.12,
+    "sell_threshold": -0.05,
+    "stock_count": 299,
+    "avg_sharpe": 0.057965217391304356,
+    "median_sharpe": 0.0596,
+    "avg_total_return_pct": 9.236254180602007,
+    "positive_return_pct": 0.6722408026755853,
+    "avg_trades": 21.812709030100333
+  },
+  "buy0.12_sell-0.07": {
+    "buy_threshold": 0.12,
+    "sell_threshold": -0.07,
+    "stock_count": 299,
+    "avg_sharpe": 0.06907391304347826,
+    "median_sharpe": 0.0683,
+    "avg_total_return_pct": 9.618093645484949,
+    "positive_return_pct": 0.6755852842809364,
+    "avg_trades": 21.22742474916388
+  },
+  "buy0.12_sell-0.10": {
+    "buy_threshold": 0.12,
+    "sell_threshold": -0.1,
+    "stock_count": 299,
+    "avg_sharpe": 0.08018494983277591,
+    "median_sharpe": 0.0739,
+    "avg_total_return_pct": 10.039531772575252,
+    "positive_return_pct": 0.68561872909699,
+    "avg_trades": 20.287625418060202
+  },
+  "buy0.12_sell-0.12": {
+    "buy_threshold": 0.12,
+    "sell_threshold": -0.12,
+    "stock_count": 299,
+    "avg_sharpe": 0.08146321070234114,
+    "median_sharpe": 0.0804,
+    "avg_total_return_pct": 10.075083612040133,
+    "positive_return_pct": 0.6755852842809364,
+    "avg_trades": 19.795986622073578
+  },
+  "buy0.12_sell-0.15": {
+    "buy_threshold": 0.12,
+    "sell_threshold": -0.15,
+    "stock_count": 299,
+    "avg_sharpe": 0.08952341137123745,
+    "median_sharpe": 0.0852,
+    "avg_total_return_pct": 10.32103678929766,
+    "positive_return_pct": 0.6956521739130435,
+    "avg_trades": 19.321070234113712
+  },
+  "buy0.15_sell-0.03": {
+    "buy_threshold": 0.15,
+    "sell_threshold": -0.03,
+    "stock_count": 299,
+    "avg_sharpe": 0.05818327759197327,
+    "median_sharpe": 0.0784,
+    "avg_total_return_pct": 9.012173913043478,
+    "positive_return_pct": 0.68561872909699,
+    "avg_trades": 21.558528428093645
+  },
+  "buy0.15_sell-0.05": {
+    "buy_threshold": 0.15,
+    "sell_threshold": -0.05,
+    "stock_count": 299,
+    "avg_sharpe": 0.06689531772575252,
+    "median_sharpe": 0.0813,
+    "avg_total_return_pct": 9.417658862876255,
+    "positive_return_pct": 0.6889632107023411,
+    "avg_trades": 21.05351170568562
+  },
+  "buy0.15_sell-0.07": {
+    "buy_threshold": 0.15,
+    "sell_threshold": -0.07,
+    "stock_count": 299,
+    "avg_sharpe": 0.07747725752508361,
+    "median_sharpe": 0.0723,
+    "avg_total_return_pct": 9.750267558528428,
+    "positive_return_pct": 0.6989966555183946,
+    "avg_trades": 20.50836120401338
+  },
+  "buy0.15_sell-0.10": {
+    "buy_threshold": 0.15,
+    "sell_threshold": -0.1,
+    "stock_count": 299,
+    "avg_sharpe": 0.08832207357859533,
+    "median_sharpe": 0.0739,
+    "avg_total_return_pct": 10.185484949832777,
+    "positive_return_pct": 0.6956521739130435,
+    "avg_trades": 19.648829431438127
+  },
+  "buy0.15_sell-0.12": {
+    "buy_threshold": 0.15,
+    "sell_threshold": -0.12,
+    "stock_count": 299,
+    "avg_sharpe": 0.08923177257525083,
+    "median_sharpe": 0.0791,
+    "avg_total_return_pct": 10.238862876254181,
+    "positive_return_pct": 0.6923076923076923,
+    "avg_trades": 19.187290969899667
+  },
+  "buy0.15_sell-0.15": {
+    "buy_threshold": 0.15,
+    "sell_threshold": -0.15,
+    "stock_count": 299,
+    "avg_sharpe": 0.0955819397993311,
+    "median_sharpe": 0.0857,
+    "avg_total_return_pct": 10.44675585284281,
+    "positive_return_pct": 0.6956521739130435,
+    "avg_trades": 18.752508361204015
+  }
+}

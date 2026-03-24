@@ -4,12 +4,15 @@
 
 功能:
 1. 对股票池中所有股票获取最新数据
-2. 策略模式: macd(单MACD) | ensemble(11策略加权投票，推荐，默认)
-3. 大盘过滤：选股前先检查 PolicyEvent 政策面，极度利空时暂停选股
+2. 策略模式: macd(单MACD) | ensemble(11策略固定权重，推荐，默认) | full_11(同ensemble，兼容旧命令)
+3. 当前架构（2层）:
+   - L0: 大盘过滤器（PolicyEvent 政策面，极度利空时暂停选股）
+   - L3: 个股投票（11策略固定权重加权投票）
+   - 注：L1/L2层已暂时关闭（待历史回测优化系数）
 4. 输出：该买哪些、该卖哪些、观望哪些；每只附带信号强度、建议仓位、理由
 
 用法:
-    # 推荐：11策略 Ensemble（技术6+基本面3+消息面+资金面，BOLL/MACD高权重）
+    # 推荐：11策略固定权重投票（L0过滤 + L3投票）
     python3 tools/analysis/recommend_today.py --pool mydate/stock_pool_all.json --strategy ensemble --top 20
 
     # 单 MACD 快速筛选
@@ -18,7 +21,8 @@
     # 跳过政策面大盘过滤（强制执行选股）
     python3 tools/analysis/recommend_today.py --no-policy-filter
 
-11策略: MA | MACD | RSI | BOLL | KDJ | DUAL（技术面6） | PE | PB | PEPB（基本面3） | NEWS | MONEY_FLOW
+11策略（固定权重）: MA | MACD | RSI | BOLL | KDJ | DUAL（技术面6） | PE | PB | PEPB（基本面3） | NEWS | MONEY_FLOW
+L0大盘过滤: POLICY（PolicyEvent，极度利空时阻止选股）
 
 【重要】每日选股只从综合大池 stock_pool_all.json 中选取。
 综合大池 = 沪深300 + 中证500 指数成分股 + 7大赛道龙头 + 56只主流ETF，合计约860只。
@@ -1051,32 +1055,77 @@ def update_fundamental_cache(code: str, fetcher: FundamentalFetcher, cache_data:
     return None
 
 
+# ============================================================
+# 全局策略实例（避免重复创建，性能优化）
+# ============================================================
+_GLOBAL_STRATEGIES = None
+_GLOBAL_STRATEGY_WEIGHTS = {
+    # 技术面（6个）
+    'BOLL': 1.5, 'MACD': 1.3, 'KDJ': 1.1, 'MA': 1.0,
+    'DUAL': 0.9, 'RSI': 0.8,
+    # 基本面（3个）
+    'PEPB': 0.8, 'PE': 0.6, 'PB': 0.6,
+    # 消息面+情绪面+资金面（3个）
+    'NEWS': 0.5, 'SENTIMENT': 0.5, 'MONEY_FLOW': 0.4,
+}
+
+def _get_global_strategies():
+    """
+    获取全局策略实例（单例模式，避免重复创建）
+    
+    策略集合与 ensemble.py 保持一致（12策略 L3投票层）：
+    - 技术面6个: MA, MACD, RSI, BOLL, KDJ, DUAL
+    - 基本面3个: PE, PB, PEPB
+    - 消息面1个: NEWS
+    - 情绪面1个: SENTIMENT（全市场情绪Z-score + 个股趋势过滤）
+    - 资金面1个: MONEY_FLOW
+    
+    注：
+    - POLICY（政策事件）仅作L0大盘过滤器（_check_policy_filter），不参与投票
+    """
+    global _GLOBAL_STRATEGIES
+    if _GLOBAL_STRATEGIES is None:
+        from src.strategies.fundamental_pe_pb import PE_PB_CombinedStrategy
+        _GLOBAL_STRATEGIES = {
+            'MA': MACrossStrategy(),
+            'MACD': MACDStrategy(),
+            'RSI': RSIStrategy(),
+            'BOLL': BollingerBandStrategy(),
+            'KDJ': KDJStrategy(),
+            'DUAL': DualMomentumSingleStrategy(),
+            'PE': PEStrategy(),
+            'PB': PBStrategy(),
+            'PEPB': PE_PB_CombinedStrategy(),
+            'NEWS': NewsSentimentStrategy(),
+            'SENTIMENT': SentimentStrategy(),
+            'MONEY_FLOW': MoneyFlowStrategy(),
+        }
+    return _GLOBAL_STRATEGIES
+
+
 def run_full_11_analysis(code: str, name: str, sector: str, df: pd.DataFrame, fetcher: FundamentalFetcher, skip_industry: bool = False) -> dict:
     """
-    运行 11 大策略: MA, MACD, RSI, BOLL, KDJ, DUAL, Sentiment, NewsSentiment, PolicyEvent, MoneyFlow, PE, PB。
+    运行 12 大策略: MA, MACD, RSI, BOLL, KDJ, DUAL, PE, PB, PEPB, NEWS, SENTIMENT, MONEY_FLOW。
     返回 buy_count, sell_count, hold_count, score（买-卖加权）, signals 列表。
     
     Args:
         skip_industry: 是否跳过行业PE/PB查询（纯缓存模式用，避免网络请求）
+    
+    优化:
+        1. 使用全局策略实例（避免重复创建）
+        2. DUAL策略信号反向（与ensemble.py保持一致）
+        3. 基本面数据缺失时跳过PE/PB策略
+        4. SENTIMENT使用全市场情绪数据 + 个股趋势过滤
     """
-    tech_strategies = {
-        'MA': MACrossStrategy(),
-        'MACD': MACDStrategy(),
-        'RSI': RSIStrategy(),
-        'BOLL': BollingerBandStrategy(),
-        'KDJ': KDJStrategy(),
-        'DUAL': DualMomentumSingleStrategy(),
-        'Sentiment': SentimentStrategy(),
-        'NewsSentiment': NewsSentimentStrategy(symbol=code),
-        'PolicyEvent': PolicyEventStrategy(),
-        'MoneyFlow': MoneyFlowStrategy(symbol=code),
-    }
-    # 策略权重（与 EnsembleStrategy 一致，基于 v3 回测结果）
-    strat_weights = {
-        'BOLL': 1.5, 'MACD': 1.3, 'KDJ': 1.1, 'MA': 1.0,
-        'DUAL': 0.9, 'RSI': 0.8, 'Sentiment': 0.7,
-        'NewsSentiment': 0.5, 'PolicyEvent': 0.7, 'MoneyFlow': 0.4,
-    }
+    tech_strategies = _get_global_strategies()
+    strat_weights = _GLOBAL_STRATEGY_WEIGHTS
+    
+    # 为需要symbol的策略设置当前股票
+    if 'NEWS' in tech_strategies:
+        tech_strategies['NEWS'].symbol = code
+    if 'MONEY_FLOW' in tech_strategies:
+        tech_strategies['MONEY_FLOW'].symbol = code
+    
     buy_count = sell_count = hold_count = 0
     weighted_buy = weighted_sell = 0.0
     signals = []
@@ -1087,6 +1136,16 @@ def run_full_11_analysis(code: str, name: str, sector: str, df: pd.DataFrame, fe
             if len(df) < strat.min_bars:
                 continue
             sig = strat.safe_analyze(df)
+            
+            # 【修复1】DUAL策略信号反向（与ensemble.py保持一致）
+            if strat_name == 'DUAL':
+                if sig.action == 'BUY':
+                    sig.action = 'SELL'
+                    sig.reason = f'[DUAL反向] {sig.reason}（原BUY→SELL）'
+                elif sig.action == 'SELL':
+                    sig.action = 'BUY'
+                    sig.reason = f'[DUAL反向] {sig.reason}（原SELL→BUY）'
+            
             w = strat_weights.get(strat_name, 1.0)
             if sig.action == 'BUY':
                 buy_count += 1
@@ -1102,11 +1161,16 @@ def run_full_11_analysis(code: str, name: str, sector: str, df: pd.DataFrame, fe
         except Exception:
             pass
 
+    # 【修复3】基本面数据验证：数据不足时跳过PE/PB/PEPB策略
+    has_pe_data = 'pe_ttm' in df.columns and df['pe_ttm'].notna().sum() > 100
+    has_pb_data = 'pb' in df.columns and df['pb'].notna().sum() > 100
+    has_pepb_data = has_pe_data and has_pb_data
+    
     # 获取行业PE/PB数据（用于行业分位数对比，总超时15s防止卡死）
     industry = None
     industry_pe_data = industry_pb_data = None
     
-    if not skip_industry:
+    if not skip_industry and (has_pe_data or has_pb_data):
         try:
             industry = fetcher.get_industry_classification(code)
             if industry:
@@ -1118,7 +1182,8 @@ def run_full_11_analysis(code: str, name: str, sector: str, df: pd.DataFrame, fe
         except Exception:
             pass
 
-    if 'pe_ttm' in df.columns and df['pe_ttm'].notna().sum() > 100:
+    # PE策略
+    if has_pe_data:
         try:
             available_data = len(df[df['pe_ttm'].notna()])
             rolling_window = min(available_data, 756)
@@ -1141,7 +1206,8 @@ def run_full_11_analysis(code: str, name: str, sector: str, df: pd.DataFrame, fe
         except Exception:
             pass
 
-    if 'pb' in df.columns and df['pb'].notna().sum() > 100:
+    # PB策略
+    if has_pb_data:
         try:
             available_data = len(df[df['pb'].notna()])
             rolling_window = min(available_data, 756)
@@ -1170,8 +1236,48 @@ def run_full_11_analysis(code: str, name: str, sector: str, df: pd.DataFrame, fe
                 signals.append(('PB', pb_sig.action, pb_sig.confidence, pb_sig.reason[:40]))
         except Exception:
             pass
+    
+    # 【修复4】PEPB双因子策略（与ensemble.py保持一致）
+    if has_pepb_data:
+        try:
+            from src.strategies.fundamental_pe_pb import PE_PB_CombinedStrategy
+            available_data = min(len(df[df['pe_ttm'].notna()]), len(df[df['pb'].notna()]))
+            rolling_window = min(available_data, 756)
+            
+            # 跳过网络请求的ROE查询
+            if skip_industry:
+                roe_passes = False
+            else:
+                roe_passes, _, _ = fetcher.get_roe_for_filter(code)
+            
+            pepb_strat = PE_PB_CombinedStrategy(
+                industry=industry, 
+                industry_pe_data=industry_pe_data,
+                industry_pb_data=industry_pb_data,
+                min_roe=8.0 if roe_passes else 0,
+                rolling_window=rolling_window
+            ) if industry else PE_PB_CombinedStrategy(min_roe=8.0 if roe_passes else 0, rolling_window=rolling_window)
+            pepb_strat.min_bars = max(100, available_data)
+            
+            if len(df) >= pepb_strat.min_bars:
+                pepb_sig = pepb_strat.safe_analyze(df)
+                pepb_w = 0.8
+                if pepb_sig.action == 'BUY':
+                    buy_count += 1
+                    weighted_buy += pepb_w
+                    score_sum += pepb_w * pepb_sig.confidence
+                elif pepb_sig.action == 'SELL':
+                    sell_count += 1
+                    weighted_sell += pepb_w
+                    score_sum -= pepb_w * pepb_sig.confidence
+                else:
+                    hold_count += 1
+                signals.append(('PEPB', pepb_sig.action, pepb_sig.confidence, pepb_sig.reason[:40]))
+        except Exception:
+            pass
 
     # 综合得分：加权买票 - 加权卖票 + confidence加权得分
+    # 注：SENTIMENT 和 POLICY 不在此处投票，它们在 ensemble.py 的分层框架中使用
     score = round(weighted_buy * 2 - weighted_sell * 2 + score_sum, 2)
     close = df['close']
     volume = df['volume']
@@ -1277,7 +1383,7 @@ def main():
     parser.add_argument('--max-pool', type=int, default=0, help='最多扫描池内前 N 只（0=全部）')
     parser.add_argument('--strategy', type=str, default='ensemble',
                         choices=['macd', 'ensemble', 'full_11'],
-                        help='策略: macd | ensemble(11策略加权投票) | full_11(11策略全量并发，推荐)')
+                        help='策略: macd | ensemble(11策略固定权重，推荐) | full_11(同ensemble，兼容旧命令)')
     parser.add_argument('--cache-only', action='store_true', default=False,
                         help='纯缓存模式：只使用本地缓存，不发起任何网络请求（适合API限流时）')
     parser.add_argument('--fast', type=int, default=12, help='MACD快线(仅macd模式)')
@@ -1585,7 +1691,7 @@ def main():
             print(f"\r  [{bar}] {i}/{len(stocks)} ({pct:.0f}%)", end='', flush=True)
 
         # 获取数据（统一接口自带重试和降级）
-            df = fetch_stock_data(code, 200)
+        df = fetch_stock_data(code, 200)
 
         if len(df) < strat.min_bars:
             fail_count += 1

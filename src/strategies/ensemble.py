@@ -1,32 +1,30 @@
 """
 多策略组合投票策略 (Ensemble Strategy)
 
+当前架构：L0(PolicyEvent过滤) + L3(12策略固定权重投票)
+L2 层已暂时关闭（待历史回测优化系数）
+
 原理:
-- 同时运行多个子策略（MA, MACD, RSI, BOLL, KDJ, DUAL + 基本面 + 消息面 + 资金面）
+- 同时运行12个子策略（技术6+基本面3+消息面+资金面+市场情绪）
 - 每个策略独立给出 BUY / SELL / HOLD 信号 + confidence + position
-- 采用投票机制决策:
-  - 多数看多 → 买入
-  - 多数看空 → 卖出
-  - 信号不一致 → 持有观望
+- 采用加权投票机制（净得分法，阈值0.07/-0.07）
 
 投票模式:
-- 'majority':  多数投票（默认，≥阈值才行动）
+- 'weighted':  按策略权重加权投票（推荐，默认）
+- 'majority':  多数投票（≥阈值才行动）
 - 'unanimous': 全票通过才行动（最保守）
-- 'any':       任意一个策略发出信号就行动（最激进，卖出优先保护利润）
-- 'weighted':  按策略权重加权投票
+- 'any':       任意一个策略发出信号就行动（最激进）
 
-HOLD 计分规则:
-    HOLD 不参与投票分数的计算 — 仅 BUY/SELL 的加权和决定方向。
-    HOLD 只影响 "有效策略数" 的分母。
-
-目标仓位:
-    最终 position = 所有子策略 position 的加权平均。
+净得分机制:
+    net_score = (buy_score - sell_score) / active_weight_sum
+    BUY: net_score > 0.07 且至少1票
+    SELL: net_score < -0.07 且至少1票
+    HOLD: 其他情况
 
 参数:
-- mode:           投票模式（默认 'majority'）
-- buy_threshold:  majority/weighted 模式下，BUY 所需比例（默认 0.5 即过半）
-- sell_threshold: majority/weighted 模式下，SELL 所需比例（默认 0.5）
-- weights:        各策略权重 dict，可从外部传入（默认基于交叉验证结果）
+- mode:           投票模式（默认 'weighted'）
+- weights:        各策略权重 dict（默认使用已验证的固定权重）
+- dual_reverse:   DUAL策略是否反向（默认True，IC从-0.39提升至+0.39）
 - symbol:         股票代码（NewsSentiment/MoneyFlow 需要）
 - stock_name:     股票名称（NewsSentiment LLM 分析用）
 """
@@ -66,6 +64,11 @@ except ImportError:
     compute_v33_weights = None
     base_weights = None
 
+try:
+    from src.core.market_regime import MarketRegimeEngine
+except ImportError:
+    MarketRegimeEngine = None
+
 logger = logging.getLogger(__name__)
 
 # V3.3 新策略（情绪+消息+政策）仓位合计上限
@@ -92,7 +95,7 @@ class EnsembleStrategy(Strategy):
     """
 
     name = '多策略组合'
-    description = '11策略投票决策（6技术+3基本面+消息面+资金面），加权投票'
+    description = '12策略固定权重投票（6技术+3基本面+消息面+资金面+情绪面）'
 
     param_ranges = {
         'buy_threshold':  (0.3, 0.5, 0.8, 0.05),
@@ -108,17 +111,25 @@ class EnsembleStrategy(Strategy):
                  warn_loss_pct: float = -0.05,
                  symbol: Optional[str] = None,
                  stock_name: str = '',
+                 dual_reverse: bool = True,
+                 use_dynamic_weights: bool = False,
+                 net_buy_threshold: float = 0.07,
+                 net_sell_threshold: float = -0.15,
                  **kwargs):
         self.mode = mode
         self.buy_threshold = buy_threshold
         self.sell_threshold = sell_threshold
+        # weighted 模式净得分阈值（与 _weighted 一致，可由回测扫描覆盖）
+        self.net_buy_threshold = float(net_buy_threshold)
+        self.net_sell_threshold = float(net_sell_threshold)
         self.holding_cost = holding_cost
         self.stop_loss_pct = stop_loss_pct
         self.warn_loss_pct = warn_loss_pct
         self.symbol = symbol
         self.stock_name = stock_name
+        self.dual_reverse = dual_reverse
 
-        # 子策略实例（技术面 6 + 基本面 3 + 消息面 1 + 资金面 1）
+        # 子策略实例（技术面 6 + 基本面 3 + 消息面 1 + 资金面 1 + 情绪面 1）
         self.sub_strategies: Dict[str, Strategy] = {
             'MA':           MACrossStrategy(),
             'MACD':         MACDStrategy(),
@@ -131,37 +142,49 @@ class EnsembleStrategy(Strategy):
             'PEPB':         PE_PB_CombinedStrategy(),
             'NEWS':         NewsSentimentStrategy(symbol=symbol, stock_name=stock_name),
             'MONEY_FLOW':   MoneyFlowStrategy(symbol=symbol),
+            'SENTIMENT':    SentimentStrategy(),
         }
 
-        # 权重：基于 v3 回测结果（235只股票）调整
-        # 回测夏普排名：BOLL(0.20) > MACD(0.16) > KDJ(0.15) > MA(0.12) > PE(0.11) > RSI(0.07)
-        # 回测回撤排名：PE(9%) < BOLL(14%) < RSI(16%) < KDJ(19%) < MA(19%) < MACD(20%)
-        # NEWS/MONEY_FLOW 无回测数据，保守权重；触发时信号质量高（LLM+龙虎榜）
+        # 默认权重（基于完整12策略全量回测优化，836只×300只验证）
+        # 2026-03-24 权重校准结论：
+        #   - 补全PE/PB数据后，基本面策略表现最优（PB Sharpe 0.38，PE 0.25）
+        #   - composite方法权重使Sharpe从0.0022提升到0.0733（+32倍）
+        #   - 核心变化：基本面权重大幅提升，技术面微调
         self.weights: Dict[str, float] = weights or {
-            'BOLL':       1.5,   # 技术面：夏普最高(0.20)、回撤最小(13.8%)，综合最优
-            'MACD':       1.3,   # 技术面：收益最高(+15.3%)，夏普第二(0.16)
-            'KDJ':        1.1,   # 技术面：夏普第三(0.15)，盈利率70.6%
-            'MA':         1.0,   # 技术面：收益第三(+13.9%)
-            'DUAL':       0.9,   # 技术面：无单独回测数据，保守权重
-            'RSI':        0.8,   # 技术面：夏普最低(0.07)，降权
-            'PEPB':       0.8,   # 基本面：双因子共振，信号最强但数据要求高
-            'PE':         0.6,   # 基本面：回撤最小(9%)，适合辅助过滤
-            'PB':         0.6,   # 基本面：单因子PB
-            'NEWS':       0.5,   # 消息面：关键词+LLM融合，触发频率中等，保守权重
-            'MONEY_FLOW': 0.4,   # 资金面：龙虎榜+大宗，触发频率低但信号质量高
+            'PB':         2.00,  # 基本面：Sharpe最高(0.38)，正收益率76%
+            'BOLL':       1.95,  # 技术面：Sharpe 0.18，正收益率72.5%
+            'RSI':        1.82,  # 技术面：Sharpe 0.14，正收益率66.6%
+            'PE':         1.68,  # 基本面：Sharpe 0.25，正收益率62.1%
+            'PEPB':       1.61,  # 基本面：Sharpe 0.22，双因子共振
+            'KDJ':        1.50,  # 技术面：Sharpe 0.14，正收益率64.6%
+            'DUAL':       1.39,  # 技术面：反向使用后Sharpe 0.24
+            'MACD':       1.13,  # 技术面：Sharpe 0.08
+            'MA':         0.88,  # 技术面：Sharpe 0.07
+            'SENTIMENT':  0.32,  # 情绪面：市场情绪+个股过滤
+            'NEWS':       0.32,  # 消息面：个股新闻LLM
+            'MONEY_FLOW': 0.30,  # 资金面：龙虎榜+大宗（回测中无数据）
         }
 
         # min_bars 只取技术策略的最大值；其他策略有数据时参与，无数据时被剔除逻辑过滤
-        non_tech_keys = {'PE', 'PB', 'PEPB', 'NEWS', 'MONEY_FLOW'}
+        non_tech_keys = {'PE', 'PB', 'PEPB', 'NEWS', 'MONEY_FLOW', 'SENTIMENT'}
         tech_strategies = {k: v for k, v in self.sub_strategies.items() if k not in non_tech_keys}
         self.min_bars = max(s.min_bars for s in tech_strategies.values())
 
         # 动态权重状态（冷却 7 日，市场状态变化时触发）
-        self._use_dynamic_weights: bool = (compute_v33_weights is not None)
+        # 可通过 use_dynamic_weights 参数控制是否启用（默认False，避免覆盖自定义权重）
+        self._use_dynamic_weights: bool = use_dynamic_weights and (compute_v33_weights is not None)
         self._weight_state: Optional[str] = None
         self._weight_adjustment_date: Optional[pd.Timestamp] = None
         self._weight_cooldown_until: Optional[pd.Timestamp] = None
         self._backtest_index_df = None
+        
+        # 市场状态识别引擎（可选）
+        self._regime_engine: Optional['MarketRegimeEngine'] = None
+        if MarketRegimeEngine is not None:
+            try:
+                self._regime_engine = MarketRegimeEngine()
+            except Exception:
+                pass
 
     def set_symbol(self, symbol: str, stock_name: str = '') -> None:
         """动态更新 symbol，供选股循环复用同一实例时逐股注入。"""
@@ -176,12 +199,48 @@ class EnsembleStrategy(Strategy):
         mf_strat = self.sub_strategies.get('MONEY_FLOW')
         if mf_strat is not None:
             mf_strat.symbol = symbol
+    
+    def get_market_regime(self) -> str:
+        """
+        获取当前市场状态（使用MarketRegimeEngine）
+        
+        Returns:
+            'bull', 'bear', 'sideways'
+        """
+        if self._regime_engine is None:
+            return 'sideways'
+        
+        try:
+            return self._regime_engine.get_current_regime()
+        except Exception as e:
+            logger.debug(f"获取市场状态失败: {e}")
+            return 'sideways'
+    
+    def get_regime_adjusted_weights(self, sentiment_signal: Optional[StrategySignal] = None) -> Dict[str, float]:
+        """
+        L2: 基于市场状态调整权重（当前已关闭）
+        
+        ⚠️ 当前状态：已暂时关闭，直接返回基础权重
+        
+        原因：
+        1. 调节系数（1.2、1.3、0.8等）缺乏历史回测验证，属于"拍脑袋"经验值
+        2. Sentiment 调用错误（需要全市场数据，不能传入单只股票df）
+        3. 系数叠加过猛（熊市1.3 × 恐慌1.3 = 1.69x）
+        
+        未来优化方向：
+        1. 参数扫描（2015-2025年数据）确定最优系数
+        2. 修复 Sentiment 调用方式（在 recommend_today.py 中预先计算市场情绪）
+        3. 增加系数上限约束（最多1.5x）
+        4. 评估是否只调节仓位系数，不调整策略权重
+        """
+        return self.weights.copy()
 
     def prepare_backtest(self, df: pd.DataFrame) -> None:
         """
-        回测前预取沪深300指数（用于动态权重）及各子策略外部数据。
+        回测前预取各子策略外部数据。
         实盘无需调用，analyze 时实时获取。
         """
+        # 预取11个子策略的数据
         for strat in self.sub_strategies.values():
             if hasattr(strat, 'prepare_backtest'):
                 try:
@@ -258,14 +317,15 @@ class EnsembleStrategy(Strategy):
         logger.info('动态权重已更新: 市场状态=%s，冷却至%s', state, self._weight_cooldown_until.date())
 
     def analyze(self, df: pd.DataFrame) -> StrategySignal:
-        """运行所有子策略，投票决策，并叠加持仓成本感知"""
+        """
+        12策略加权投票决策
+        
+        当前架构：L0(PolicyEvent过滤) + L3(12策略固定权重投票)
+        L2 层已暂时关闭（待历史回测优化系数）
+        """
 
-        # ========= 动态权重更新 =========
-        try:
-            as_of = pd.Timestamp(df['date'].iloc[-1]) if (df is not None and len(df) > 0 and 'date' in df.columns) else pd.Timestamp(datetime.now().date())
-            self._update_dynamic_weights(as_of)
-        except Exception as e:
-            logger.debug('动态权重更新跳过: %s', e)
+        # L1/L2 层已关闭，使用固定权重
+        adjusted_weights = None
 
         # ========= 持仓成本感知（优先级最高）=========
         # 传入 holding_cost 时，检查当前价格是否触及止损/预警线
@@ -304,6 +364,29 @@ class EnsembleStrategy(Strategy):
                 continue
             try:
                 sig = strat.analyze(df)
+                
+                # ========= DUAL策略信号反向（IC分析发现强负IC=-0.3864）=========
+                # DUAL是追涨杀跌策略，滞后性强，信号与未来收益负相关
+                # 反向使用：BUY→SELL, SELL→BUY，IC变为+0.3864（最强策略之一）
+                # 可通过 dual_reverse 参数控制是否反向（默认True）
+                if strat_name == 'DUAL' and self.dual_reverse:
+                    if sig.action == 'BUY':
+                        sig = StrategySignal(
+                            action='SELL',
+                            confidence=sig.confidence,
+                            position=1.0 - sig.position,  # 仓位也反向
+                            reason=f'[DUAL反向] {sig.reason}（原BUY信号反向为SELL）',
+                            indicators=sig.indicators
+                        )
+                    elif sig.action == 'SELL':
+                        sig = StrategySignal(
+                            action='BUY',
+                            confidence=sig.confidence,
+                            position=1.0 - sig.position,  # 仓位也反向
+                            reason=f'[DUAL反向] {sig.reason}（原SELL信号反向为BUY）',
+                            indicators=sig.indicators
+                        )
+                
                 # 基本面策略数据缺失时（confidence=0 且 reason 含"缺少"/"不足"）
                 # 剔除出投票，避免拉低分母导致技术策略信号被稀释
                 if (sig.action == 'HOLD' and sig.confidence == 0.0
@@ -346,13 +429,13 @@ class EnsembleStrategy(Strategy):
         avg_position = (sum(self.weights.get(n, 1.0) * s.position for n, s in votes.items())
                         / total_weight) if total_weight > 0 else 0.5
 
-        # ========= 投票决策 =========
+        # ========= L3: 投票决策（使用L2调整后的权重）=========
         if self.mode == 'unanimous':
             action, conf, reason = self._unanimous(buy_votes, sell_votes, total)
         elif self.mode == 'any':
             action, conf, reason = self._any(buy_votes, sell_votes)
         elif self.mode == 'weighted':
-            action, conf, reason = self._weighted(buy_votes, sell_votes, total)
+            action, conf, reason = self._weighted(buy_votes, sell_votes, total, adjusted_weights)
         else:  # majority
             action, conf, reason = self._majority(buy_votes, sell_votes, total)
 
@@ -441,50 +524,65 @@ class EnsembleStrategy(Strategy):
             return 'BUY', best[1].confidence, f"{best[0]}发出买入: {best[1].reason}"
         return 'HOLD', 0.5, "所有策略均持观望"
 
-    def _weighted(self, buy_votes, sell_votes, total):
+    def _weighted(self, buy_votes, sell_votes, total, adjusted_weights=None):
         """
-        加权投票 — HOLD 计0分，仅 BUY/SELL 的加权和决定方向
-
-        buy_score  = Σ(权重 × confidence)  for BUY votes
-        sell_score = Σ(权重 × confidence)  for SELL votes
-        total_active = buy_score + sell_score
-
-        触发条件（同时满足）:
-          1. buy_score / total_active >= buy_threshold
-          2. 至少 2 个策略投 BUY（避免单策略孤票触发）
+        加权投票（净得分机制）— 让权重真正起作用
+        
+        核心逻辑：
+        1. 计算加权得分：score = Σ(权重 × confidence)
+        2. 净得分：net_score = (buy_score - sell_score) / active_weight_sum
+        3. 决策阈值（实例属性 net_buy_threshold / net_sell_threshold）：
+           - net_score > net_buy_threshold (默认 0.07) → BUY
+           - net_score < net_sell_threshold (默认 -0.15) → SELL
+           - 否则 → HOLD
+        
+        阈值校准（2026-03-24，299只股票验证）：
+        - 买入阈值 0.07 保持不变（低阈值信号多但风险大，0.07 平衡适中）
+        - 卖出阈值从 -0.07 放宽到 -0.15（avg Sharpe 从 0.072 → 0.096，+33%）
+        - 放宽卖出意味着不那么容易被噪声触发清仓，减少了不必要的频繁卖出
+        
+        Args:
+            adjusted_weights: L2层调整后的权重（如果为None，使用self.weights）
         """
-        MIN_ACTIVE_VOTES = 2  # 至少需要 N 个策略同向才行动
+        MIN_ACTIVE_VOTES = 1
+        buy_th = self.net_buy_threshold
+        sell_th = self.net_sell_threshold
 
-        buy_score = sum(self.weights.get(n, 1.0) * s.confidence
-                        for n, s in buy_votes)
-        sell_score = sum(self.weights.get(n, 1.0) * s.confidence
-                         for n, s in sell_votes)
-
-        # HOLD 不参与计分
-        total_active = buy_score + sell_score
-        if total_active == 0:
+        if not buy_votes and not sell_votes:
             return 'HOLD', 0.5, "无有效方向性信号"
 
-        buy_pct = buy_score / total_active
-        sell_pct = sell_score / total_active
+        # 使用L2调整后的权重（如果有）
+        weights_to_use = adjusted_weights if adjusted_weights else self.weights
+        
+        buy_score = sum(weights_to_use.get(n, 1.0) * s.confidence
+                        for n, s in buy_votes)
+        sell_score = sum(weights_to_use.get(n, 1.0) * s.confidence
+                         for n, s in sell_votes)
 
-        if (buy_pct > sell_pct and buy_pct >= self.buy_threshold
-                and len(buy_votes) >= MIN_ACTIVE_VOTES):
+        active_weight_sum = (sum(weights_to_use.get(n, 1.0) for n, _ in buy_votes) +
+                             sum(weights_to_use.get(n, 1.0) for n, _ in sell_votes))
+        if active_weight_sum == 0:
+            return 'HOLD', 0.5, "无有效策略权重"
+
+        net_score = (buy_score - sell_score) / active_weight_sum
+
+        if net_score > buy_th and len(buy_votes) >= MIN_ACTIVE_VOTES:
             names = [n for n, _ in buy_votes]
+            conf = min(0.99, buy_score / active_weight_sum)
             return (
-                'BUY', round(buy_pct, 2),
-                f"加权看多({buy_pct:.0%}, {len(buy_votes)}票): {', '.join(names)}"
+                'BUY', round(conf, 2),
+                f"加权看多(净分={net_score:.2f}, {len(buy_votes)}票): {', '.join(names)}"
             )
 
-        if (sell_pct > buy_pct and sell_pct >= self.sell_threshold
-                and len(sell_votes) >= MIN_ACTIVE_VOTES):
+        if net_score < sell_th and len(sell_votes) >= MIN_ACTIVE_VOTES:
             names = [n for n, _ in sell_votes]
+            conf = min(0.99, sell_score / active_weight_sum)
             return (
-                'SELL', round(sell_pct, 2),
-                f"加权看空({sell_pct:.0%}, {len(sell_votes)}票): {', '.join(names)}"
+                'SELL', round(conf, 2),
+                f"加权看空(净分={net_score:.2f}, {len(sell_votes)}票): {', '.join(names)}"
             )
 
-        return 'HOLD', 0.5, f"加权信号中性(买{buy_pct:.0%}/卖{sell_pct:.0%})，观望"
+        return 'HOLD', 0.5, f"加权信号中性(净分={net_score:.2f})，观望"
 
 
 # ============================================================

@@ -1,0 +1,16 @@
+{
+  "buy_threshold": 0.05,
+  "sell_threshold": -0.15,
+  "metrics": {
+    "buy_threshold": 0.05,
+    "sell_threshold": -0.15,
+    "stock_count": 299,
+    "avg_sharpe": 0.09708595317725753,
+    "median_sharpe": 0.0795,
+    "avg_total_return_pct": 10.435317725752508,
+    "positive_return_pct": 0.6889632107023411,
+    "avg_trades": 21.53846153846154
+  },
+  "baseline_avg_sharpe": 0.07199598662207357,
+  "delta_vs_baseline": 0.02508996655518396
+}

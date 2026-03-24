@@ -1,0 +1,58 @@
+{
+  "sharpe_based": {
+    "BOLL": 0.92,
+    "MACD": 0.58,
+    "KDJ": 0.76,
+    "MA": 0.55,
+    "DUAL": 1.1,
+    "RSI": 0.77,
+    "PE": 1.14,
+    "PB": 1.6,
+    "PEPB": 1.06,
+    "NEWS": 2.0,
+    "MONEY_FLOW": 0.3,
+    "SENTIMENT": 2.0
+  },
+  "composite": {
+    "BOLL": 1.95,
+    "MACD": 1.13,
+    "KDJ": 1.5,
+    "MA": 0.88,
+    "DUAL": 1.39,
+    "RSI": 1.82,
+    "PE": 1.68,
+    "PB": 2.0,
+    "PEPB": 1.61,
+    "NEWS": 0.32,
+    "MONEY_FLOW": 0.3,
+    "SENTIMENT": 0.32
+  },
+  "rank_based": {
+    "PB": 2.0,
+    "PE": 1.86,
+    "DUAL": 1.73,
+    "PEPB": 1.59,
+    "BOLL": 1.45,
+    "RSI": 1.32,
+    "KDJ": 1.18,
+    "MACD": 1.05,
+    "MA": 0.91,
+    "NEWS": 0.77,
+    "MONEY_FLOW": 0.64,
+    "SENTIMENT": 0.5
+  },
+  "current": {
+    "BOLL": 1.5,
+    "MACD": 1.3,
+    "KDJ": 1.1,
+    "MA": 1.0,
+    "DUAL": 0.9,
+    "RSI": 0.8,
+    "PEPB": 0.8,
+    "PE": 0.6,
+    "PB": 0.6,
+    "NEWS": 0.5,
+    "SENTIMENT": 0.5,
+    "MONEY_FLOW": 0.4
+  }
+}
