@@ -552,8 +552,9 @@ def save_incremental_report(
     valid_count: int,
     *,
     holdings_only: bool = False,
+    sector_results_map: dict = None,
 ):
-    """保存增量报告：持仓置顶 + 今日操作建议 + 今日推荐 + 历史（最新在前）"""
+    """保存增量报告：持仓置顶 + 今日操作建议 + 今日推荐 + 专题板块 + 历史（最新在前）"""
     from src.data.provider.data_provider import get_default_kline_provider
     provider = get_default_kline_provider()
     holdings = _load_portfolio()
@@ -604,7 +605,18 @@ def save_incremental_report(
     else:
         report_parts.append(_render_daily_section(today, top_list, strategy_name, pool_size, valid_count))
 
-    # 4. 历史推荐（旧的，最新在前）
+    # 4. 专题板块推荐（核电+算电协同等）
+    if not holdings_only and sector_results_map:
+        try:
+            from tools.analysis.generate_sector_themes import generate_all_themes
+            # 使用传入的分析结果生成专题推荐
+            theme_content = generate_all_themes(sector_results_map)
+            if theme_content:
+                report_parts.append(theme_content)
+        except Exception as e:
+            print(f"⚠️ 专题板块推荐生成失败: {e}")
+    
+    # 5. 历史推荐（旧的，最新在前）
     if old_daily_sections.strip():
         report_parts.append(old_daily_sections)
 
@@ -1396,6 +1408,8 @@ def main():
                         help='跳过政策面大盘过滤（强制执行选股）')
     parser.add_argument('--only-holdings', action='store_true', default=False,
                         help='只分析持仓：不跑股票池扫描，仅用最新数据分析持仓并更新报告')
+    parser.add_argument('--append-sectors', action='store_true', default=False,
+                        help='在主报告后追加专题板块推荐（如核电+算电协同）')
     args = parser.parse_args()
 
     # 优先使用 mydate 目录，如果不存在则使用 data 目录
@@ -1639,6 +1653,84 @@ def main():
             for sn, action, conf, reason in r['signals']:
                 em = '🟢' if action == 'BUY' else ('🔴' if action == 'SELL' else '⚪')
                 print(f"      {sn:>12} {em} {action:>4} {conf:.0%} {reason[:45]}")
+        
+        # ========== 专题板块分析（如果启用） ==========
+        sector_results_map = {}
+        if args.append_sectors:
+            print(f"\n{'='*70}")
+            print(f"🔋 专题板块分析")
+            print(f"{'='*70}")
+            from tools.analysis.generate_sector_themes import SECTOR_THEMES, load_stock_pool_for_theme
+            base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+            
+            for theme_key, theme_config in SECTOR_THEMES.items():
+                print(f"\n📊 分析专题: {theme_config['name']}")
+                theme_stocks = load_stock_pool_for_theme(theme_key, base_dir)
+                if not theme_stocks:
+                    print(f"  ⚠️ 股票池为空，跳过")
+                    continue
+                
+                print(f"  股票池: {len(theme_stocks)} 只")
+                theme_prepared = []
+                for stock_info in theme_stocks:
+                    code = stock_info.get('code', '')
+                    name = stock_info.get('name', '')
+                    sector = stock_info.get('sector', theme_config['name'])
+                    if not code:
+                        continue
+                    
+                    if is_st_stock(name):
+                        continue
+                    
+                    # 使用缓存数据（避免重复请求）
+                    df = load_cached_kline(code, cache_dir) if use_kline_cache else pd.DataFrame()
+                    if df.empty or len(df) < 60:
+                        continue
+                    
+                    # 使用缓存的基本面数据
+                    all_data = fundamental_cache.get('all_data', {})
+                    fund_data = all_data.get(code)
+                    if fund_data:
+                        if 'pe_ttm' not in df.columns:
+                            df['pe_ttm'] = None
+                        if 'pb' not in df.columns:
+                            df['pb'] = None
+                        if 'market_cap' not in df.columns:
+                            df['market_cap'] = None
+                        
+                        df.loc[df.index[-1], 'pe_ttm'] = fund_data.get('pe_ttm')
+                        df.loc[df.index[-1], 'pb'] = fund_data.get('pb')
+                        df.loc[df.index[-1], 'market_cap'] = fund_data.get('market_cap_yi', 0) * 100000000 if fund_data.get('market_cap_yi') else None
+                        df['pe_ttm'] = df['pe_ttm'].ffill()
+                        df['pb'] = df['pb'].ffill()
+                        df['market_cap'] = df['market_cap'].ffill()
+                    
+                    theme_prepared.append((code, name, sector, df))
+                
+                if not theme_prepared:
+                    print(f"  ⚠️ 无有效数据，跳过")
+                    continue
+                
+                # 分析专题股票
+                theme_results = []
+                for code, name, sector, df in theme_prepared:
+                    try:
+                        result = run_full_11_analysis(code, name, sector, df, fetcher, skip_industry=True)
+                        if result:
+                            theme_results.append(result)
+                    except Exception:
+                        pass
+                
+                if theme_results:
+                    theme_results.sort(key=lambda x: x['score'], reverse=True)
+                    sector_results_map[theme_key] = theme_results
+                    print(f"  ✅ 完成分析: {len(theme_results)} 只有效")
+                    # 显示TOP3
+                    for i, r in enumerate(theme_results[:3], 1):
+                        print(f"    {i}. {r['code']} {r['name']} 得分{r['score']:.1f}")
+                else:
+                    print(f"  ⚠️ 无有效分析结果")
+        
         report_path, archive_path = save_incremental_report(
             today=today,
             top_list=top_list,
@@ -1646,6 +1738,7 @@ def main():
             strategy_name=strategy_name,
             pool_size=len(stocks),
             valid_count=len(full_results),
+            sector_results_map=sector_results_map if args.append_sectors else None,
         )
         print(f"\n📝 增量报告已保存: {report_path}")
         print(f"📝 当日归档已保存: {archive_path}")

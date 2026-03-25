@@ -1,314 +1,45 @@
 {
-  "optimized_at": "2026-03-24T20:13:41.029900",
+  "optimized_at": "2026-03-24T22:13:58.647869",
   "mode": "standard",
-  "stocks_count": 299,
+  "stocks_count": 30,
   "stock_codes": [
-    "000009",
-    "000032",
-    "000034",
-    "000039",
-    "000062",
-    "000333",
-    "000423",
-    "000425",
-    "000519",
-    "000528",
     "000537",
-    "000538",
-    "000559",
-    "000598",
-    "000623",
-    "000630",
-    "000703",
-    "000709",
-    "000728",
-    "000729",
-    "000733",
-    "000768",
-    "000776",
-    "000785",
     "000792",
-    "000807",
     "000825",
-    "000831",
-    "000858",
-    "000878",
-    "000883",
-    "000895",
-    "000898",
     "000901",
-    "000921",
-    "000933",
-    "000937",
-    "000938",
-    "000951",
-    "000959",
-    "000975",
-    "001213",
-    "001696",
-    "002027",
-    "002028",
-    "002032",
-    "002078",
-    "002085",
-    "002155",
-    "002156",
-    "002157",
-    "002179",
-    "002185",
-    "002195",
-    "002203",
-    "002218",
-    "002244",
-    "002262",
     "002299",
-    "002312",
-    "002371",
-    "002372",
-    "002385",
-    "002422",
-    "002444",
-    "002459",
-    "002506",
-    "002508",
-    "002532",
-    "002568",
-    "002583",
-    "002603",
     "002625",
-    "002648",
-    "002670",
     "002673",
-    "002683",
-    "002709",
     "002736",
-    "002747",
-    "002773",
-    "002831",
-    "002851",
-    "002926",
-    "002945",
-    "002958",
     "003021",
-    "300001",
     "300009",
-    "300015",
-    "300037",
-    "300073",
-    "300100",
-    "300122",
-    "300124",
-    "300136",
-    "300285",
-    "300370",
-    "300393",
-    "300394",
-    "300418",
     "300432",
     "300433",
-    "300450",
-    "300458",
-    "300487",
-    "300496",
-    "300502",
-    "300567",
-    "300601",
-    "300607",
-    "300628",
-    "300676",
-    "300699",
-    "300748",
-    "300757",
     "300759",
-    "300760",
-    "300763",
-    "300782",
-    "300803",
-    "300832",
-    "300857",
-    "300888",
-    "300919",
-    "300999",
-    "301236",
-    "301269",
-    "301498",
-    "301536",
-    "301611",
-    "600004",
-    "600011",
-    "600015",
-    "600016",
-    "600021",
-    "600025",
     "600026",
-    "600036",
     "600039",
-    "600055",
-    "600060",
-    "600096",
-    "600131",
-    "600141",
-    "600166",
-    "600177",
-    "600188",
-    "600196",
-    "600276",
-    "600309",
     "600329",
-    "600332",
-    "600343",
-    "600352",
-    "600362",
-    "600363",
-    "600369",
-    "600390",
-    "600391",
-    "600398",
-    "600406",
-    "600426",
-    "600436",
-    "600438",
-    "600482",
-    "600483",
-    "600498",
-    "600499",
     "600522",
-    "600536",
-    "600546",
-    "600549",
-    "600583",
-    "600588",
-    "600600",
-    "600602",
     "600637",
-    "600660",
-    "600674",
-    "600688",
-    "600808",
-    "600809",
-    "600820",
-    "600848",
-    "600862",
-    "600879",
-    "600885",
     "600900",
-    "600901",
-    "600905",
-    "600906",
-    "600919",
-    "600938",
-    "600941",
-    "600958",
-    "600959",
-    "600968",
-    "600970",
     "600977",
-    "600998",
-    "601001",
-    "601006",
-    "601061",
-    "601066",
-    "601099",
-    "601118",
-    "601127",
-    "601136",
-    "601138",
-    "601166",
-    "601168",
-    "601211",
-    "601229",
     "601231",
-    "601238",
-    "601298",
     "601319",
-    "601360",
-    "601377",
-    "601567",
-    "601600",
-    "601601",
     "601607",
-    "601618",
-    "601658",
-    "601669",
-    "601688",
-    "601689",
-    "601699",
-    "601857",
-    "601878",
-    "601880",
-    "601919",
-    "601928",
-    "601965",
-    "601966",
-    "601985",
-    "601988",
-    "601995",
-    "601997",
-    "601998",
-    "603019",
-    "603077",
-    "603129",
-    "603156",
-    "603179",
-    "603233",
-    "603288",
-    "603296",
-    "603298",
-    "603392",
-    "603416",
-    "603659",
-    "603707",
     "603737",
-    "603806",
-    "603816",
     "603885",
-    "603899",
-    "603929",
-    "603979",
-    "603993",
-    "688002",
-    "688009",
-    "688012",
     "688017",
-    "688036",
-    "688037",
-    "688041",
-    "688065",
-    "688111",
-    "688120",
-    "688180",
-    "688183",
-    "688185",
-    "688223",
-    "688235",
-    "688249",
-    "688256",
-    "688266",
     "688295",
     "688297",
-    "688303",
-    "688363",
-    "688375",
-    "688385",
     "688521",
-    "688525",
-    "688538",
-    "688561",
-    "688563",
-    "688568",
-    "688615",
-    "688617",
-    "688692",
-    "688709",
-    "688777",
-    "688778"
+    "688615"
   ],
-  "train_period": "2023-04-13 ~ 2025-05-06",
+  "train_period": "2023-04-14 ~ 2025-05-06",
   "test_period": "2025-05-06 ~ 2026-03-19",
   "configs_tested": 1296,
-  "total_time_minutes": 54.6,
-  "precompute_time_minutes": 38.2,
-  "search_time_minutes": 16.0,
+  "total_time_minutes": 5.6,
+  "precompute_time_minutes": 4.0,
+  "search_time_minutes": 1.6,
   "strategy_active_rates": {
     "BOLL": 100.0,
     "DUAL": 100.0,
@@ -317,79 +48,31 @@
     "MACD": 100.0,
     "MONEY_FLOW": 100.0,
     "NEWS": 100.0,
-    "PB": 74.7,
-    "PE": 64.7,
-    "PEPB": 64.7,
+    "PB": 73.5,
+    "PE": 58.3,
+    "PEPB": 58.3,
     "RSI": 100.0,
     "SENTIMENT": 100.0
   },
   "baseline": {
-    "train_sharpe": 0.01776148409893994,
-    "test_sharpe": 0.029936026936026917,
-    "test_return": 4.703367003367003,
-    "test_drawdown": 6.1417508417508415,
-    "test_calmar": 1.7525925925925925,
-    "full_sharpe": 0.02780903010033444
+    "train_sharpe": -0.09922592592592594,
+    "test_sharpe": 0.11848333333333336,
+    "test_return": 5.326333333333334,
+    "test_drawdown": 5.980333333333333,
+    "test_calmar": 1.6336666666666668,
+    "full_sharpe": -0.008319999999999994
   },
-  "conclusion": "dynamic_weights_better",
-  "best": {
-    "test_sharpe": 0.03732372881355929,
-    "test_return": 4.718610169491526,
-    "test_drawdown": 6.188,
-    "test_calmar": 1.753457627118644,
-    "improvement_sharpe": 0.007387701877532373,
+  "conclusion": "fixed_weights_better",
+  "recommendation": "保持固定权重，L2层暂不启用",
+  "best_dynamic": {
+    "test_sharpe": 0.07820999999999995,
     "bull_multipliers": {
-      "momentum": 0.8,
-      "value": 1.2
+      "momentum": 1.1,
+      "value": 1.1
     },
     "bear_multipliers": {
-      "momentum": 1.1,
+      "momentum": 0.8,
       "value": 1.3
-    },
-    "train_rank": 1
-  },
-  "recommended_regime_weights": {
-    "bull": {
-      "PB": 2.4,
-      "BOLL": 1.95,
-      "RSI": 1.82,
-      "PE": 2.016,
-      "PEPB": 1.932,
-      "KDJ": 1.5,
-      "DUAL": 1.112,
-      "MACD": 0.904,
-      "MA": 0.704,
-      "SENTIMENT": 0.32,
-      "NEWS": 0.32,
-      "MONEY_FLOW": 0.3
-    },
-    "bear": {
-      "PB": 2.6,
-      "BOLL": 1.95,
-      "RSI": 1.82,
-      "PE": 2.184,
-      "PEPB": 2.093,
-      "KDJ": 1.5,
-      "DUAL": 1.529,
-      "MACD": 1.243,
-      "MA": 0.968,
-      "SENTIMENT": 0.32,
-      "NEWS": 0.32,
-      "MONEY_FLOW": 0.3
-    },
-    "sideways": {
-      "PB": 2.0,
-      "BOLL": 1.95,
-      "RSI": 1.82,
-      "PE": 1.68,
-      "PEPB": 1.61,
-      "KDJ": 1.5,
-      "DUAL": 1.39,
-      "MACD": 1.13,
-      "MA": 0.88,
-      "SENTIMENT": 0.32,
-      "NEWS": 0.32,
-      "MONEY_FLOW": 0.3
     }
   },
   "all_test_results": [
@@ -397,17 +80,17 @@
       "rank": 1,
       "bull_mults": {
         "momentum": 0.8,
-        "value": 1.2
+        "value": 1.0
       },
       "bear_mults": {
-        "momentum": 1.1,
+        "momentum": 0.8,
         "value": 1.3
       },
-      "train_sharpe": 0.03378939929328623,
-      "test_sharpe": 0.03732372881355929,
-      "test_return": 4.718610169491526,
-      "test_drawdown": 6.188,
-      "test_calmar": 1.753457627118644
+      "train_sharpe": -0.04379999999999998,
+      "test_sharpe": 0.06865666666666664,
+      "test_return": 4.959333333333333,
+      "test_drawdown": 6.049666666666666,
+      "test_calmar": 1.5723333333333336
     },
     {
       "rank": 2,
@@ -416,158 +99,158 @@
         "value": 1.0
       },
       "bear_mults": {
-        "momentum": 1.1,
+        "momentum": 0.7,
         "value": 1.3
       },
-      "train_sharpe": 0.0332332155477032,
-      "test_sharpe": 0.029736026936026925,
-      "test_return": 4.684343434343434,
-      "test_drawdown": 6.146228956228955,
-      "test_calmar": 1.780942760942761
+      "train_sharpe": -0.044429629629629645,
+      "test_sharpe": 0.04222666666666667,
+      "test_return": 4.713,
+      "test_drawdown": 6.103,
+      "test_calmar": 1.511666666666667
     },
     {
       "rank": 3,
+      "bull_mults": {
+        "momentum": 1.1,
+        "value": 1.2
+      },
+      "bear_mults": {
+        "momentum": 0.8,
+        "value": 1.3
+      },
+      "train_sharpe": -0.0451962962962963,
+      "test_sharpe": 0.06793666666666663,
+      "test_return": 4.888333333333334,
+      "test_drawdown": 6.002999999999999,
+      "test_calmar": 1.5306666666666666
+    },
+    {
+      "rank": 4,
       "bull_mults": {
         "momentum": 1.2,
         "value": 1.2
       },
       "bear_mults": {
-        "momentum": 1.1,
-        "value": 1.3
-      },
-      "train_sharpe": 0.033197879858657256,
-      "test_sharpe": 0.02376868686868687,
-      "test_return": 4.656296296296296,
-      "test_drawdown": 6.147508417508417,
-      "test_calmar": 1.7506734006734008
-    },
-    {
-      "rank": 4,
-      "bull_mults": {
         "momentum": 0.8,
-        "value": 1.1
-      },
-      "bear_mults": {
-        "momentum": 1.1,
         "value": 1.3
       },
-      "train_sharpe": 0.03308127208480566,
-      "test_sharpe": 0.03211346801346801,
-      "test_return": 4.711986531986532,
-      "test_drawdown": 6.142087542087541,
-      "test_calmar": 1.786700336700337
+      "train_sharpe": -0.045433333333333305,
+      "test_sharpe": 0.07454666666666662,
+      "test_return": 5.020666666666667,
+      "test_drawdown": 6.033666666666665,
+      "test_calmar": 1.5806666666666667
     },
     {
       "rank": 5,
-      "bull_mults": {
-        "momentum": 1.0,
-        "value": 1.1
-      },
-      "bear_mults": {
-        "momentum": 1.1,
-        "value": 1.3
-      },
-      "train_sharpe": 0.03306678445229682,
-      "test_sharpe": 0.02765117845117844,
-      "test_return": 4.683097643097644,
-      "test_drawdown": 6.144074074074074,
-      "test_calmar": 1.7458585858585858
-    },
-    {
-      "rank": 6,
-      "bull_mults": {
-        "momentum": 1.1,
-        "value": 1.1
-      },
-      "bear_mults": {
-        "momentum": 1.1,
-        "value": 1.3
-      },
-      "train_sharpe": 0.0329773851590106,
-      "test_sharpe": 0.02689326599326601,
-      "test_return": 4.677272727272727,
-      "test_drawdown": 6.148585858585859,
-      "test_calmar": 1.7430639730639732
-    },
-    {
-      "rank": 7,
-      "bull_mults": {
-        "momentum": 0.8,
-        "value": 0.9
-      },
-      "bear_mults": {
-        "momentum": 1.1,
-        "value": 1.3
-      },
-      "train_sharpe": 0.03296219081272086,
-      "test_sharpe": 0.028985521885521892,
-      "test_return": 4.677037037037037,
-      "test_drawdown": 6.143872053872054,
-      "test_calmar": 1.7530639730639734
-    },
-    {
-      "rank": 8,
-      "bull_mults": {
-        "momentum": 0.8,
-        "value": 0.8
-      },
-      "bear_mults": {
-        "momentum": 1.1,
-        "value": 1.3
-      },
-      "train_sharpe": 0.03285759717314488,
-      "test_sharpe": 0.027245454545454535,
-      "test_return": 4.664006734006734,
-      "test_drawdown": 6.147811447811447,
-      "test_calmar": 1.7456565656565657
-    },
-    {
-      "rank": 9,
-      "bull_mults": {
-        "momentum": 1.0,
-        "value": 1.0
-      },
-      "bear_mults": {
-        "momentum": 1.1,
-        "value": 1.3
-      },
-      "train_sharpe": 0.0328243816254417,
-      "test_sharpe": 0.024125252525252515,
-      "test_return": 4.648619528619528,
-      "test_drawdown": 6.1499999999999995,
-      "test_calmar": 1.7418181818181817
-    },
-    {
-      "rank": 10,
-      "bull_mults": {
-        "momentum": 1.0,
-        "value": 1.2
-      },
-      "bear_mults": {
-        "momentum": 1.1,
-        "value": 1.3
-      },
-      "train_sharpe": 0.03265265017667845,
-      "test_sharpe": 0.02966868686868687,
-      "test_return": 4.693838383838384,
-      "test_drawdown": 6.13993265993266,
-      "test_calmar": 1.7794276094276094
-    },
-    {
-      "rank": 11,
       "bull_mults": {
         "momentum": 0.9,
         "value": 1.2
       },
       "bear_mults": {
-        "momentum": 1.1,
+        "momentum": 0.8,
         "value": 1.3
       },
-      "train_sharpe": 0.03258727915194347,
-      "test_sharpe": 0.02876734006734007,
-      "test_return": 4.682693602693603,
-      "test_drawdown": 6.142895622895623,
-      "test_calmar": 1.7836026936026936
+      "train_sharpe": -0.04552962962962961,
+      "test_sharpe": 0.06476333333333331,
+      "test_return": 4.815666666666668,
+      "test_drawdown": 5.997333333333333,
+      "test_calmar": 1.5933333333333335
+    },
+    {
+      "rank": 6,
+      "bull_mults": {
+        "momentum": 0.8,
+        "value": 1.1
+      },
+      "bear_mults": {
+        "momentum": 0.8,
+        "value": 1.3
+      },
+      "train_sharpe": -0.045637037037037025,
+      "test_sharpe": 0.061656666666666624,
+      "test_return": 4.803333333333334,
+      "test_drawdown": 6.027333333333333,
+      "test_calmar": 1.5813333333333337
+    },
+    {
+      "rank": 7,
+      "bull_mults": {
+        "momentum": 1.1,
+        "value": 1.2
+      },
+      "bear_mults": {
+        "momentum": 0.7,
+        "value": 1.3
+      },
+      "train_sharpe": -0.04582592592592593,
+      "test_sharpe": 0.041506666666666664,
+      "test_return": 4.642,
+      "test_drawdown": 6.056333333333333,
+      "test_calmar": 1.47
+    },
+    {
+      "rank": 8,
+      "bull_mults": {
+        "momentum": 0.8,
+        "value": 1.2
+      },
+      "bear_mults": {
+        "momentum": 0.8,
+        "value": 1.3
+      },
+      "train_sharpe": -0.04595925925925924,
+      "test_sharpe": 0.06164999999999995,
+      "test_return": 4.775333333333334,
+      "test_drawdown": 6.025999999999999,
+      "test_calmar": 1.5893333333333335
+    },
+    {
+      "rank": 9,
+      "bull_mults": {
+        "momentum": 1.2,
+        "value": 1.2
+      },
+      "bear_mults": {
+        "momentum": 0.7,
+        "value": 1.3
+      },
+      "train_sharpe": -0.04606296296296296,
+      "test_sharpe": 0.04811666666666668,
+      "test_return": 4.774333333333334,
+      "test_drawdown": 6.087,
+      "test_calmar": 1.5200000000000002
+    },
+    {
+      "rank": 10,
+      "bull_mults": {
+        "momentum": 0.9,
+        "value": 1.2
+      },
+      "bear_mults": {
+        "momentum": 0.7,
+        "value": 1.3
+      },
+      "train_sharpe": -0.04615925925925926,
+      "test_sharpe": 0.03833333333333332,
+      "test_return": 4.569333333333335,
+      "test_drawdown": 6.050666666666666,
+      "test_calmar": 1.532666666666667
+    },
+    {
+      "rank": 11,
+      "bull_mults": {
+        "momentum": 0.8,
+        "value": 1.1
+      },
+      "bear_mults": {
+        "momentum": 0.7,
+        "value": 1.3
+      },
+      "train_sharpe": -0.04626666666666668,
+      "test_sharpe": 0.03522666666666667,
+      "test_return": 4.557000000000001,
+      "test_drawdown": 6.0806666666666676,
+      "test_calmar": 1.520666666666667
     },
     {
       "rank": 12,
@@ -576,302 +259,302 @@
         "value": 1.0
       },
       "bear_mults": {
-        "momentum": 1.1,
+        "momentum": 0.8,
         "value": 1.3
       },
-      "train_sharpe": 0.032426148409894,
-      "test_sharpe": 0.026356902356902367,
-      "test_return": 4.651414141414141,
-      "test_drawdown": 6.1435690235690235,
-      "test_calmar": 1.748855218855219
+      "train_sharpe": -0.0464185185185185,
+      "test_sharpe": 0.06712999999999995,
+      "test_return": 4.940666666666668,
+      "test_drawdown": 6.020333333333332,
+      "test_calmar": 1.5650000000000002
     },
     {
       "rank": 13,
       "bull_mults": {
-        "momentum": 1.1,
+        "momentum": 0.8,
         "value": 1.2
       },
       "bear_mults": {
-        "momentum": 1.1,
+        "momentum": 0.7,
         "value": 1.3
       },
-      "train_sharpe": 0.03240282685512368,
-      "test_sharpe": 0.029955892255892257,
-      "test_return": 4.688316498316499,
-      "test_drawdown": 6.137643097643097,
-      "test_calmar": 1.7777441077441078
+      "train_sharpe": -0.04658888888888889,
+      "test_sharpe": 0.03522000000000002,
+      "test_return": 4.529000000000001,
+      "test_drawdown": 6.079333333333333,
+      "test_calmar": 1.528666666666667
     },
     {
       "rank": 14,
       "bull_mults": {
-        "momentum": 0.9,
+        "momentum": 0.8,
         "value": 0.9
       },
       "bear_mults": {
-        "momentum": 1.1,
+        "momentum": 0.8,
         "value": 1.3
       },
-      "train_sharpe": 0.03233356890459365,
-      "test_sharpe": 0.021449494949494944,
-      "test_return": 4.618518518518518,
-      "test_drawdown": 6.144040404040403,
-      "test_calmar": 1.7382154882154883
+      "train_sharpe": -0.046659259259259234,
+      "test_sharpe": 0.06867999999999995,
+      "test_return": 4.977000000000001,
+      "test_drawdown": 6.060999999999999,
+      "test_calmar": 1.5703333333333336
     },
     {
       "rank": 15,
       "bull_mults": {
-        "momentum": 1.2,
+        "momentum": 0.9,
         "value": 1.1
       },
       "bear_mults": {
-        "momentum": 1.1,
+        "momentum": 0.8,
         "value": 1.3
       },
-      "train_sharpe": 0.032146643109540636,
-      "test_sharpe": 0.026394276094276088,
-      "test_return": 4.683400673400673,
-      "test_drawdown": 6.147407407407408,
-      "test_calmar": 1.758855218855219
+      "train_sharpe": -0.04683333333333333,
+      "test_sharpe": 0.06848666666666663,
+      "test_return": 4.951333333333334,
+      "test_drawdown": 6.049666666666666,
+      "test_calmar": 1.567666666666667
     },
     {
       "rank": 16,
       "bull_mults": {
         "momentum": 1.0,
-        "value": 0.9
+        "value": 1.1
       },
       "bear_mults": {
-        "momentum": 1.1,
+        "momentum": 0.8,
         "value": 1.3
       },
-      "train_sharpe": 0.03203498233215547,
-      "test_sharpe": 0.02311077441077439,
-      "test_return": 4.634747474747475,
-      "test_drawdown": 6.145050505050505,
-      "test_calmar": 1.7391582491582491
+      "train_sharpe": -0.04687037037037035,
+      "test_sharpe": 0.0744733333333333,
+      "test_return": 5.021000000000001,
+      "test_drawdown": 6.020666666666666,
+      "test_calmar": 1.5766666666666669
     },
     {
       "rank": 17,
       "bull_mults": {
-        "momentum": 0.9,
+        "momentum": 1.1,
         "value": 1.1
       },
       "bear_mults": {
-        "momentum": 1.1,
+        "momentum": 0.8,
         "value": 1.3
       },
-      "train_sharpe": 0.03196996466431096,
-      "test_sharpe": 0.03017643097643098,
-      "test_return": 4.705959595959596,
-      "test_drawdown": 6.142020202020201,
-      "test_calmar": 1.784848484848485
+      "train_sharpe": -0.046877777777777754,
+      "test_sharpe": 0.07820999999999995,
+      "test_return": 5.056000000000001,
+      "test_drawdown": 6.004,
+      "test_calmar": 1.5823333333333334
     },
     {
       "rank": 18,
       "bull_mults": {
-        "momentum": 1.3,
+        "momentum": 1.0,
         "value": 1.2
       },
       "bear_mults": {
-        "momentum": 1.1,
+        "momentum": 0.8,
         "value": 1.3
       },
-      "train_sharpe": 0.031797173144876324,
-      "test_sharpe": 0.025542087542087543,
-      "test_return": 4.6755555555555555,
-      "test_drawdown": 6.147744107744107,
-      "test_calmar": 1.7527609427609425
+      "train_sharpe": -0.046888888888888876,
+      "test_sharpe": 0.06483999999999997,
+      "test_return": 4.856666666666667,
+      "test_drawdown": 6.0153333333333325,
+      "test_calmar": 1.5353333333333334
     },
     {
       "rank": 19,
       "bull_mults": {
-        "momentum": 0.8,
-        "value": 0.7
-      },
-      "bear_mults": {
-        "momentum": 1.1,
-        "value": 1.3
-      },
-      "train_sharpe": 0.031531802120141346,
-      "test_sharpe": 0.029843771043771037,
-      "test_return": 4.669326599326599,
-      "test_drawdown": 6.155084175084175,
-      "test_calmar": 1.7459259259259259
-    },
-    {
-      "rank": 20,
-      "bull_mults": {
-        "momentum": 0.8,
-        "value": 1.2
+        "momentum": 0.9,
+        "value": 1.0
       },
       "bear_mults": {
         "momentum": 0.7,
         "value": 1.3
       },
-      "train_sharpe": 0.03152084805653711,
-      "test_sharpe": 0.029054915254237267,
-      "test_return": 4.693796610169492,
-      "test_drawdown": 6.190983050847458,
-      "test_calmar": 1.7357627118644066
+      "train_sharpe": -0.047048148148148144,
+      "test_sharpe": 0.04069999999999998,
+      "test_return": 4.694333333333335,
+      "test_drawdown": 6.073666666666667,
+      "test_calmar": 1.5043333333333335
+    },
+    {
+      "rank": 20,
+      "bull_mults": {
+        "momentum": 1.3,
+        "value": 1.0
+      },
+      "bear_mults": {
+        "momentum": 0.8,
+        "value": 1.3
+      },
+      "train_sharpe": -0.0472222222222222,
+      "test_sharpe": 0.07096,
+      "test_return": 4.991666666666666,
+      "test_drawdown": 6.029333333333332,
+      "test_calmar": 1.584666666666667
     },
     {
       "rank": 21,
       "bull_mults": {
         "momentum": 0.8,
-        "value": 1.2
+        "value": 0.9
       },
       "bear_mults": {
-        "momentum": 1.0,
+        "momentum": 0.7,
         "value": 1.3
       },
-      "train_sharpe": 0.031516961130742045,
-      "test_sharpe": 0.036884745762711856,
-      "test_return": 4.711864406779661,
-      "test_drawdown": 6.185864406779662,
-      "test_calmar": 1.7544745762711866
+      "train_sharpe": -0.04728888888888889,
+      "test_sharpe": 0.04225000000000001,
+      "test_return": 4.730666666666668,
+      "test_drawdown": 6.114333333333334,
+      "test_calmar": 1.509666666666667
     },
     {
       "rank": 22,
       "bull_mults": {
-        "momentum": 1.1,
-        "value": 1.0
-      },
-      "bear_mults": {
-        "momentum": 1.1,
-        "value": 1.3
-      },
-      "train_sharpe": 0.031492226148409894,
-      "test_sharpe": 0.026371717171717154,
-      "test_return": 4.666868686868686,
-      "test_drawdown": 6.149494949494949,
-      "test_calmar": 1.7437710437710436
-    },
-    {
-      "rank": 23,
-      "bull_mults": {
-        "momentum": 0.8,
+        "momentum": 1.3,
         "value": 1.2
       },
       "bear_mults": {
         "momentum": 0.8,
         "value": 1.3
       },
-      "train_sharpe": 0.031421554770318015,
-      "test_sharpe": 0.033453220338983056,
-      "test_return": 4.729864406779661,
-      "test_drawdown": 6.177084745762713,
-      "test_calmar": 1.745491525423729
+      "train_sharpe": -0.04735555555555554,
+      "test_sharpe": 0.07454666666666662,
+      "test_return": 5.020666666666667,
+      "test_drawdown": 6.033666666666665,
+      "test_calmar": 1.5806666666666667
+    },
+    {
+      "rank": 23,
+      "bull_mults": {
+        "momentum": 1.3,
+        "value": 1.1
+      },
+      "bear_mults": {
+        "momentum": 0.8,
+        "value": 1.3
+      },
+      "train_sharpe": -0.04739259259259257,
+      "test_sharpe": 0.07089999999999996,
+      "test_return": 4.987666666666668,
+      "test_drawdown": 6.029666666666666,
+      "test_calmar": 1.583
     },
     {
       "rank": 24,
       "bull_mults": {
         "momentum": 1.2,
-        "value": 1.0
+        "value": 1.1
       },
       "bear_mults": {
-        "momentum": 1.1,
+        "momentum": 0.8,
         "value": 1.3
       },
-      "train_sharpe": 0.03126360424028268,
-      "test_sharpe": 0.022290909090909104,
-      "test_return": 4.643097643097643,
-      "test_drawdown": 6.14962962962963,
-      "test_calmar": 1.7414814814814816
+      "train_sharpe": -0.047455555555555536,
+      "test_sharpe": 0.07619333333333334,
+      "test_return": 5.056,
+      "test_drawdown": 6.0346666666666655,
+      "test_calmar": 1.5813333333333333
     },
     {
       "rank": 25,
       "bull_mults": {
         "momentum": 0.9,
-        "value": 0.8
+        "value": 1.1
       },
       "bear_mults": {
-        "momentum": 1.1,
+        "momentum": 0.7,
         "value": 1.3
       },
-      "train_sharpe": 0.03103180212014135,
-      "test_sharpe": 0.027161279461279445,
-      "test_return": 4.672255892255892,
-      "test_drawdown": 6.143097643097643,
-      "test_calmar": 1.7452188552188554
+      "train_sharpe": -0.047462962962962964,
+      "test_sharpe": 0.04205666666666665,
+      "test_return": 4.705000000000001,
+      "test_drawdown": 6.103,
+      "test_calmar": 1.5070000000000003
     },
     {
       "rank": 26,
       "bull_mults": {
-        "momentum": 1.2,
-        "value": 0.9
+        "momentum": 1.0,
+        "value": 1.1
       },
       "bear_mults": {
-        "momentum": 1.1,
+        "momentum": 0.7,
         "value": 1.3
       },
-      "train_sharpe": 0.030999999999999993,
-      "test_sharpe": 0.017690909090909094,
-      "test_return": 4.607643097643097,
-      "test_drawdown": 6.16020202020202,
-      "test_calmar": 1.7365656565656566
+      "train_sharpe": -0.0475,
+      "test_sharpe": 0.04804333333333331,
+      "test_return": 4.7746666666666675,
+      "test_drawdown": 6.074,
+      "test_calmar": 1.5160000000000002
     },
     {
       "rank": 27,
       "bull_mults": {
-        "momentum": 0.8,
-        "value": 1.0
+        "momentum": 1.1,
+        "value": 1.1
       },
       "bear_mults": {
         "momentum": 0.7,
         "value": 1.3
       },
-      "train_sharpe": 0.03096466431095407,
-      "test_sharpe": 0.021522895622895624,
-      "test_return": 4.659696969696969,
-      "test_drawdown": 6.149191919191919,
-      "test_calmar": 1.763367003367003
+      "train_sharpe": -0.04750740740740741,
+      "test_sharpe": 0.05178000000000001,
+      "test_return": 4.8096666666666685,
+      "test_drawdown": 6.057333333333333,
+      "test_calmar": 1.521666666666667
     },
     {
       "rank": 28,
       "bull_mults": {
-        "momentum": 0.8,
-        "value": 1.0
-      },
-      "bear_mults": {
         "momentum": 1.0,
-        "value": 1.3
-      },
-      "train_sharpe": 0.030960777385159014,
-      "test_sharpe": 0.0293,
-      "test_return": 4.677643097643098,
-      "test_drawdown": 6.144107744107744,
-      "test_calmar": 1.781952861952862
-    },
-    {
-      "rank": 29,
-      "bull_mults": {
-        "momentum": 1.2,
         "value": 1.2
       },
       "bear_mults": {
         "momentum": 0.7,
         "value": 1.3
       },
-      "train_sharpe": 0.030929328621908135,
-      "test_sharpe": 0.015555555555555546,
-      "test_return": 4.631649831649831,
-      "test_drawdown": 6.15047138047138,
-      "test_calmar": 1.7330976430976432
+      "train_sharpe": -0.04751851851851852,
+      "test_sharpe": 0.038409999999999986,
+      "test_return": 4.610333333333334,
+      "test_drawdown": 6.068666666666667,
+      "test_calmar": 1.474666666666667
+    },
+    {
+      "rank": 29,
+      "bull_mults": {
+        "momentum": 1.3,
+        "value": 1.0
+      },
+      "bear_mults": {
+        "momentum": 0.7,
+        "value": 1.3
+      },
+      "train_sharpe": -0.047851851851851854,
+      "test_sharpe": 0.04452999999999999,
+      "test_return": 4.745333333333335,
+      "test_drawdown": 6.082666666666666,
+      "test_calmar": 1.524
     },
     {
       "rank": 30,
       "bull_mults": {
-        "momentum": 1.2,
+        "momentum": 1.3,
         "value": 1.2
       },
       "bear_mults": {
-        "momentum": 1.0,
+        "momentum": 0.7,
         "value": 1.3
       },
-      "train_sharpe": 0.030925441696113064,
-      "test_sharpe": 0.02333265993265992,
-      "test_return": 4.64959595959596,
-      "test_drawdown": 6.1453872053872045,
-      "test_calmar": 1.7516835016835017
+      "train_sharpe": -0.047985185185185186,
+      "test_sharpe": 0.04811666666666668,
+      "test_return": 4.774333333333334,
+      "test_drawdown": 6.087,
+      "test_calmar": 1.5200000000000002
     }
   ]
 }

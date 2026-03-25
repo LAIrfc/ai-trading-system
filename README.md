@@ -15,22 +15,32 @@
 
 ---
 
-## 📊 当前策略状态（2026-03-23）
+## 📊 当前策略状态（2026-03-25）
 
 **核心策略**：11策略Ensemble（固定权重加权投票）
 
 **实际运行架构**：
 - ✅ **L0: PolicyEvent 大盘过滤器** - 极端利空时暂停选股
 - ✅ **L3: 11策略加权投票** - 使用已验证的固定权重（基于235只股票回测）
+- ❌ **L1: 市场状态感知** - 经验证后永久禁用（MarketRegimeEngine + Sentiment）
+- ❌ **L2: 权重动态调整** - 经验证后永久禁用（动态权重不如固定权重）
 
-**已关闭的功能**（待优化）：
-- ⚠️ **L1: 市场状态感知** - Sentiment调用错误（需要全市场数据，不能用单只股票df）
-- ⚠️ **L2: 权重动态调整** - 调节系数（1.2、1.3等）缺乏历史回测验证
+**L1/L2 验证结论**（2026-03-24）：
+- **L1层（市场状态感知）**：MarketRegimeEngine 基于MA交叉识别牛熊，但实测发现：
+  - 识别滞后严重（MA交叉本身就是滞后指标）
+  - 震荡市误判频繁（2024年震荡期错判为熊市）
+  - 固定权重在所有市场状态下表现更稳定
+- **L2层（动态权重调整）**：通过滚动窗口回测优化调整系数，但实测发现：
+  - 固定权重夏普比率 **0.127** > 动态权重 0.115
+  - 固定权重年化收益 **9.1%** > 动态权重 8.7%
+  - 固定权重最大回撤 **-17.3%** < 动态权重 -18.2%
+  - **结论**：保持固定权重，L1/L2层暂不启用
 
 **关键特性**：
 - DUAL 策略已反向（IC从-0.39提升至+0.39，p<0.000001）
 - 净得分投票机制（阈值0.07/-0.07，最少1票）
 - 11策略固定权重：BOLL(1.5), MACD(1.3), KDJ(1.1), MA(1.0), DUAL(0.9), RSI(0.8), PEPB(0.8), PE(0.6), PB(0.6), NEWS(0.5), MONEY_FLOW(0.4)
+- **专题板块推荐**：支持自动追加专题板块分析（如核电+算电协同）
 
 ---
 
@@ -38,7 +48,8 @@
 
 | 模块 | 说明 |
 |------|------|
-| **每日推荐** | 11策略从860只股票池筛选TOP 20，自动生成增量跟踪文档 📊 |
+| **每日推荐** | 11策略从808只股票池筛选TOP 20，自动生成增量跟踪文档 📊 |
+| **专题板块推荐** | 自动追加专题板块分析（如核电+算电协同），无需手动操作 🔋 |
 | **持仓跟踪** | 记录买入/卖出操作，追踪盈亏，每日自动更新 💼 |
 | **策略选股** | 11策略 Full Ensemble（技术6+基本面3+消息面+资金面）从综合大池筛选，加权评分排序 |
 | **持仓分析** | 对当前持仓跑全策略信号，给出操作建议和风险提示 |
@@ -91,14 +102,68 @@ scripts\daily_update.bat
 python3 tools/data/backtest_prefetch.py --update --out-dir mydate/backtest_kline --workers 4
 python3 tools/data/prefetch_pe_cache.py --update
 
-# 第二步：今日选股推荐（从 721 只综合池选出 TOP 30）
-python3 tools/analysis/recommend_today.py --pool mydate/stock_pool_all.json --strategy full_11 --top 30
+# 第二步：今日选股推荐（从 808 只综合池选出 TOP 20）
+python3 tools/analysis/recommend_today.py --strategy full_11 --top 20
 
-# 第三步：持仓分析（对当前持仓给出操作建议）
-python3 tools/analysis/portfolio_strategy_analysis.py
+# 🆕 今日推荐 + 专题板块（自动整合，推荐使用）
+python3 tools/analysis/recommend_today.py --strategy full_11 --top 20 --append-sectors
+
+# 第三步：仅更新持仓分析（不重新扫描股票池）
+python3 tools/analysis/recommend_today.py --only-holdings
 
 # 可选：单股深度分析
 python3 tools/analysis/analyze_single_stock.py 600519 --name "贵州茅台"
+```
+
+---
+
+## 🔋 专题板块推荐（新功能）
+
+**自动整合专题板块分析到每日推荐报告**
+
+### 使用方法
+
+```bash
+# 生成每日推荐 + 自动追加专题板块分析
+python3 tools/analysis/recommend_today.py --strategy full_11 --top 20 --append-sectors
+```
+
+### 功能特点
+
+- ✅ **自动整合**：专题推荐自动追加到主报告末尾，不覆盖主推荐
+- ✅ **数据一致**：使用相同的缓存数据，确保时间戳一致
+- ✅ **性能优化**：专题分析使用缓存，避免重复网络请求
+- ✅ **可扩展**：可轻松添加更多专题（在 `SECTOR_THEMES` 中配置）
+
+### 当前支持的专题
+
+| 专题 | 股票池 | 说明 |
+|------|--------|------|
+| 核电+算电协同 | 52只 | AI算力需求爆发，电力基础设施成为关键瓶颈。核电作为清洁、稳定的基荷电源，与算力中心形成协同效应 |
+
+### 报告结构
+
+生成的报告包含：
+1. **我的持仓** - 当前持仓概览
+2. **今日持仓操作建议** - 基于最新策略信号的持仓操作建议
+3. **每日推荐** - 全市场808只股票的TOP20推荐
+4. **🔋 专题板块推荐** - 核电+算电协同TOP10（自动追加）
+5. **历史推荐** - 往日推荐记录
+
+### 添加新专题
+
+在 `tools/analysis/generate_sector_themes.py` 中配置：
+
+```python
+SECTOR_THEMES = {
+    "your_theme_key": {
+        "name": "您的专题名称",
+        "description": "专题投资逻辑说明",
+        "pool_file": "mydate/stock_pool_your_theme.json",
+        "top_n": 10,
+        "icon": "🎯"
+    }
+}
 ```
 
 ---
@@ -167,11 +232,14 @@ python3 tools/analysis/analyze_single_stock.py 600519 --name "贵州茅台"
 
 | 文件 | 说明 | 数量 |
 |------|------|------|
-| `mydate/stock_pool_all.json` | 综合池（沪深300+中证500经基本面过滤） | 666只个股 + 57只ETF = **723只** |
+| `mydate/stock_pool_all.json` | 综合池（沪深300+中证500经基本面过滤） | **808只** |
+| `mydate/stock_pool_nuclear_computing.json` | 专题池（核电+算电协同：核电设备/电力运营/算力基础设施/智能电网） | 52只 |
 | `mydate/stock_pool.json` | 赛道龙头池（光伏/机器人/半导体/有色/证券/创新药/商业航天） | 约48只 |
 | `mydate/etf_pool.json` | ETF池（宽基/科技/消费/金融/周期/医药/地产/跨境） | 57只 |
 
 **过滤规则**（综合池）：PE 0-100、市值 > 30亿、非ST股票。
+
+**专题池配置**：在 `tools/analysis/generate_sector_themes.py` 的 `SECTOR_THEMES` 中配置，支持自动追加到每日推荐报告。
 
 ```bash
 # 刷新综合股票池（重新拉取成分股 + 基本面过滤）
@@ -318,9 +386,14 @@ ai-trading-system/
 │
 ├── tools/                   # 工具脚本（详见 tools/README.md）
 │   ├── analysis/            # 选股推荐、单股分析、持仓分析
+│   │   ├── recommend_today.py       # 每日推荐主脚本（支持 --append-sectors）
+│   │   └── generate_sector_themes.py # 专题板块推荐生成器
 │   ├── backtest/            # 批量回测、ETF轮动回测、交叉验证
 │   ├── data/                # K线预取、PE缓存、股票池刷新
-│   ├── optimization/        # 参数优化
+│   ├── optimization/        # 参数优化（含 L1/L2 验证工具）
+│   │   ├── optimize_regime_weights.py   # L2层权重调整验证
+│   │   ├── optimize_thresholds.py       # 信号阈值优化
+│   │   └── calibrate_weights.py         # 策略权重校准
 │   └── validation/          # 策略验证、数据源测试
 │
 ├── tests/                   # 单元测试 + 集成测试
@@ -329,11 +402,17 @@ ai-trading-system/
 ├── docs/                    # 文档（见下方文档索引）
 │
 ├── mydate/                  # 数据文件
-│   ├── stock_pool_all.json  # 综合股票池（723只）
+│   ├── stock_pool_all.json  # 综合股票池（808只）
+│   ├── stock_pool_nuclear_computing.json  # 专题池：核电+算电协同（52只）
 │   ├── stock_pool.json      # 赛道龙头池（48只）
 │   ├── my_portfolio.json    # 当前持仓
-│   ├── backtest_kline/      # K线本地缓存（813只，parquet格式）
-│   ├── pe_cache/            # PE/PB历史数据缓存（779只，parquet格式）
+│   ├── daily_reports/       # 每日推荐报告
+│   │   ├── daily_recommendation.md  # 主报告（增量更新）
+│   │   ├── daily_recommendation_YYYY-MM-DD.md  # 每日归档
+│   │   └── trading_review.md  # 交易复盘记录
+│   ├── backtest_kline/      # K线本地缓存（863只，parquet格式）
+│   ├── pe_cache/            # PE/PB历史数据缓存（815只，parquet格式）
+│   ├── optimized_regime_weights.json  # L2层权重优化结果
 │   └── backtest_results_v3.json  # 最新回测结果
 │
 ├── mycache/                 # 基本面缓存（ROE / 行业PE）
@@ -395,6 +474,8 @@ STRATEGY_REGISTRY['MyStrategy'] = MyStrategy
 | [策略开发快速开始](docs/strategy/STRATEGY_QUICKSTART.md) | 5 分钟上手策略开发 |
 | [双核动量指南](docs/strategy/DUAL_MOMENTUM_GUIDE.md) | ETF 轮动策略完整使用指南 |
 | [回测与实盘规范](docs/strategy/BACKTEST_AND_LIVE_SPEC.md) | 未来函数约束、参数敏感性、成本与延迟 |
+| [Alpha Factory设计文档](docs/alpha_factory_design.md) | L0-L3分层架构设计，L1/L2验证结论 |
+| [L2层验证报告](L2_VALIDATION_REPORT.md) | 动态权重调整验证报告（结论：固定权重更优） |
 | [PE缓存指南](docs/data/PE_CACHE_GUIDE.md) | PE/PB历史数据缓存机制与使用说明 |
 | [K线数据指南](docs/setup/KLINE_DATA_GUIDE.md) | K线缓存预取、增量更新、格式说明 |
 | [数据接口与容错](docs/data/API_INTERFACES_AND_FETCHERS.md) | 各策略数据接口、主备切换 |

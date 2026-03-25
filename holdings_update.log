@@ -1,0 +1,6 @@
+usage: recommend_today.py [-h] [--pool POOL] [--max-pool MAX_POOL]
+                          [--strategy {macd,ensemble,full_11}] [--cache-only]
+                          [--fast FAST] [--slow SLOW] [--signal SIGNAL]
+                          [--top TOP] [--fundamental] [--no-policy-filter]
+                          [--only-holdings]
+recommend_today.py: error: unrecognized arguments: --holdings-only
