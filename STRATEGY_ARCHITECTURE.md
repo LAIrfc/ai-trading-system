@@ -191,7 +191,7 @@ python3 tools/analysis/recommend_today.py \
 **核心函数**:
 - `main()`: 主流程控制
 - `_check_policy_filter()`: L0大盘过滤器（PolicyEvent，极度利空时阻止选股）
-- `run_full_11_analysis()`: 11策略全量分析（已优化为单例模式）
+- `run_full_12_analysis()`: 12策略全量分析（已优化为单例模式）
 - `save_incremental_report()`: 生成增量报告
 
 **注**：当前使用固定权重，L1/L2层已暂时关闭
@@ -291,7 +291,7 @@ for i, stock in enumerate(stocks, 1):
 
 #### 修复2: DUAL策略一致性（第1085-1101行）
 ```python
-# 在 run_full_11_analysis 中添加
+# 在 run_full_12_analysis 中添加
 if strat_name == 'DUAL':
     if sig.action == 'BUY':
         sig.action = 'SELL'

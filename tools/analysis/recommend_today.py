@@ -49,6 +49,9 @@ logger = logging.getLogger(__name__)
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../..'))
 
+# 双引擎调度架构导入
+from src.strategies.trend_strategies import Trend_Composite, Momentum_Adj, TechnicalConfirmation, VolumeConfirmation, RelativeStrength
+
 from src.strategies.macd_cross import MACDStrategy
 from src.strategies.ensemble import EnsembleStrategy
 from src.strategies.fundamental_pe import PEStrategy
@@ -164,7 +167,13 @@ def _render_portfolio_section(holdings: list, provider=None) -> str:
 
 
 def _render_holding_advice(holdings: list, all_results: list, today: str) -> str:
-    """渲染持仓操作建议（含详细原因分析）"""
+    """
+    渲染持仓操作建议（含详细原因分析）
+    
+    策略：均值回归为主，趋势得分作为风险修正
+    - 基础判断：使用均值回归引擎的score（超跌/超买）
+    - 风险修正：趋势得分<-0.3时，降低加仓建议；趋势得分>0.3时，提升持有信心
+    """
     if not holdings or not all_results:
         return ""
     result_map = {r['code']: r for r in all_results}
@@ -175,9 +184,9 @@ def _render_holding_advice(holdings: list, all_results: list, today: str) -> str
         return ""
 
     lines = [f"## 今日持仓操作建议 ({today})\n"]
-    for r in sorted(found, key=lambda x: x.get('score', 0), reverse=True):
+    for r in sorted(found, key=lambda x: x.get('mr_score', 0), reverse=True):
         code = r['code']
-        score = r.get('score', 0)
+        score = r.get('mr_score', 0)  # 使用mr_score（均值回归得分）保持与超跌榜一致
         buy_cnt = r.get('buy_count', 0)
         sell_cnt = r.get('sell_count', 0)
         hold_cnt = r.get('hold_count', 0)
@@ -187,17 +196,41 @@ def _render_holding_advice(holdings: list, all_results: list, today: str) -> str
         trend = r.get('trend', '')
         vol_ratio = r.get('volume_ratio', 0)
         signals = r.get('signals', [])
-
+        
+        # 趋势得分（风险修正因子）
+        trend_score = r.get('trend_score', 0.0)
+        momentum_score = r.get('momentum_score', 0.0)
+        
+        # 基础判断（均值回归逻辑）
         if sell_cnt >= 3 or score < -5:
-            action = "🔴 建议减仓/止损"
+            base_action = "🔴 建议减仓/止损"
         elif sell_cnt >= 2 or score < 0:
-            action = "🟡 关注风险，考虑减仓"
+            base_action = "🟡 关注风险，考虑减仓"
         elif buy_cnt >= 3 and score > 5:
-            action = "🟢 可以加仓"
+            base_action = "🟢 可以加仓"
         elif buy_cnt >= 2:
-            action = "🟢 继续持有"
+            base_action = "🟢 继续持有"
         else:
-            action = "⚪ 观望持有"
+            base_action = "⚪ 观望持有"
+        
+        # 趋势风险修正
+        action = base_action
+        trend_warning = ""
+        
+        if trend_score < -0.3:  # 趋势转弱
+            if "加仓" in base_action:
+                action = "🟡 可持有，但暂缓加仓（趋势转弱）"
+                trend_warning = "⚠️ 趋势得分较低，建议等待趋势企稳"
+            elif "继续持有" in base_action:
+                action = "🟡 谨慎持有（趋势转弱）"
+                trend_warning = "⚠️ 趋势转弱，密切关注"
+        elif trend_score > 0.3:  # 趋势向好
+            if "关注风险" in base_action:
+                action = "🟡 可继续观察（趋势尚可）"
+                trend_warning = "✅ 趋势得分较好，可适当放宽止损"
+            elif "继续持有" in base_action:
+                action = "🟢 继续持有（趋势健康）"
+                trend_warning = "✅ 趋势向好，可安心持有"
 
         # 持仓盈亏
         h = holding_map.get(code, {})
@@ -208,8 +241,17 @@ def _render_holding_advice(holdings: list, all_results: list, today: str) -> str
             pnl_str = f" | 持仓盈亏 {pnl:+.1f}%"
 
         lines.append(f"#### {r['name']}（{code}）{action}\n")
+        
+        # 趋势得分显示
+        trend_emoji = "📈" if trend_score > 0.3 else ("📉" if trend_score < -0.3 else "➡️")
+        trend_desc = f"强势" if trend_score > 0.5 else (f"向好" if trend_score > 0.3 else (f"转弱" if trend_score < -0.3 else f"中性"))
+        
         lines.append(f"- **价格** ¥{price:.2f} | **得分** {score:.1f} | **趋势** {trend}{pnl_str}")
         lines.append(f"- **涨跌幅** 5日 {change_5d:+.2f}% / 20日 {change_20d:+.2f}% | **量比** {vol_ratio:.1f}x")
+        lines.append(f"- **趋势分析** {trend_emoji} 趋势得分: {trend_score:.2f} ({trend_desc}) | 动量得分: {momentum_score:.2f}")
+        
+        if trend_warning:
+            lines.append(f"- {trend_warning}")
 
         # 策略信号
         if signals:
@@ -223,20 +265,38 @@ def _render_holding_advice(holdings: list, all_results: list, today: str) -> str
             if hold_sigs:
                 lines.append(f"- ⚪ 观望: {', '.join(hold_sigs)}")
 
-        # 操作建议理由
+        # 操作建议理由（均值回归 + 趋势修正）
         reasons = []
+        
+        # 均值回归维度
         if score < -5:
             reasons.append(f"综合得分{score:.1f}偏低，多数策略看空")
         elif score < 0:
             reasons.append(f"综合得分{score:.1f}偏弱，存在下行风险")
+        
+        # 趋势修正维度
+        if trend_score < -0.5:
+            reasons.append(f"趋势得分{trend_score:.2f}，趋势明显转弱，建议降低仓位")
+        elif trend_score < -0.3:
+            reasons.append(f"趋势得分{trend_score:.2f}，趋势偏弱，暂缓加仓")
+        elif trend_score > 0.5:
+            reasons.append(f"趋势得分{trend_score:.2f}，趋势强劲，可安心持有")
+        elif trend_score > 0.3:
+            reasons.append(f"趋势得分{trend_score:.2f}，趋势向好，支持持有")
+        
+        # 技术面分析
         if change_5d < -5:
             reasons.append(f"近5日下跌{change_5d:+.1f}%，短期走势较弱")
         if '空头' in trend:
             reasons.append("均线空头排列，技术面不利")
         elif '偏空' in trend:
             reasons.append("股价在MA20下方，中期趋势偏弱")
+        
+        # 盈亏分析
         if cost > 0 and price > 0 and (price / cost - 1) < -0.10:
             reasons.append(f"持仓亏损已超10%，需重新评估持有逻辑")
+        
+        # 策略信号
         if buy_cnt >= 3:
             reasons.append(f"{buy_cnt}个策略看多，可考虑加仓或继续持有")
         elif buy_cnt >= 2 and sell_cnt == 0:
@@ -377,19 +437,54 @@ def _select_elite_top5(top_list: list) -> list:
 
 
 def _render_daily_section(today: str, top_list: list, strategy_name: str,
-                          pool_size: int, valid_count: int) -> str:
+                          pool_size: int, valid_count: int, 
+                          dual_advantage_stocks: list = None,
+                          mr_list: list = None, 
+                          trend_list: list = None) -> str:
     """渲染单日推荐区块（每只推荐股附带详细分析理由）"""
     lines = [f"## {today} 每日推荐\n"]
     lines.append(f"**策略**: {strategy_name} | **股票池**: {pool_size}只 | **有效**: {valid_count}只\n")
+    
+    # 双优股票特别说明
+    if dual_advantage_stocks:
+        lines.append(f"\n### ⭐⭐⭐ 双优股票（既超跌又趋势强，黄金标的，重点关注！）\n")
+        lines.append("> **双优股票**：同时出现在超跌榜和趋势榜的股票，兼具**低估值反弹潜力**和**强劲上升趋势**，是最优质的投资标的。")
+        lines.append("> 这些股票在下方的完整推荐列表中会**重复出现两次**（在超跌榜和趋势榜各出现一次），请重点关注！\n")
+        lines.append("| 代码 | 名称 | 价格 | MR得分 | 趋势得分 | 超跌榜排名 | 趋势榜排名 | 说明 |")
+        lines.append("|------|------|------|--------|----------|-----------|-----------|------|")
+        for code in dual_advantage_stocks:
+            r = next((x for x in top_list if x['code'] == code), None)
+            if r:
+                mr_rank = mr_list.index(code) + 1 if mr_list and code in mr_list else '-'
+                trend_rank = trend_list.index(code) + 1 if trend_list and code in trend_list else '-'
+                mr_score_val = r.get('mr_score', r.get('score', 0))
+                trend_val = r.get('trend_score', 0)
+                lines.append(f"| {code} | {r['name']} | {r.get('price',0):.2f} | {mr_score_val:.1f} | {trend_val:+.2f} | "
+                           f"第{mr_rank} | 第{trend_rank} | 低估值+强趋势 |")
+        lines.append("")
 
     # 总览表
-    lines.append("| 排名 | 代码 | 名称 | 价格 | 得分 | 买/卖/观 | 趋势 | 5日% | 20日% | 板块 |")
-    lines.append("|------|------|------|------|------|----------|------|------|-------|------|")
+    lines.append("### 📊 完整推荐列表\n")
+    lines.append("| 类型 | 排名 | 代码 | 名称 | 价格 | MR得分 | 趋势 | 买/卖/观 | 5日% | 20日% | 板块 |")
+    lines.append("|------|------|------|------|------|--------|------|----------|------|-------|------|")
     for rank, r in enumerate(top_list, 1):
+        code = r['code']
+        if dual_advantage_stocks and code in dual_advantage_stocks:
+            stock_type = "⭐双优"
+        elif mr_list and code in mr_list:
+            stock_type = "🟢超跌"
+        elif trend_list and code in trend_list:
+            stock_type = "🔵趋势"
+        else:
+            stock_type = "⚪其他"
+        
         trend = r.get('trend', '')
         bsh = f"{r.get('buy_count',0)}/{r.get('sell_count',0)}/{r.get('hold_count',0)}"
-        lines.append(f"| {rank} | {r['code']} | {r['name']} | {r.get('price',0):.2f} | {r.get('score',0):.1f} | "
-                      f"{bsh} | {trend} | "
+        mr_score_val = r.get('mr_score', r.get('score', 0))
+        trend_val = r.get('trend_score', 0)
+        
+        lines.append(f"| {stock_type} | {rank} | {r['code']} | {r['name']} | {r.get('price',0):.2f} | "
+                      f"{mr_score_val:.1f} | {trend_val:+.2f} | {bsh} | "
                       f"{r.get('change_5d',0):+.2f} | {r.get('change_20d',0):+.2f} | {str(r.get('sector',''))[:15]} |")
     lines.append("")
 
@@ -553,6 +648,9 @@ def save_incremental_report(
     *,
     holdings_only: bool = False,
     sector_results_map: dict = None,
+    dual_advantage_stocks: list = None,
+    mr_list: list = None,
+    trend_list: list = None,
 ):
     """保存增量报告：持仓置顶 + 今日操作建议 + 今日推荐 + 专题板块 + 历史（最新在前）"""
     from src.data.provider.data_provider import get_default_kline_provider
@@ -601,11 +699,19 @@ def save_incremental_report(
         if today_daily_block.strip():
             report_parts.append(today_daily_block)
         else:
-            report_parts.append(_render_daily_section(today, [], strategy_name, pool_size, valid_count))
+            report_parts.append(_render_daily_section(today, [], strategy_name, pool_size, valid_count,
+                                                      dual_advantage_stocks, mr_list, trend_list))
     else:
-        report_parts.append(_render_daily_section(today, top_list, strategy_name, pool_size, valid_count))
+        report_parts.append(_render_daily_section(today, top_list, strategy_name, pool_size, valid_count,
+                                                  dual_advantage_stocks, mr_list, trend_list))
 
-    # 4. 专题板块推荐（核电+算电协同等）
+    # 4. 健康上涨组推荐（趋势跟随型）
+    if not holdings_only and all_results:
+        healthy_growth_section = _generate_healthy_growth_section(all_results, today)
+        if healthy_growth_section:
+            report_parts.append(healthy_growth_section)
+    
+    # 5. 专题板块推荐（核电+算电协同等）
     if not holdings_only and sector_results_map:
         try:
             from tools.analysis.generate_sector_themes import generate_all_themes
@@ -616,7 +722,7 @@ def save_incremental_report(
         except Exception as e:
             print(f"⚠️ 专题板块推荐生成失败: {e}")
     
-    # 5. 历史推荐（旧的，最新在前）
+    # 6. 历史推荐（旧的，最新在前）
     if old_daily_sections.strip():
         report_parts.append(old_daily_sections)
 
@@ -628,9 +734,167 @@ def save_incremental_report(
     if not (holdings_only and (not top_list)):
         with open(archive_path, 'w', encoding='utf-8') as f:
             f.write(f"# 📈 每日选股推荐 — {today}\n\n")
-            f.write(_render_daily_section(today, top_list, strategy_name, pool_size, valid_count))
+            f.write(_render_daily_section(today, top_list, strategy_name, pool_size, valid_count,
+                                         dual_advantage_stocks, mr_list, trend_list))
 
     return REPORT_FILE, archive_path
+
+
+# ============================================================
+# 健康上涨组筛选（趋势跟随型）
+# ============================================================
+
+def _generate_healthy_growth_section(all_results: list, today: str) -> str:
+    """
+    从全市场结果中筛选"健康上涨"的股票（趋势跟随型）
+    
+    筛选条件（适度放宽以捕捉更多健康标的）：
+    1. 价格在MA20上方（中期趋势向上）
+    2. 价格在MA60下方50%以内（不追高，有安全边际）
+    3. 20日涨幅在3%-40%之间（健康上涨，包括温和上涨）
+    4. 5日涨幅>-2%（短期未大幅回调）
+    5. 量比>0.5（有基本资金参与）
+    6. 综合得分>3（策略基本认可）
+    7. 排除ST股票
+    """
+    healthy_stocks = []
+    
+    for r in all_results:
+        # 基本信息
+        price = r.get('price', 0)
+        ma20 = r.get('ma20', 0)
+        ma60 = r.get('ma60', 0)
+        change_5d = r.get('change_5d', 0)
+        change_20d = r.get('change_20d', 0)
+        volume_ratio = r.get('volume_ratio', 0)
+        score = r.get('score', 0)
+        name = r.get('name', '')
+        
+        # 排除ST
+        if 'ST' in name or '*' in name:
+            continue
+        
+        # 条件1: 价格在MA20上方（中期趋势向上）
+        if not (ma20 > 0 and price > ma20):
+            continue
+        
+        # 条件2: 价格在MA60下方50%以内（不追高）
+        if ma60 > 0 and price > ma60 * 1.5:
+            continue
+        
+        # 条件3: 20日涨幅在3%-40%之间
+        if not (3 <= change_20d <= 40):
+            continue
+        
+        # 条件4: 5日涨幅>-2%（允许小幅回调）
+        if change_5d < -2:
+            continue
+        
+        # 条件5: 量比>0.5（有基本资金参与）
+        if volume_ratio < 0.5:
+            continue
+        
+        # 条件6: 综合得分>3
+        if score <= 3:
+            continue
+        
+        healthy_stocks.append(r)
+    
+    if not healthy_stocks:
+        return ""
+    
+    # 按综合得分排序
+    healthy_stocks.sort(key=lambda x: x['score'], reverse=True)
+    top10 = healthy_stocks[:10]
+    
+    # 生成报告
+    lines = []
+    lines.append("## 📈 健康上涨组推荐（趋势跟随型）")
+    lines.append("")
+    lines.append("> **筛选逻辑**: 价格站稳MA20（中期趋势向上）+ 20日涨幅5-30%（健康上涨）+ 短期保持动能 + 有资金参与。这类股票适合趋势跟随，相比超跌反弹型更稳健。")
+    lines.append("")
+    lines.append(f"**分析时间**: {today} | **筛选结果**: {len(healthy_stocks)}只 | **展示**: TOP10")
+    lines.append("")
+    lines.append("### 📊 健康上涨 TOP10")
+    lines.append("")
+    lines.append("| 排名 | 代码 | 名称 | 价格 | 得分 | 买/卖/观 | 5日% | 20日% | 量比 | 板块 | 推荐理由 |")
+    lines.append("|------|------|------|------|------|----------|------|-------|------|------|----------|")
+    
+    for i, r in enumerate(top10, 1):
+        code = r['code']
+        name = r['name']
+        price = r['price']
+        score = r['score']
+        buy_cnt = r['buy_count']
+        sell_cnt = r['sell_count']
+        hold_cnt = r['hold_count']
+        change_5d = r['change_5d']
+        change_20d = r['change_20d']
+        volume_ratio = r.get('volume_ratio', 0)
+        sector = r.get('sector', '')
+        
+        # 推荐理由
+        reason_parts = []
+        if change_20d > 20:
+            reason_parts.append("强势上涨")
+        elif change_20d > 10:
+            reason_parts.append("稳健上涨")
+        else:
+            reason_parts.append("温和上涨")
+        
+        if volume_ratio > 1.5:
+            reason_parts.append("放量")
+        elif volume_ratio > 1.0:
+            reason_parts.append("量价配合")
+        
+        if buy_cnt >= 7:
+            reason_parts.append("多策略共振")
+        
+        reason = "+".join(reason_parts)
+        
+        lines.append(f"| {i} | {code} | {name} | ¥{price:.2f} | {score:.1f} | {buy_cnt}/{sell_cnt}/{hold_cnt} | {change_5d:+.2f}% | {change_20d:+.2f}% | {volume_ratio:.1f}x | {sector} | {reason} |")
+    
+    lines.append("")
+    lines.append("### 🌟 重点推荐 TOP3")
+    lines.append("")
+    
+    for i, r in enumerate(top10[:3], 1):
+        stars = "⭐" * (4 - i)
+        lines.append(f"#### {i}️⃣ {r['name']}（{r['code']}）{stars} - 得分{r['score']:.1f}")
+        lines.append("")
+        lines.append("**基本信息**:")
+        lines.append(f"- **价格**: ¥{r['price']:.2f}（最新） | **板块**: {r.get('sector', 'N/A')}")
+        lines.append(f"- **趋势**: {r['trend']} | **量比**: {r.get('volume_ratio', 0):.1f}x")
+        lines.append(f"- **涨跌幅**: 5日 {r['change_5d']:+.2f}% / 20日 {r['change_20d']:+.2f}%")
+        lines.append("")
+        
+        lines.append("**核心优势**:")
+        buy_signals = [s for s in r['signals'] if s[1] == 'BUY']
+        if buy_signals:
+            lines.append(f"- ✅ **{len(buy_signals)}个策略看多**")
+            for sn, _, _, reason in buy_signals[:3]:
+                lines.append(f"  - {sn}: {reason}")
+        
+        lines.append("")
+        lines.append("**投资逻辑**:")
+        lines.append(f"- 中期趋势向上（价格站稳MA20）")
+        lines.append(f"- 20日涨幅{r['change_20d']:+.2f}%，属于健康上涨范围")
+        lines.append(f"- 短期保持动能（5日{r['change_5d']:+.2f}%）")
+        if r.get('volume_ratio', 0) > 1.0:
+            lines.append(f"- 量价配合良好（量比{r.get('volume_ratio', 0):.1f}x）")
+        
+        pe = r.get('pe_ttm')
+        pb = r.get('pb')
+        if pe and 0 < pe < 30:
+            lines.append(f"- 估值合理（PE={pe:.1f}）")
+        
+        lines.append("")
+        lines.append("**风险提示**: 趋势跟随需要止损纪律，建议跌破MA20止损")
+        lines.append("")
+        lines.append("---")
+        lines.append("")
+    
+    return "\n".join(lines)
 
 
 # ============================================================
@@ -1071,15 +1335,68 @@ def update_fundamental_cache(code: str, fetcher: FundamentalFetcher, cache_data:
 # 全局策略实例（避免重复创建，性能优化）
 # ============================================================
 _GLOBAL_STRATEGIES = None
-_GLOBAL_STRATEGY_WEIGHTS = {
-    # 技术面（6个）
-    'BOLL': 1.5, 'MACD': 1.3, 'KDJ': 1.1, 'MA': 1.0,
-    'DUAL': 0.9, 'RSI': 0.8,
-    # 基本面（3个）
-    'PEPB': 0.8, 'PE': 0.6, 'PB': 0.6,
-    # 消息面+情绪面+资金面（3个）
-    'NEWS': 0.5, 'SENTIMENT': 0.5, 'MONEY_FLOW': 0.4,
+
+# 双引擎调度架构配置
+# 均值回归引擎权重（原有策略，用于超跌反弹）
+MR_WEIGHTS = {
+    # 核心均值回归策略（高权重）
+    'PB': 2.0, 'PE': 1.68, 'PEPB': 1.61, 'DUAL': 1.39,
+    'BOLL': 1.95, 'RSI': 1.82, 'KDJ': 1.5,
+    'NEWS': 0.32, 'SENTIMENT': 0.32, 'MONEY_FLOW': 0.3,
+    
+    # 技术确认因子（低权重，避免趋势信号主导超跌榜）
+    'MACD': 0.5,  # 降权：原 1.13 → 0.5（技术确认作用）
+    'MA': 0.3,    # 降权：原 0.88 → 0.3（技术确认作用）
 }
+
+# 趋势引擎配置
+TREND_WEIGHT_BASE = 0.5       # 基础权重（无趋势时的最低权重）
+TREND_WEIGHT_RANGE = 0.5      # 权重调整范围（趋势越强，权重越高）
+TREND_SCORE_WEIGHT = 0.7      # 趋势得分权重
+MOMENTUM_SCORE_WEIGHT = 0.3   # 动量得分权重
+TREND_STRENGTH_THRESHOLD = 0.03  # 市场趋势强度阈值（MA20/MA60斜率）
+
+# 兼容旧代码：保留原权重变量名
+_GLOBAL_STRATEGY_WEIGHTS = MR_WEIGHTS
+
+
+def get_index_data():
+    """获取指数数据（沪深300）用于市场状态判断"""
+    from src.data.provider.data_provider import get_default_kline_provider
+    provider = get_default_kline_provider()
+    for code in ['sh000300', '000300', 'CSI300']:
+        try:
+            df = provider.get_kline(code, datalen=200, min_bars=60, retries=1, timeout=8)
+            if df is not None and not df.empty:
+                return df
+        except Exception:
+            continue
+    return pd.DataFrame()
+
+
+def get_market_regime(index_df):
+    """
+    判断市场状态（趋势市 vs 震荡市）
+    
+    返回:
+        regime: 'trend' 或 'range'
+        strength: 趋势强度（MA20相对MA60的斜率）
+    """
+    if index_df.empty or len(index_df) < 60:
+        return 'range', 0.0
+    
+    close = index_df['close']
+    ma20 = close.rolling(20).mean()
+    ma60 = close.rolling(60).mean()
+    
+    if ma60.iloc[-1] == 0:
+        return 'range', 0.0
+    
+    strength = (ma20.iloc[-1] - ma60.iloc[-1]) / ma60.iloc[-1]
+    regime = 'trend' if strength > TREND_STRENGTH_THRESHOLD else 'range'
+    
+    return regime, strength
+
 
 def _get_global_strategies():
     """
@@ -1115,7 +1432,7 @@ def _get_global_strategies():
     return _GLOBAL_STRATEGIES
 
 
-def run_full_11_analysis(code: str, name: str, sector: str, df: pd.DataFrame, fetcher: FundamentalFetcher, skip_industry: bool = False) -> dict:
+def run_full_12_analysis(code: str, name: str, sector: str, df: pd.DataFrame, fetcher: FundamentalFetcher, skip_industry: bool = False) -> dict:
     """
     运行 12 大策略: MA, MACD, RSI, BOLL, KDJ, DUAL, PE, PB, PEPB, NEWS, SENTIMENT, MONEY_FLOW。
     返回 buy_count, sell_count, hold_count, score（买-卖加权）, signals 列表。
@@ -1142,6 +1459,13 @@ def run_full_11_analysis(code: str, name: str, sector: str, df: pd.DataFrame, fe
     weighted_buy = weighted_sell = 0.0
     signals = []
     score_sum = 0.0
+    
+    # 双引擎架构：分别计算均值回归得分和全策略得分
+    mr_weighted_buy = mr_weighted_sell = 0.0
+    mr_score_sum = 0.0
+    
+    # 定义均值回归策略集合（包含MA/MACD作为技术确认因子，但权重已降低）
+    MR_STRATEGY_NAMES = {'PB', 'PE', 'PEPB', 'DUAL', 'BOLL', 'RSI', 'KDJ', 'MONEY_FLOW', 'NEWS', 'SENTIMENT', 'MA', 'MACD'}
 
     for strat_name, strat in tech_strategies.items():
         try:
@@ -1159,6 +1483,8 @@ def run_full_11_analysis(code: str, name: str, sector: str, df: pd.DataFrame, fe
                     sig.reason = f'[DUAL反向] {sig.reason}（原SELL→BUY）'
             
             w = strat_weights.get(strat_name, 1.0)
+            
+            # 全策略得分累加
             if sig.action == 'BUY':
                 buy_count += 1
                 weighted_buy += w
@@ -1169,6 +1495,16 @@ def run_full_11_analysis(code: str, name: str, sector: str, df: pd.DataFrame, fe
                 score_sum -= w * sig.confidence
             else:
                 hold_count += 1
+            
+            # 均值回归得分累加（仅包含MR策略）
+            if strat_name in MR_STRATEGY_NAMES:
+                if sig.action == 'BUY':
+                    mr_weighted_buy += w
+                    mr_score_sum += w * sig.confidence
+                elif sig.action == 'SELL':
+                    mr_weighted_sell += w
+                    mr_score_sum -= w * sig.confidence
+            
             signals.append((strat_name, sig.action, sig.confidence, sig.reason[:40]))
         except Exception:
             pass
@@ -1203,15 +1539,19 @@ def run_full_11_analysis(code: str, name: str, sector: str, df: pd.DataFrame, fe
             pe_strat.min_bars = max(100, available_data)
             if len(df) >= pe_strat.min_bars:
                 pe_sig = pe_strat.safe_analyze(df)
-                pe_w = 0.6
+                pe_w = strat_weights.get('PE', 1.68)
                 if pe_sig.action == 'BUY':
                     buy_count += 1
                     weighted_buy += pe_w
                     score_sum += pe_w * pe_sig.confidence
+                    mr_weighted_buy += pe_w
+                    mr_score_sum += pe_w * pe_sig.confidence
                 elif pe_sig.action == 'SELL':
                     sell_count += 1
                     weighted_sell += pe_w
                     score_sum -= pe_w * pe_sig.confidence
+                    mr_weighted_sell += pe_w
+                    mr_score_sum -= pe_w * pe_sig.confidence
                 else:
                     hold_count += 1
                 signals.append(('PE', pe_sig.action, pe_sig.confidence, pe_sig.reason[:40]))
@@ -1234,15 +1574,19 @@ def run_full_11_analysis(code: str, name: str, sector: str, df: pd.DataFrame, fe
             pb_strat.min_bars = max(100, available_data)
             if len(df) >= pb_strat.min_bars:
                 pb_sig = pb_strat.safe_analyze(df)
-                pb_w = 0.6
+                pb_w = strat_weights.get('PB', 2.0)
                 if pb_sig.action == 'BUY':
                     buy_count += 1
                     weighted_buy += pb_w
                     score_sum += pb_w * pb_sig.confidence
+                    mr_weighted_buy += pb_w
+                    mr_score_sum += pb_w * pb_sig.confidence
                 elif pb_sig.action == 'SELL':
                     sell_count += 1
                     weighted_sell += pb_w
                     score_sum -= pb_w * pb_sig.confidence
+                    mr_weighted_sell += pb_w
+                    mr_score_sum -= pb_w * pb_sig.confidence
                 else:
                     hold_count += 1
                 signals.append(('PB', pb_sig.action, pb_sig.confidence, pb_sig.reason[:40]))
@@ -1273,15 +1617,19 @@ def run_full_11_analysis(code: str, name: str, sector: str, df: pd.DataFrame, fe
             
             if len(df) >= pepb_strat.min_bars:
                 pepb_sig = pepb_strat.safe_analyze(df)
-                pepb_w = 0.8
+                pepb_w = strat_weights.get('PEPB', 1.61)
                 if pepb_sig.action == 'BUY':
                     buy_count += 1
                     weighted_buy += pepb_w
                     score_sum += pepb_w * pepb_sig.confidence
+                    mr_weighted_buy += pepb_w
+                    mr_score_sum += pepb_w * pepb_sig.confidence
                 elif pepb_sig.action == 'SELL':
                     sell_count += 1
                     weighted_sell += pepb_w
                     score_sum -= pepb_w * pepb_sig.confidence
+                    mr_weighted_sell += pepb_w
+                    mr_score_sum -= pepb_w * pepb_sig.confidence
                 else:
                     hold_count += 1
                 signals.append(('PEPB', pepb_sig.action, pepb_sig.confidence, pepb_sig.reason[:40]))
@@ -1291,6 +1639,9 @@ def run_full_11_analysis(code: str, name: str, sector: str, df: pd.DataFrame, fe
     # 综合得分：加权买票 - 加权卖票 + confidence加权得分
     # 注：SENTIMENT 和 POLICY 不在此处投票，它们在 ensemble.py 的分层框架中使用
     score = round(weighted_buy * 2 - weighted_sell * 2 + score_sum, 2)
+    
+    # 均值回归得分（仅包含均值回归类策略，不含MA和MACD）
+    mr_score = round(mr_weighted_buy * 2 - mr_weighted_sell * 2 + mr_score_sum, 2)
     close = df['close']
     volume = df['volume']
     price = float(close.iloc[-1])
@@ -1325,6 +1676,67 @@ def run_full_11_analysis(code: str, name: str, sector: str, df: pd.DataFrame, fe
     pe_ttm = float(df['pe_ttm'].iloc[-1]) if 'pe_ttm' in df.columns and pd.notna(df['pe_ttm'].iloc[-1]) else None
     pb_val = float(df['pb'].iloc[-1]) if 'pb' in df.columns and pd.notna(df['pb'].iloc[-1]) else None
 
+    # 新增：计算趋势得分和动量得分（双引擎调度架构）
+    trend_score = 0.0
+    momentum_score = 0.0
+    trend_weight = 0.0
+    
+    try:
+        trend_strat = Trend_Composite()
+        trend_df = trend_strat.generate_signals(df)
+        if 'trend_score' in trend_df.columns and not trend_df.empty:
+            trend_score = float(trend_df['trend_score'].iloc[-1])
+    except Exception:
+        pass
+    
+    try:
+        mom_strat = Momentum_Adj()
+        mom_df = mom_strat.generate_signals(df)
+        if 'score' in mom_df.columns and not mom_df.empty:
+            momentum_score = float(mom_df['score'].iloc[-1])
+    except Exception:
+        pass
+    
+    # 技术确认因子（Phase 1增强）
+    tech_confirm_score = 0.0
+    try:
+        tech_strat = TechnicalConfirmation()
+        tech_df = tech_strat.generate_signals(df)
+        if 'tech_confirm_score' in tech_df.columns and not tech_df.empty:
+            tech_confirm_score = float(tech_df['tech_confirm_score'].iloc[-1])
+    except Exception:
+        pass
+    
+    # 量价配合因子（Phase 2增强）
+    volume_confirm_score = 0.0
+    try:
+        vol_strat = VolumeConfirmation()
+        vol_df = vol_strat.generate_signals(df)
+        if 'volume_confirm_score' in vol_df.columns and not vol_df.empty:
+            volume_confirm_score = float(vol_df['volume_confirm_score'].iloc[-1])
+    except Exception:
+        pass
+    
+    # 相对强度因子（Phase 2增强）
+    relative_strength_score = 0.0
+    try:
+        # 获取指数数据（沪深300）
+        index_df = None
+        try:
+            from src.data.fetchers.data_prefetch import fetch_stock_daily
+            index_df = fetch_stock_daily('000300', datalen=800)
+        except Exception:
+            pass
+        
+        rs_strat = RelativeStrength()
+        rs_df = rs_strat.generate_signals(df, index_df=index_df, sector_df=None)
+        if 'relative_strength_score' in rs_df.columns and not rs_df.empty:
+            relative_strength_score = float(rs_df['relative_strength_score'].iloc[-1])
+    except Exception:
+        pass
+    
+    trend_weight = max(0.0, min(1.0, trend_score))
+
     return {
         'code': code,
         'name': name,
@@ -1332,7 +1744,8 @@ def run_full_11_analysis(code: str, name: str, sector: str, df: pd.DataFrame, fe
         'buy_count': buy_count,
         'sell_count': sell_count,
         'hold_count': hold_count,
-        'score': score,
+        'score': score,  # 全策略综合得分（含MA/MACD）
+        'mr_score': mr_score,  # 均值回归得分（仅含PB/PE/PEPB/DUAL/BOLL/RSI/KDJ/MONEY_FLOW/NEWS/SENTIMENT）
         'price': price,
         'change_5d': round(change_5d, 2),
         'change_20d': round(change_20d, 2),
@@ -1347,6 +1760,13 @@ def run_full_11_analysis(code: str, name: str, sector: str, df: pd.DataFrame, fe
         'dist_low': round(dist_low, 2),
         'pe_ttm': pe_ttm,
         'pb': pb_val,
+        # 双引擎调度架构新增字段
+        'trend_score': round(trend_score, 3),
+        'momentum_score': round(momentum_score, 3),
+        'trend_weight': round(trend_weight, 3),
+        'tech_confirm_score': round(tech_confirm_score, 3),  # Phase 1增强：技术确认因子
+        'volume_confirm_score': round(volume_confirm_score, 3),  # Phase 2增强：量价配合
+        'relative_strength_score': round(relative_strength_score, 3),  # Phase 2增强：相对强度
     }
 
 
@@ -1394,8 +1814,8 @@ def main():
                         help='股票池（默认综合大池 stock_pool_all.json，约860只，每日选股只从此池选取）')
     parser.add_argument('--max-pool', type=int, default=0, help='最多扫描池内前 N 只（0=全部）')
     parser.add_argument('--strategy', type=str, default='ensemble',
-                        choices=['macd', 'ensemble', 'full_11'],
-                        help='策略: macd | ensemble(11策略固定权重，推荐) | full_11(同ensemble，兼容旧命令)')
+                        choices=['macd', 'ensemble', 'full_11', 'full_12'],
+                        help='策略: macd | ensemble(12策略固定权重，推荐) | full_11/full_12(同ensemble，兼容命令)')
     parser.add_argument('--cache-only', action='store_true', default=False,
                         help='纯缓存模式：只使用本地缓存，不发起任何网络请求（适合API限流时）')
     parser.add_argument('--fast', type=int, default=12, help='MACD快线(仅macd模式)')
@@ -1449,7 +1869,7 @@ def main():
                 if df is None or df.empty or len(df) < 60:
                     # ETF/个别标的可能无日K，持仓区仍可用 spot 价，但策略分析需要日K，失败则跳过分析
                     continue
-                r = run_full_11_analysis(code, name, "", df, fetcher, skip_industry=True)
+                r = run_full_12_analysis(code, name, "", df, fetcher, skip_industry=True)
                 if r:
                     full_results.append(r)
             except Exception:
@@ -1461,7 +1881,7 @@ def main():
                 today=today,
                 top_list=[],
                 all_results=full_results,
-                strategy_name="仅持仓分析(11策略)",
+                strategy_name="仅持仓分析(12策略)",
                 pool_size=0,
                 valid_count=len(full_results),
                 holdings_only=True,
@@ -1488,9 +1908,9 @@ def main():
         else:
             print(f"✅ 政策面: {policy_result['reason']}\n")
 
-    # ---------- 11 策略全量模式 ----------
-    if args.strategy == 'full_11':
-        strategy_name = '11大策略(MA|MACD|RSI|BOLL|KDJ|DUAL|Sentiment|NewsSentiment|PolicyEvent|MoneyFlow|PE|PB)'
+    # ---------- 12 策略全量模式 ----------
+    if args.strategy in ['full_11', 'full_12']:
+        strategy_name = '12大策略(MA|MACD|RSI|BOLL|KDJ|DUAL|PE|PB|PEPB|NEWS|SENTIMENT|MONEY_FLOW)'
         print(f"{'='*70}")
         print(f"📈 每日选股推荐 — {today} [全策略+大池]")
         print(f"{'='*70}")
@@ -1601,7 +2021,7 @@ def main():
         def analyze_stock(item):
             code, name, sector, df = item
             try:
-                return run_full_11_analysis(code, name, sector, df, fetcher, skip_industry=True)
+                return run_full_12_analysis(code, name, sector, df, fetcher, skip_industry=True)
             except Exception:
                 return None
         
@@ -1634,19 +2054,104 @@ def main():
             print("\n⚠️ 无有效分析结果")
             return
 
-        full_results.sort(key=lambda x: x['score'], reverse=True)
-        top_list = full_results[:args.top]
-
-        print(f"\n\n{'='*70}")
-        print(f"🟢 11策略选股 TOP {len(top_list)}（按综合得分排序）")
-        print(f"{'='*70}")
-        print(f"{'排名':>4} {'代码':>8} {'名称':>10} {'价格':>8} {'得分':>6} {'买':>3} {'卖':>3} {'观':>3} {'5日%':>7} {'20日%':>7} {'板块'}")
-        print("-" * 75)
+        # ========== 双引擎调度架构：均值回归 + 趋势引擎 ==========
+        df_scores = pd.DataFrame(full_results)
+        df_scores.set_index('code', inplace=True)
+        
+        # 确保有趋势列和mr_score列
+        for col in ['trend_score', 'momentum_score', 'trend_weight', 'mr_score', 
+                    'tech_confirm_score', 'volume_confirm_score', 'relative_strength_score']:
+            if col not in df_scores.columns:
+                df_scores[col] = 0.0
+        
+        # 软过滤调整得分（趋势越强，均值回归得分权重越高）
+        # 【修复】使用mr_score（仅均值回归策略）而非score（全策略）
+        df_scores['trend_weight'] = np.clip(df_scores['trend_score'], 0, 1)
+        df_scores['adjusted_mr_score'] = df_scores['mr_score'] * (TREND_WEIGHT_BASE + TREND_WEIGHT_RANGE * df_scores['trend_weight'])
+        
+        # 市场状态判断
+        index_df = get_index_data()
+        regime, strength = get_market_regime(index_df)
+        mr_n, trend_n = (10, 10) if regime == 'trend' else (15, 5)
+        
+        # 超跌榜（均值回归引擎）- 使用adjusted_mr_score
+        mr_list = df_scores.nlargest(mr_n, 'adjusted_mr_score').index.tolist()
+        
+        # 趋势质量得分（Phase 2完整版：4层加权）
+        # 第1层：基础趋势（40%）= 0.7 * trend_score + 0.3 * momentum_score
+        # 第2层：技术确认（30%）= tech_confirm_score
+        # 第3层：相对强度（20%）= relative_strength_score
+        # 第4层：量价配合（10%）= volume_confirm_score
+        base_trend = (TREND_SCORE_WEIGHT * df_scores['trend_score'] +
+                      MOMENTUM_SCORE_WEIGHT * df_scores['momentum_score'])
+        df_scores['trend_rank_score'] = (0.4 * base_trend + 
+                                         0.3 * df_scores['tech_confirm_score'] +
+                                         0.2 * df_scores['relative_strength_score'] +
+                                         0.1 * df_scores['volume_confirm_score'])
+        
+        # 趋势榜（趋势引擎，不去重，允许双优股票重复出现）
+        trend_list = df_scores.nlargest(trend_n, 'trend_rank_score').index.tolist()
+        
+        # 识别双优股票（既在超跌榜又在趋势榜）
+        dual_advantage_stocks = [code for code in mr_list if code in trend_list]
+        
+        # 合并推荐（保留重复，双优股票会出现两次）
+        final_recommend = mr_list + trend_list
+        if len(final_recommend) < args.top:
+            remaining = df_scores[~df_scores.index.isin(final_recommend)].nlargest(args.top - len(final_recommend), 'score').index.tolist()
+            final_recommend.extend(remaining)
+        final_recommend = final_recommend[:args.top]
+        
+        # 构建 top_list（用于报告）
+        top_list = []
+        for code in final_recommend:
+            if code in df_scores.index:
+                # 从原始 full_results 中找到完整数据
+                orig_data = next((r for r in full_results if r['code'] == code), None)
+                if orig_data:
+                    top_list.append(orig_data)
+        
+        # 输出市场状态和榜单统计
+        print(f"\n\n🌐 市场状态: {regime} (强度={strength:.4f}) | 超跌榜{len(mr_list)}只 | 趋势榜{len(trend_list)}只 | ⭐双优{len(dual_advantage_stocks)}只")
+        
+        # 双优股票特别提示
+        if dual_advantage_stocks:
+            print(f"\n{'='*90}")
+            print(f"⭐⭐⭐ 双优股票（既超跌又趋势强，黄金标的，重点关注！）")
+            print(f"{'='*90}")
+            for code in dual_advantage_stocks:
+                r = df_scores.loc[code]
+                orig_data = next((x for x in full_results if x['code'] == code), None)
+                if orig_data:
+                    mr_rank = mr_list.index(code) + 1
+                    trend_rank = trend_list.index(code) + 1
+                    print(f"  {code} {orig_data['name']:>10} | MR得分={r['mr_score']:>6.1f}(超跌榜第{mr_rank}) | 趋势={r['trend_score']:>+5.2f}(趋势榜第{trend_rank}) | 价格¥{orig_data['price']:.2f}")
+            print(f"{'='*90}\n")
+        
+        print(f"\n{'='*95}")
+        print(f"🔥 双引擎调度推荐 TOP {len(top_list)}（超跌反弹 + 趋势跟随）")
+        print(f"{'='*95}")
+        print(f"{'类型':>6} {'排名':>4} {'代码':>8} {'名称':>10} {'价格':>8} {'MR得分':>7} {'趋势':>6} {'买':>3} {'卖':>3} {'5日%':>7} {'20日%':>7} {'板块'}")
+        print("-" * 95)
+        
+        # 标注股票类型
         for rank, r in enumerate(top_list, 1):
-            print(f"{rank:>4} {r['code']:>8} {r['name']:>10} {r['price']:>8.2f} {r['score']:>6.1f} "
-                  f"{r['buy_count']:>3} {r['sell_count']:>3} {r['hold_count']:>3} "
+            code = r['code']
+            if code in dual_advantage_stocks:
+                stock_type = "⭐双优"
+            elif code in mr_list:
+                stock_type = "🟢超跌"
+            else:
+                stock_type = "🔵趋势"
+            
+            mr_score_val = r.get('mr_score', r['score'])
+            trend_val = r.get('trend_score', 0)
+            
+            print(f"{stock_type:>6} {rank:>4} {r['code']:>8} {r['name']:>10} {r['price']:>8.2f} "
+                  f"{mr_score_val:>7.1f} {trend_val:>+6.2f} "
+                  f"{r['buy_count']:>3} {r['sell_count']:>3} "
                   f"{r['change_5d']:>+7.2f} {r['change_20d']:>+7.2f} {str(r['sector'])[:12]}")
-        print("-" * 75)
+        print("-" * 95)
         print("\n📋 策略信号明细（TOP3）:")
         for rank, r in enumerate(top_list[:3], 1):
             print(f"\n  {rank}. {r['code']} {r['name']} (得分 {r['score']:.1f}, 买{r['buy_count']}/卖{r['sell_count']}/观{r['hold_count']})")
@@ -1715,7 +2220,7 @@ def main():
                 theme_results = []
                 for code, name, sector, df in theme_prepared:
                     try:
-                        result = run_full_11_analysis(code, name, sector, df, fetcher, skip_industry=True)
+                        result = run_full_12_analysis(code, name, sector, df, fetcher, skip_industry=True)
                         if result:
                             theme_results.append(result)
                     except Exception:
@@ -1739,6 +2244,9 @@ def main():
             pool_size=len(stocks),
             valid_count=len(full_results),
             sector_results_map=sector_results_map if args.append_sectors else None,
+            dual_advantage_stocks=dual_advantage_stocks,
+            mr_list=mr_list,
+            trend_list=trend_list,
         )
         print(f"\n📝 增量报告已保存: {report_path}")
         print(f"📝 当日归档已保存: {archive_path}")
@@ -1748,7 +2256,7 @@ def main():
     # ---------- 原有 ensemble / macd 模式 ----------
     if args.strategy == 'ensemble':
         strat = EnsembleStrategy()
-        strategy_name = '11策略Ensemble(技术6+基本面3+消息面+资金面，加权投票)'
+        strategy_name = '12策略Ensemble(技术6+基本面3+消息面+资金面+情绪面，加权投票)'
     else:
         strat = MACDStrategy(fast_period=args.fast, slow_period=args.slow,
                              signal_period=args.signal)
