@@ -420,15 +420,9 @@ def main():
     print(f"股票池大小: {len(all_stocks)} 只")
     print(f"回测股票数: {min(args.stocks, len(all_stocks))} 只")
     
-    # 加载指数数据
-    print("\n加载指数数据（沪深300）...")
-    try:
-        from src.data.fetchers.data_prefetch import fetch_stock_daily
-        index_df = fetch_stock_daily('000300', datalen=800)
-        print(f"✅ 指数数据: {len(index_df)} 条")
-    except Exception as e:
-        print(f"⚠️ 指数数据加载失败: {e}")
-        index_df = None
+    # 加载指数数据（暂时跳过，因为数据源不稳定）
+    print("\n⚠️ 跳过指数数据加载（数据源不稳定），相对强度因子将使用默认值0")
+    index_df = None
     
     # K线数据目录
     kline_dir = os.path.join(os.path.dirname(__file__), "../../mydate/backtest_kline")

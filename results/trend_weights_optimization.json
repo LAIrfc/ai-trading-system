@@ -1,0 +1,170 @@
+[
+  {
+    "weights": {
+      "base_trend": 0.4,
+      "tech_confirm": 0.3,
+      "relative_strength": 0.1,
+      "volume_confirm": 0.2
+    },
+    "avg_return": 0.02153988277245127,
+    "avg_win_rate": 0.5342465753424658,
+    "avg_sharpe": 0.4395692167356789,
+    "valid_stocks": 365
+  },
+  {
+    "weights": {
+      "base_trend": 0.5,
+      "tech_confirm": 0.3,
+      "relative_strength": 0.1,
+      "volume_confirm": 0.1
+    },
+    "avg_return": 0.024359772624322776,
+    "avg_win_rate": 0.5209876543209877,
+    "avg_sharpe": 0.3305386562406524,
+    "valid_stocks": 135
+  },
+  {
+    "weights": {
+      "base_trend": 0.4,
+      "tech_confirm": 0.2,
+      "relative_strength": 0.2,
+      "volume_confirm": 0.2
+    },
+    "avg_return": 0.0253011669449282,
+    "avg_win_rate": 0.5378250591016548,
+    "avg_sharpe": 0.3140465742186309,
+    "valid_stocks": 141
+  },
+  {
+    "weights": {
+      "base_trend": 0.3,
+      "tech_confirm": 0.4,
+      "relative_strength": 0.1,
+      "volume_confirm": 0.2
+    },
+    "avg_return": 0.022189563925919756,
+    "avg_win_rate": 0.5602697998259356,
+    "avg_sharpe": 0.30967788488836157,
+    "valid_stocks": 383
+  },
+  {
+    "weights": {
+      "base_trend": 0.5,
+      "tech_confirm": 0.4,
+      "relative_strength": 0.1,
+      "volume_confirm": 0.0
+    },
+    "avg_return": 0.002151210394228727,
+    "avg_win_rate": 0.4269005847953216,
+    "avg_sharpe": 0.19002840499854484,
+    "valid_stocks": 57
+  },
+  {
+    "weights": {
+      "base_trend": 0.5,
+      "tech_confirm": 0.2,
+      "relative_strength": 0.1,
+      "volume_confirm": 0.2
+    },
+    "avg_return": 0.02311934415247075,
+    "avg_win_rate": 0.5522252497729336,
+    "avg_sharpe": 0.04556509301901511,
+    "valid_stocks": 367
+  },
+  {
+    "weights": {
+      "base_trend": 0.3,
+      "tech_confirm": 0.2,
+      "relative_strength": 0.3,
+      "volume_confirm": 0.2
+    },
+    "avg_return": 0.008798471737560888,
+    "avg_win_rate": 0.4,
+    "avg_sharpe": 0.0,
+    "valid_stocks": 5
+  },
+  {
+    "weights": {
+      "base_trend": 0.3,
+      "tech_confirm": 0.4,
+      "relative_strength": 0.2,
+      "volume_confirm": 0.1
+    },
+    "avg_return": -0.006182961779845861,
+    "avg_win_rate": 0.45454545454545453,
+    "avg_sharpe": 0.0,
+    "valid_stocks": 22
+  },
+  {
+    "weights": {
+      "base_trend": 0.4,
+      "tech_confirm": 0.3,
+      "relative_strength": 0.2,
+      "volume_confirm": 0.1
+    },
+    "avg_return": 0.008247334158737645,
+    "avg_win_rate": 0.45454545454545453,
+    "avg_sharpe": 0.0,
+    "valid_stocks": 11
+  },
+  {
+    "weights": {
+      "base_trend": 0.4,
+      "tech_confirm": 0.4,
+      "relative_strength": 0.2,
+      "volume_confirm": 0.0
+    },
+    "avg_return": -0.022910081550772145,
+    "avg_win_rate": 0.2857142857142857,
+    "avg_sharpe": 0.0,
+    "valid_stocks": 7
+  },
+  {
+    "weights": {
+      "base_trend": 0.5,
+      "tech_confirm": 0.3,
+      "relative_strength": 0.2,
+      "volume_confirm": 0.0
+    },
+    "avg_return": 0.103003003003003,
+    "avg_win_rate": 1.0,
+    "avg_sharpe": 0.0,
+    "valid_stocks": 1
+  },
+  {
+    "weights": {
+      "base_trend": 0.5,
+      "tech_confirm": 0.2,
+      "relative_strength": 0.2,
+      "volume_confirm": 0.1
+    },
+    "avg_return": 0.0603404025865018,
+    "avg_win_rate": 0.5166666666666667,
+    "avg_sharpe": -0.029532788630622236,
+    "valid_stocks": 30
+  },
+  {
+    "weights": {
+      "base_trend": 0.4,
+      "tech_confirm": 0.4,
+      "relative_strength": 0.1,
+      "volume_confirm": 0.1
+    },
+    "avg_return": 0.029885650793609258,
+    "avg_win_rate": 0.5355987055016181,
+    "avg_sharpe": -0.12858309705181248,
+    "valid_stocks": 103
+  },
+  {
+    "weights": {
+      "base_trend": 0.3,
+      "tech_confirm": 0.3,
+      "relative_strength": 0.2,
+      "volume_confirm": 0.2
+    },
+    "avg_return": 0.03327282285457183,
+    "avg_win_rate": 0.5434027777777778,
+    "avg_sharpe": -0.13795894787850715,
+    "valid_stocks": 96
+  }
+]

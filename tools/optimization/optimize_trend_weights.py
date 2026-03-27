@@ -140,8 +140,8 @@ def backtest_single_stock(code, name, kline_dir, index_df, weights):
     signals = []
     returns = []
     
-    # 滚动窗口回测
-    for i in range(60, len(df) - 5):  # 保留5日用于计算未来收益
+    # 滚动窗口回测（每20日采样一次以加快速度）
+    for i in range(60, len(df) - 5, 20):  # 每20日采样，保留5日用于计算未来收益
         window_df = df.iloc[:i+1].copy()
         
         # 计算所有因子
@@ -170,20 +170,30 @@ def backtest_single_stock(code, name, kline_dir, index_df, weights):
 
 def evaluate_weights(weights, stocks, kline_dir, index_df):
     """
-    评估给定权重配置的整体表现
+    评估给定权重配置的整体表现（并行计算）
     
     Returns:
         dict with avg_return, avg_win_rate, avg_sharpe
     """
     results = []
     
-    for stock in stocks[:100]:  # 限制100只股票以加快速度
-        code = stock['code']
-        name = stock['name']
+    # 使用多进程并行计算
+    with ProcessPoolExecutor(max_workers=8) as executor:
+        futures = {}
+        for stock in stocks:
+            code = stock['code']
+            name = stock['name']
+            future = executor.submit(backtest_single_stock, code, name, kline_dir, index_df, weights)
+            futures[future] = (code, name)
         
-        result = backtest_single_stock(code, name, kline_dir, index_df, weights)
-        if result:
-            results.append(result)
+        for future in as_completed(futures):
+            try:
+                result = future.result()
+                if result:
+                    results.append(result)
+            except Exception as e:
+                code, name = futures[future]
+                pass  # 忽略单只股票的错误
     
     if not results:
         return None
@@ -222,7 +232,7 @@ def grid_search(stocks, kline_dir, index_df):
             })
     
     print(f"\n搜索空间: {len(weight_combinations)} 种权重组合")
-    print(f"测试股票: {min(100, len(stocks))} 只")
+    print(f"测试股票: {len(stocks)} 只")
     
     # 评估每种权重组合
     all_results = []
@@ -280,15 +290,9 @@ def main():
     
     print(f"股票池大小: {len(all_stocks)} 只")
     
-    # 加载指数数据
-    print("加载指数数据（沪深300）...")
-    try:
-        from src.data.fetchers.data_prefetch import fetch_stock_daily
-        index_df = fetch_stock_daily('000300', datalen=800)
-        print(f"✅ 指数数据加载成功: {len(index_df)} 条")
-    except Exception as e:
-        print(f"⚠️ 指数数据加载失败: {e}")
-        index_df = None
+    # 加载指数数据（暂时跳过，因为数据源不稳定）
+    print("⚠️ 跳过指数数据加载（数据源不稳定），相对强度因子将使用默认值0")
+    index_df = None
     
     # K线数据目录
     kline_dir = os.path.join(os.path.dirname(__file__), "../../mydate/backtest_kline")

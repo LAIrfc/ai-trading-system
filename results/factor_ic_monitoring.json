@@ -1,0 +1,25 @@
+{
+  "date": "2026-03-27 16:19:08",
+  "config": {
+    "num_stocks": 200,
+    "lookback_days": 5
+  },
+  "ic_results": {
+    "base_trend": {
+      "ic_spearman": 0.4305295704829636,
+      "ic_pearson": 0.40146966650238713
+    },
+    "tech_confirm": {
+      "ic_spearman": 0.16553159416320262,
+      "ic_pearson": 0.15448381050434623
+    },
+    "relative_strength": {
+      "ic_spearman": 0.32168739534931556,
+      "ic_pearson": 0.3408322353223789
+    },
+    "volume_confirm": {
+      "ic_spearman": 0.03739215546406881,
+      "ic_pearson": 0.1292521450827963
+    }
+  }
+}

@@ -440,9 +440,18 @@ def _render_daily_section(today: str, top_list: list, strategy_name: str,
                           pool_size: int, valid_count: int, 
                           dual_advantage_stocks: list = None,
                           mr_list: list = None, 
-                          trend_list: list = None) -> str:
+                          trend_list: list = None,
+                          hybrid_decision: dict = None) -> str:
     """渲染单日推荐区块（每只推荐股附带详细分析理由）"""
     lines = [f"## {today} 每日推荐\n"]
+    
+    # 混合策略信息
+    if hybrid_decision:
+        lines.append(f"**版本**: {hybrid_decision['version']} | **原因**: {hybrid_decision['reason']}\n")
+        if hybrid_decision.get('ic_status'):
+            ic = hybrid_decision['ic_status']
+            lines.append(f"**IC状态**: Base Trend={ic['base_trend_ic']:.3f}, RS={ic['relative_strength_ic']:.3f}\n")
+    
     lines.append(f"**策略**: {strategy_name} | **股票池**: {pool_size}只 | **有效**: {valid_count}只\n")
     
     # 双优股票特别说明
@@ -651,6 +660,7 @@ def save_incremental_report(
     dual_advantage_stocks: list = None,
     mr_list: list = None,
     trend_list: list = None,
+    hybrid_decision: dict = None,
 ):
     """保存增量报告：持仓置顶 + 今日操作建议 + 今日推荐 + 专题板块 + 历史（最新在前）"""
     from src.data.provider.data_provider import get_default_kline_provider
@@ -700,10 +710,10 @@ def save_incremental_report(
             report_parts.append(today_daily_block)
         else:
             report_parts.append(_render_daily_section(today, [], strategy_name, pool_size, valid_count,
-                                                      dual_advantage_stocks, mr_list, trend_list))
+                                                      dual_advantage_stocks, mr_list, trend_list, hybrid_decision))
     else:
         report_parts.append(_render_daily_section(today, top_list, strategy_name, pool_size, valid_count,
-                                                  dual_advantage_stocks, mr_list, trend_list))
+                                                  dual_advantage_stocks, mr_list, trend_list, hybrid_decision))
 
     # 4. 健康上涨组推荐（趋势跟随型）
     if not holdings_only and all_results:
@@ -735,7 +745,7 @@ def save_incremental_report(
         with open(archive_path, 'w', encoding='utf-8') as f:
             f.write(f"# 📈 每日选股推荐 — {today}\n\n")
             f.write(_render_daily_section(today, top_list, strategy_name, pool_size, valid_count,
-                                         dual_advantage_stocks, mr_list, trend_list))
+                                         dual_advantage_stocks, mr_list, trend_list, hybrid_decision))
 
     return REPORT_FILE, archive_path
 
@@ -1432,13 +1442,14 @@ def _get_global_strategies():
     return _GLOBAL_STRATEGIES
 
 
-def run_full_12_analysis(code: str, name: str, sector: str, df: pd.DataFrame, fetcher: FundamentalFetcher, skip_industry: bool = False) -> dict:
+def run_full_12_analysis(code: str, name: str, sector: str, df: pd.DataFrame, fetcher: FundamentalFetcher, skip_industry: bool = False, index_df: pd.DataFrame = None) -> dict:
     """
     运行 12 大策略: MA, MACD, RSI, BOLL, KDJ, DUAL, PE, PB, PEPB, NEWS, SENTIMENT, MONEY_FLOW。
     返回 buy_count, sell_count, hold_count, score（买-卖加权）, signals 列表。
     
     Args:
         skip_industry: 是否跳过行业PE/PB查询（纯缓存模式用，避免网络请求）
+        index_df: 指数数据（沪深300），避免重复获取
     
     优化:
         1. 使用全局策略实例（避免重复创建）
@@ -1720,14 +1731,7 @@ def run_full_12_analysis(code: str, name: str, sector: str, df: pd.DataFrame, fe
     # 相对强度因子（Phase 2增强）
     relative_strength_score = 0.0
     try:
-        # 获取指数数据（沪深300）
-        index_df = None
-        try:
-            from src.data.fetchers.data_prefetch import fetch_stock_daily
-            index_df = fetch_stock_daily('000300', datalen=800)
-        except Exception:
-            pass
-        
+        # 使用传入的指数数据（避免重复获取）
         rs_strat = RelativeStrength()
         rs_df = rs_strat.generate_signals(df, index_df=index_df, sector_df=None)
         if 'relative_strength_score' in rs_df.columns and not rs_df.empty:
@@ -1830,6 +1834,9 @@ def main():
                         help='只分析持仓：不跑股票池扫描，仅用最新数据分析持仓并更新报告')
     parser.add_argument('--append-sectors', action='store_true', default=False,
                         help='在主报告后追加专题板块推荐（如核电+算电协同）')
+    parser.add_argument('--force-version', type=str, default=None,
+                        choices=['v5.2', 'v6.1'],
+                        help='强制使用指定版本（v5.2或v6.1），None则根据IC自动选择')
     args = parser.parse_args()
 
     # 优先使用 mydate 目录，如果不存在则使用 data 目录
@@ -1857,6 +1864,19 @@ def main():
         provider = get_default_kline_provider()
         fetcher = FundamentalFetcher()
 
+        # 获取指数数据（全局共享）
+        print("\n📊 获取指数数据（沪深300）...")
+        index_df = None
+        try:
+            from src.data.fetchers.data_prefetch import fetch_stock_daily
+            index_df = fetch_stock_daily('000300', datalen=800)
+            if index_df is not None and not index_df.empty:
+                print(f"✅ 指数数据获取成功: {len(index_df)} 条")
+            else:
+                print("⚠️ 指数数据为空，相对强度因子将失效")
+        except Exception as e:
+            print(f"⚠️ 指数数据获取失败: {e}，相对强度因子将失效")
+
         # 只为持仓拉取最新数据并分析（避免跑 808 只）
         full_results = []
         for h in holdings:
@@ -1869,7 +1889,7 @@ def main():
                 if df is None or df.empty or len(df) < 60:
                     # ETF/个别标的可能无日K，持仓区仍可用 spot 价，但策略分析需要日K，失败则跳过分析
                     continue
-                r = run_full_12_analysis(code, name, "", df, fetcher, skip_industry=True)
+                r = run_full_12_analysis(code, name, "", df, fetcher, skip_industry=True, index_df=index_df)
                 if r:
                     full_results.append(r)
             except Exception:
@@ -2014,6 +2034,19 @@ def main():
         
         print(f"\n✅ 数据获取完成: {len(prepared_stocks)}只有效, {data_fail}只跳过")
         
+        # ========== 获取指数数据（全局共享，避免重复请求） ==========
+        print("\n📊 获取指数数据（沪深300）...")
+        index_df = None
+        try:
+            from src.data.fetchers.data_prefetch import fetch_stock_daily
+            index_df = fetch_stock_daily('000300', datalen=800)
+            if index_df is not None and not index_df.empty:
+                print(f"✅ 指数数据获取成功: {len(index_df)} 条")
+            else:
+                print("⚠️ 指数数据为空，相对强度因子将失效")
+        except Exception as e:
+            print(f"⚠️ 指数数据获取失败: {e}，相对强度因子将失效")
+        
         # ========== 阶段2: 多线程并行策略分析（纯CPU计算） ==========
         max_workers = 8
         print(f"\n🚀 阶段2: {max_workers}线程并行策略分析...\n")
@@ -2021,7 +2054,7 @@ def main():
         def analyze_stock(item):
             code, name, sector, df = item
             try:
-                return run_full_12_analysis(code, name, sector, df, fetcher, skip_industry=True)
+                return run_full_12_analysis(code, name, sector, df, fetcher, skip_industry=True, index_df=index_df)
             except Exception:
                 return None
         
@@ -2054,7 +2087,7 @@ def main():
             print("\n⚠️ 无有效分析结果")
             return
 
-        # ========== 双引擎调度架构：均值回归 + 趋势引擎 ==========
+        # ========== 双引擎调度架构 v6.1：均值回归 + 趋势引擎（机构级修复版） ==========
         df_scores = pd.DataFrame(full_results)
         df_scores.set_index('code', inplace=True)
         
@@ -2069,25 +2102,163 @@ def main():
         df_scores['trend_weight'] = np.clip(df_scores['trend_score'], 0, 1)
         df_scores['adjusted_mr_score'] = df_scores['mr_score'] * (TREND_WEIGHT_BASE + TREND_WEIGHT_RANGE * df_scores['trend_weight'])
         
-        # 市场状态判断
-        index_df = get_index_data()
-        regime, strength = get_market_regime(index_df)
-        mr_n, trend_n = (10, 10) if regime == 'trend' else (15, 5)
+        # ========== 混合策略：根据IC动态选择v5.2/v6.1 ==========
+        print("\n🔀 混合策略：根据IC选择版本...")
+        from src.strategies.hybrid_selector import HybridVersionSelector
+        
+        selector = HybridVersionSelector(
+            ic_threshold_base=0.20,
+            ic_threshold_rs=0.15,
+            ic_cache_file='results/factor_ic_monitoring.json'
+        )
+        
+        decision = selector.select_version(force_version=args.force_version)
+        selector.log_decision(decision)
+        
+        selected_version = decision['version']
+        selected_weights = decision['weights']
+        
+        print(f"   ✅ 选择版本: {selected_version}")
+        print(f"   原因: {decision['reason']}")
+        print(f"   权重: {selected_weights}")
+        
+        if decision['ic_status']:
+            print(f"   IC状态: base_trend={decision['ic_status']['base_trend_ic']:.3f}, "
+                  f"rs={decision['ic_status']['relative_strength_ic']:.3f}")
+        
+        # ========== v6.1 修复1: 因子正交化（Factor Orthogonalization） ==========
+        use_v6_1 = (selected_version == 'v6.1')
+        
+        if use_v6_1:
+            print("\n🔧 v6.1修复: 因子正交化...")
+            from src.factors.orthogonalization import FactorOrthogonalizer
+        else:
+            print("\n📌 使用v5.2（固定权重，无正交化）...")
+        
+        # 计算base_trend
+        base_trend_calc = (TREND_SCORE_WEIGHT * df_scores['trend_score'] +
+                          MOMENTUM_SCORE_WEIGHT * df_scores['momentum_score'])
+        
+        # 准备因子数据
+        factor_df = pd.DataFrame({
+            'base_trend': base_trend_calc,
+            'tech_confirm': df_scores['tech_confirm_score'],
+            'relative_strength': df_scores['relative_strength_score'],
+            'volume_confirm': df_scores['volume_confirm_score']
+        })
+        
+        # 根据版本选择处理方式
+        if use_v6_1:
+            # v6.1: 正交化
+            orthogonalizer = FactorOrthogonalizer(method='sequential')
+            try:
+                orthogonal_factors = orthogonalizer.fit_transform(factor_df)
+                
+                # 诊断
+                diag = orthogonalizer.diagnose(factor_df, orthogonal_factors)
+                print(f"   正交化前平均相关性: {diag['avg_corr_before']:.3f}")
+                print(f"   正交化后平均相关性: {diag['avg_corr_after']:.3f}")
+                print(f"   改善: {diag['improvement_pct']:.1f}%")
+                
+                # 使用正交化后的因子
+                df_scores['base_trend_orth'] = orthogonal_factors['base_trend']
+                df_scores['tech_confirm_orth'] = orthogonal_factors['tech_confirm']
+                df_scores['relative_strength_orth'] = orthogonal_factors['relative_strength']
+                df_scores['volume_confirm_orth'] = orthogonal_factors['volume_confirm']
+            except Exception as e:
+                print(f"   ⚠️ 正交化失败: {e}，使用原始因子")
+                df_scores['base_trend_orth'] = factor_df['base_trend']
+                df_scores['tech_confirm_orth'] = factor_df['tech_confirm']
+                df_scores['relative_strength_orth'] = factor_df['relative_strength']
+                df_scores['volume_confirm_orth'] = factor_df['volume_confirm']
+        else:
+            # v5.2: 不正交化，直接使用原始因子
+            df_scores['base_trend_orth'] = factor_df['base_trend']
+            df_scores['tech_confirm_orth'] = factor_df['tech_confirm']
+            df_scores['relative_strength_orth'] = factor_df['relative_strength']
+            df_scores['volume_confirm_orth'] = factor_df['volume_confirm']
+        
+        # ========== v6.1 修复4: Soft Regime Score（连续市场状态） ==========
+        if use_v6_1:
+            print("\n🌐 v6.1修复: Soft Regime Score...")
+            from src.strategies.market_regime_v6 import SoftRegimeDetector
+            
+            try:
+                index_df = get_index_data()
+                if index_df.empty or 'close' not in index_df.columns:
+                    raise ValueError("指数数据为空或缺少close列")
+                
+                regime_detector = SoftRegimeDetector(trend_weight=0.6, vol_weight=0.4)
+                regime_score = regime_detector.calc_regime_score(index_df)
+                regime_features = regime_detector.get_regime_features(index_df)
+                
+                print(f"   Regime Score: {regime_score:.3f}")
+                print(f"   趋势强度: {regime_features['trend_strength']:+.3f}")
+                print(f"   波动率: {regime_features['volatility']:.3f}")
+                
+                # 动态权重（连续过渡）
+                dynamic_weights = regime_detector.get_dynamic_weights(regime_score)
+                print(f"   动态权重: base={dynamic_weights[0]:.2f}, tech={dynamic_weights[1]:.2f}, rs={dynamic_weights[2]:.2f}, vol={dynamic_weights[3]:.2f}")
+            except Exception as e:
+                print(f"   ⚠️ Regime Score计算失败: {e}，使用默认值")
+                regime_score = 0.0
+                dynamic_weights = selected_weights
+                print(f"   降级为固定权重: base={dynamic_weights[0]:.2f}, tech={dynamic_weights[1]:.2f}, rs={dynamic_weights[2]:.2f}, vol={dynamic_weights[3]:.2f}")
+        else:
+            # v5.2: 使用固定权重
+            regime_score = 0.0
+            dynamic_weights = selected_weights
+            print(f"   固定权重: base={dynamic_weights[0]:.2f}, tech={dynamic_weights[1]:.2f}, rs={dynamic_weights[2]:.2f}, vol={dynamic_weights[3]:.2f}")
+        
+        # 根据regime_score决定选股数量（连续）
+        if regime_score > 0.5:
+            mr_n, trend_n = 10, 10  # 强趋势市
+        elif regime_score > 0:
+            mr_n, trend_n = 12, 7   # 偏趋势市
+        else:
+            mr_n, trend_n = 15, 5   # 震荡市
         
         # 超跌榜（均值回归引擎）- 使用adjusted_mr_score
         mr_list = df_scores.nlargest(mr_n, 'adjusted_mr_score').index.tolist()
         
-        # 趋势质量得分（Phase 2完整版：4层加权）
-        # 第1层：基础趋势（40%）= 0.7 * trend_score + 0.3 * momentum_score
-        # 第2层：技术确认（30%）= tech_confirm_score
-        # 第3层：相对强度（20%）= relative_strength_score
-        # 第4层：量价配合（10%）= volume_confirm_score
-        base_trend = (TREND_SCORE_WEIGHT * df_scores['trend_score'] +
-                      MOMENTUM_SCORE_WEIGHT * df_scores['momentum_score'])
-        df_scores['trend_rank_score'] = (0.4 * base_trend + 
-                                         0.3 * df_scores['tech_confirm_score'] +
-                                         0.2 * df_scores['relative_strength_score'] +
-                                         0.1 * df_scores['volume_confirm_score'])
+        # ========== 趋势质量得分（根据版本选择） ==========
+        print(f"\n📊 计算趋势质量得分（{selected_version}）...")
+        
+        # 使用正交化后的因子 + 动态权重
+        raw_trend_scores = {}
+        for code in df_scores.index:
+            # 线性组合（使用动态权重）
+            linear = (dynamic_weights[0] * df_scores.loc[code, 'base_trend_orth'] +
+                      dynamic_weights[1] * df_scores.loc[code, 'tech_confirm_orth'] +
+                      dynamic_weights[2] * df_scores.loc[code, 'relative_strength_orth'] +
+                      dynamic_weights[3] * df_scores.loc[code, 'volume_confirm_orth'])
+            
+            # 门控交互（仅v6.1启用）
+            if use_v6_1 and df_scores.loc[code, 'base_trend_orth'] > 0:
+                interaction = (df_scores.loc[code, 'base_trend_orth'] *
+                              df_scores.loc[code, 'volume_confirm_orth'] * 0.1)
+                linear += interaction
+            
+            raw_trend_scores[code] = linear
+        
+        raw_trend_scores_series = pd.Series(raw_trend_scores)
+        
+        # ========== v6.1 修复2: Rank Normalization（稳定化） ==========
+        if use_v6_1:
+            print("\n📏 v6.1修复: Rank Normalization...")
+            from src.factors.normalization import RankNormalizer
+            
+            normalizer = RankNormalizer(method='percentile')
+            normalized_trend_scores = normalizer.transform(raw_trend_scores_series)
+            
+            print(f"   得分范围: [{normalized_trend_scores.min():.3f}, {normalized_trend_scores.max():.3f}]")
+        else:
+            # v5.2: 使用tanh压缩
+            normalized_trend_scores = raw_trend_scores_series.apply(np.tanh)
+            print(f"   得分范围: [{normalized_trend_scores.min():.3f}, {normalized_trend_scores.max():.3f}]")
+        
+        # 保存到df_scores
+        df_scores['trend_rank_score'] = normalized_trend_scores
         
         # 趋势榜（趋势引擎，不去重，允许双优股票重复出现）
         trend_list = df_scores.nlargest(trend_n, 'trend_rank_score').index.tolist()
@@ -2102,6 +2273,62 @@ def main():
             final_recommend.extend(remaining)
         final_recommend = final_recommend[:args.top]
         
+        # ========== v6.1 修复3: Volatility Scaling（风险调整权重） ==========
+        if use_v6_1:
+            print("\n⚖️  v6.1修复: Volatility Scaling...")
+            from src.portfolio.risk_scaling import VolatilityScaler
+            
+            # 构建stock_data字典（从prepared_stocks）
+            stock_data = {}
+            for code, name, sector, df in prepared_stocks:
+                stock_data[code] = df
+            
+            # 计算个股波动率
+            vol_scaler = VolatilityScaler(target_vol=0.15, lookback=60)
+            vol_dict = {}
+            for code in final_recommend:
+                if code in stock_data:
+                    vol_dict[code] = vol_scaler.calc_volatility(stock_data[code])
+                else:
+                    # 如果没有数据，使用默认波动率
+                    vol_dict[code] = 0.20
+        else:
+            # v5.2: 不使用波动率调整
+            vol_dict = {code: 0.20 for code in final_recommend}
+        
+        # 初始权重（基于得分）
+        raw_weights = {}
+        score_sum = sum(df_scores.loc[c, 'trend_rank_score'] if c in df_scores.index else 0 for c in final_recommend)
+        if score_sum > 0:
+            for code in final_recommend:
+                if code in df_scores.index:
+                    raw_weights[code] = df_scores.loc[code, 'trend_rank_score'] / score_sum
+                else:
+                    raw_weights[code] = 1.0 / len(final_recommend)
+        else:
+            # 等权
+            for code in final_recommend:
+                raw_weights[code] = 1.0 / len(final_recommend)
+        
+        # 波动率调整（仅v6.1）
+        if use_v6_1:
+            from src.portfolio.risk_scaling import VolatilityScaler
+            vol_scaler = VolatilityScaler(target_vol=0.15, lookback=60)
+            risk_adjusted_weights = vol_scaler.scale_weights(raw_weights, vol_dict)
+            
+            # 目标波动率调整（可选）
+            final_weights, leverage = vol_scaler.target_volatility_scaling(
+                risk_adjusted_weights, vol_dict, current_capital=1000000
+            )
+            
+            print(f"   组合杠杆: {leverage:.2f}x")
+            print(f"   平均波动率: {np.mean([v for v in vol_dict.values() if not np.isnan(v)]):.2%}")
+        else:
+            # v5.2: 不调整波动率
+            final_weights = raw_weights
+            leverage = 1.0
+            print(f"   使用原始权重（无波动率调整）")
+        
         # 构建 top_list（用于报告）
         top_list = []
         for code in final_recommend:
@@ -2109,10 +2336,15 @@ def main():
                 # 从原始 full_results 中找到完整数据
                 orig_data = next((r for r in full_results if r['code'] == code), None)
                 if orig_data:
+                    # 添加风险调整权重信息
+                    orig_data['volatility'] = vol_dict.get(code, np.nan)
+                    orig_data['raw_weight'] = raw_weights.get(code, 0)
+                    orig_data['risk_weight'] = final_weights.get(code, 0)
                     top_list.append(orig_data)
         
         # 输出市场状态和榜单统计
-        print(f"\n\n🌐 市场状态: {regime} (强度={strength:.4f}) | 超跌榜{len(mr_list)}只 | 趋势榜{len(trend_list)}只 | ⭐双优{len(dual_advantage_stocks)}只")
+        regime_label = "强趋势" if regime_score > 0.5 else ("偏趋势" if regime_score > 0 else "震荡")
+        print(f"\n\n🌐 市场状态: {regime_label} (Regime Score={regime_score:.3f}) | 使用版本: {selected_version} | 超跌榜{len(mr_list)}只 | 趋势榜{len(trend_list)}只 | ⭐双优{len(dual_advantage_stocks)}只")
         
         # 双优股票特别提示
         if dual_advantage_stocks:
@@ -2220,7 +2452,7 @@ def main():
                 theme_results = []
                 for code, name, sector, df in theme_prepared:
                     try:
-                        result = run_full_12_analysis(code, name, sector, df, fetcher, skip_industry=True)
+                        result = run_full_12_analysis(code, name, sector, df, fetcher, skip_industry=True, index_df=index_df)
                         if result:
                             theme_results.append(result)
                     except Exception:
@@ -2247,6 +2479,7 @@ def main():
             dual_advantage_stocks=dual_advantage_stocks,
             mr_list=mr_list,
             trend_list=trend_list,
+            hybrid_decision=decision,
         )
         print(f"\n📝 增量报告已保存: {report_path}")
         print(f"📝 当日归档已保存: {archive_path}")
