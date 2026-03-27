@@ -312,6 +312,147 @@ def _circuit_record(source: str, success: bool) -> None:
             logger.warning("[data_prefetch] 数据源 %s 连续失败达 %d 次，熔断 %d 秒", source, threshold, open_secs)
 
 
+def fetch_index_daily(
+    code: str = "000300",
+    datalen: int = 800,
+    timeout: int = 15,
+    min_bars: int = 20,
+) -> pd.DataFrame:
+    """
+    指数日线获取（独立于股票数据源，不受熔断影响）。
+    指数和股票的API完全不同，必须用专门的接口：
+      - akshare: stock_zh_index_daily_em（指数专用）
+      - sina: 指数代码前缀固定为 sh（沪）或 sz（深）
+      - 腾讯: 同上
+    失败后逐源降级，不计入全局熔断状态。
+    """
+    key = (f"_idx_{code}", datalen)
+    now = time.time()
+    if key in _daily_cache:
+        cached_df, ts = _daily_cache[key]
+        if now - ts <= DAILY_CACHE_TTL_SECONDS and cached_df is not None and len(cached_df) >= min_bars:
+            return cached_df.copy()
+        del _daily_cache[key]
+
+    # 指数代码映射：确定正确的市场前缀
+    INDEX_PREFIX = {
+        "000001": "sh", "000300": "sh", "000016": "sh", "000905": "sh",
+        "000688": "sh", "000852": "sh", "399001": "sz", "399006": "sz",
+        "399005": "sz", "399673": "sz",
+    }
+    pure_code = code.replace("sh", "").replace("sz", "").strip()
+    prefix = INDEX_PREFIX.get(pure_code, "sh" if pure_code.startswith("000") else "sz")
+
+    last_err = None
+
+    # 数据源1: akshare 指数日线（最可靠）
+    try:
+        import akshare as ak
+        end_d = datetime.now()
+        start_d = end_d - timedelta(days=min(datalen + 60, 1200))
+        df = ak.stock_zh_index_daily_em(symbol=f"{prefix}{pure_code}")
+        if df is not None and not df.empty:
+            col_map = {"日期": "date", "开盘": "open", "收盘": "close", "最高": "high", "最低": "low", "成交量": "volume"}
+            df = df.rename(columns={k: v for k, v in col_map.items() if k in df.columns})
+            if "date" in df.columns:
+                df["date"] = pd.to_datetime(df["date"])
+                for c in ["open", "high", "low", "close", "volume"]:
+                    if c in df.columns:
+                        df[c] = pd.to_numeric(df[c], errors="coerce")
+                df = df[["date", "open", "high", "low", "close", "volume"]].dropna(subset=["close"]).tail(datalen).reset_index(drop=True)
+                if len(df) >= min_bars:
+                    logger.info("[fetch_index_daily] akshare 获取 %s 成功: %d 条", pure_code, len(df))
+                    _daily_cache[key] = (df.copy(), time.time())
+                    return df
+    except Exception as e:
+        last_err = f"akshare: {e}"
+        logger.debug("[fetch_index_daily] akshare %s 失败: %s", pure_code, e)
+
+    # 数据源2: sina 指数日线
+    try:
+        symbol = f"{prefix}{pure_code}"
+        url = "https://money.finance.sina.com.cn/quotes_service/api/json_v2.php/CN_MarketData.getKLineData"
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+            "Referer": "https://finance.sina.com.cn/",
+        }
+        r = requests.get(url, params={"symbol": symbol, "scale": "240", "ma": "no", "datalen": str(datalen)}, headers=headers, timeout=timeout)
+        data = json.loads(r.text) if r.text and r.text.strip() else None
+        if data:
+            df = pd.DataFrame(data)
+            df["date"] = pd.to_datetime(df["day"])
+            for c in ["open", "high", "low", "close", "volume"]:
+                df[c] = pd.to_numeric(df[c], errors="coerce")
+            df = df[["date", "open", "high", "low", "close", "volume"]].dropna(subset=["close"])
+            if len(df) >= min_bars:
+                logger.info("[fetch_index_daily] sina 获取 %s 成功: %d 条", pure_code, len(df))
+                _daily_cache[key] = (df.copy(), time.time())
+                return df
+    except Exception as e:
+        last_err = f"sina: {e}"
+        logger.debug("[fetch_index_daily] sina %s 失败: %s", pure_code, e)
+
+    # 数据源3: 腾讯日线
+    try:
+        symbol = f"{prefix}{pure_code}"
+        url = (f"https://web.ifzq.gtimg.cn/appstock/app/kline/kline?"
+               f"param={symbol},day,,,{datalen}&_var=kline_day&r=0.{int(time.time())}")
+        r = requests.get(url, headers={"User-Agent": "Mozilla/5.0"}, timeout=timeout)
+        if r.text and "kline_day=" in r.text:
+            raw = r.text.replace("kline_day=", "").strip()
+            data = json.loads(raw)
+            kkey = "day" if "day" in data.get("data", {}).get(symbol, {}) else None
+            if kkey:
+                rows = data.get("data", {}).get(symbol, {}).get(kkey, [])
+                if rows:
+                    df = pd.DataFrame(rows, columns=["date", "open", "close", "high", "low", "volume", "_"])[:datalen]
+                    df = df[["date", "open", "high", "low", "close", "volume"]]
+                    df["date"] = pd.to_datetime(df["date"])
+                    for c in ["open", "high", "low", "close", "volume"]:
+                        df[c] = pd.to_numeric(df[c], errors="coerce")
+                    df = df.dropna(subset=["close"])
+                    if len(df) >= min_bars:
+                        logger.info("[fetch_index_daily] tencent 获取 %s 成功: %d 条", pure_code, len(df))
+                        _daily_cache[key] = (df.copy(), time.time())
+                        return df
+    except Exception as e:
+        last_err = f"tencent: {e}"
+        logger.debug("[fetch_index_daily] tencent %s 失败: %s", pure_code, e)
+
+    # 数据源4: baostock（需要登录）
+    try:
+        import baostock as bs
+        lg = bs.login()
+        ts_code = f"{prefix}.{pure_code}"
+        end_d = datetime.now()
+        start_d = end_d - timedelta(days=min(datalen + 60, 1200))
+        rs = bs.query_history_k_data_plus(
+            ts_code, "date,open,high,low,close,volume",
+            start_date=start_d.strftime("%Y-%m-%d"), end_date=end_d.strftime("%Y-%m-%d"),
+            frequency="d", adjustflag="3"
+        )
+        rows = []
+        while (rs.error_code == '0') and rs.next():
+            rows.append(rs.get_row_data())
+        bs.logout()
+        if rows:
+            df = pd.DataFrame(rows, columns=["date", "open", "high", "low", "close", "volume"])
+            df["date"] = pd.to_datetime(df["date"])
+            for c in ["open", "high", "low", "close", "volume"]:
+                df[c] = pd.to_numeric(df[c], errors="coerce")
+            df = df.dropna(subset=["close"])
+            if len(df) >= min_bars:
+                logger.info("[fetch_index_daily] baostock 获取 %s 成功: %d 条", pure_code, len(df))
+                _daily_cache[key] = (df.copy(), time.time())
+                return df
+    except Exception as e:
+        last_err = f"baostock: {e}"
+        logger.debug("[fetch_index_daily] baostock %s 失败: %s", pure_code, e)
+
+    logger.warning("[fetch_index_daily] 指数 %s 全部数据源失败，最后错误: %s", pure_code, last_err)
+    return pd.DataFrame()
+
+
 def fetch_stock_daily(
     code: str,
     datalen: int = 800,

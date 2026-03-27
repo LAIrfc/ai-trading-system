@@ -1,0 +1,18 @@
+{
+  "timestamp": "2026-03-27T22:22:29.941935",
+  "ic_ewma": {
+    "bear": null,
+    "mid": null,
+    "bull": null
+  },
+  "bucket_sizes": {
+    "bear": 0,
+    "mid": 0,
+    "bull": 0
+  },
+  "buckets": {
+    "bear": [],
+    "mid": [],
+    "bull": []
+  }
+}

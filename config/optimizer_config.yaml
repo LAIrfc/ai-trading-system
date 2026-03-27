@@ -1,0 +1,44 @@
+# V6.4.3 统一组合决策引擎配置
+
+optimizer:
+  max_weight: 0.10           # 单票上限
+  max_leverage: 1.5          # 总杠杆
+  max_l2: 1.2                # L2范数上限（隐性杠杆控制）
+  target_vol: 0.15           # 目标波动率（年化）
+  max_trend_pct: 0.20        # 趋势股总权重上限
+  lambda_risk: 0.5           # 风险惩罚系数
+  lambda_cost: 0.1           # 成本惩罚系数
+  lambda_smooth: 0.1         # 路径平滑惩罚系数
+  var_weight: 0.7            # 方差风险占比
+  cvar_weight: 0.3           # CVaR风险占比
+
+risk_model:
+  ewma_halflife: 30          # EWMA半衰期（交易日）
+  shrink_intensity: 0.2      # 收缩强度
+  cvar_alpha: 0.05           # CVaR置信水平（尾部5%）
+  cvar_stress_k: 3.0         # 应力乘数系数
+  shock_factor: 2.0          # 极端情景放大系数
+
+conditional_ic:
+  half_life: 20              # IC EWMA半衰期
+  max_history: 200           # 每个桶最大历史样本
+  min_samples: 10            # 最少样本数
+  ic_floor: 0.05             # IC下限（防塌陷）
+  ic_cap: 0.30               # IC上限
+  default_ic: 0.15           # 默认IC
+
+alpha:
+  lambda_penalty: 0.1        # 相关性惩罚强度
+  nonlinear_power: 1.5       # 非线性alpha映射幂次
+
+execution:
+  initial_gamma: 1.5         # 冲击深度指数初始值
+  gamma_ewma_decay: 0.95     # gamma EWMA衰减
+  base_cost: 0.003           # 基础交易成本
+  max_adv_pct: 0.05          # 单票最大占日均成交额比例
+  total_capital: 1000000     # 默认资金量
+
+fallback:
+  empty_regime_ic: 0.15      # 无数据时默认IC
+  max_lock_days: 5           # 极端波动锁仓天数
+  vol_threshold: 0.04        # 极端波动阈值
