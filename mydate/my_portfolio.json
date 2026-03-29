@@ -1,32 +1,31 @@
 {
   "updated": "2026-03-28",
-  "note": "持仓数据来自券商实盘，成本为持仓均价。2026-03-28 所有仓位各加仓20000元",
+  "note": "持仓数据来自券商实盘，成本为持仓均价",
   "holdings": [
     {
       "code": "600118",
       "name": "中国卫星",
       "avg_cost": 91.354,
       "shares": 500,
-      "comment": "77.75"
     },
     {
       "code": "601099",
       "name": "太平洋",
-      "avg_cost": 3.893,
+      "avg_cost": 4.14,
       "shares": 7900,
-      "comment": "3.77"
+      "comment": "4.1"
     },
     {
       "code": "601059",
       "name": "信达证券",
-      "avg_cost": 16.447,
+      "avg_cost": 16.69,
       "shares": 1300,
       "comment": "16.43"
     },
     {
       "code": "600332",
       "name": "白云山",
-      "avg_cost": 22.990,
+      "avg_cost": 23.293,
       "shares": 900,
       "comment": "22.96"
     },
