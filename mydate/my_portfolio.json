@@ -1,98 +1,95 @@
 {
-  "updated": "2026-03-25",
-  "note": "持仓数据来自券商实盘，成本为持仓均价",
+  "updated": "2026-03-28",
+  "note": "持仓数据来自券商实盘，成本为持仓均价。2026-03-28 所有仓位各加仓20000元",
   "holdings": [
     {
       "code": "600118",
       "name": "中国卫星",
-      "avg_cost": 100.424,
-      "market_value_ref": 0,
-      "shares": 300
+      "avg_cost": 91.354,
+      "shares": 500,
+      "comment": "77.75"
     },
     {
       "code": "601099",
       "name": "太平洋",
-      "avg_cost": 4.143,
-      "market_value_ref": 10250,
-      "shares": 2600,
-      "comment": "2026-03-25 加仓100股（推荐得分7.1）"
+      "avg_cost": 3.893,
+      "shares": 7900,
+      "comment": "3.77"
     },
     {
       "code": "601059",
       "name": "信达证券",
-      "avg_cost": 16.65,
-      "shares": 100,
-      "comment": "2026-03-25 新建仓（TOP2推荐，得分23.1）"
+      "avg_cost": 16.447,
+      "shares": 1300,
+      "comment": "16.43"
     },
     {
       "code": "600332",
       "name": "白云山",
-      "avg_cost": 23.23,
-      "shares": 100,
-      "comment": "2026-03-25 新建仓（TOP1推荐，得分24.2）"
+      "avg_cost": 22.990,
+      "shares": 900,
+      "comment": "22.96"
     },
     {
       "code": "600089",
       "name": "特变电工",
-      "avg_cost": 28.547,
-      "shares": 100,
-      "comment": "持仓中"
+      "avg_cost": 28.287,
+      "shares": 800,
+      "comment": "28.25"
     },
     {
       "code": "159599",
       "name": "芯片指数ETF",
-      "avg_cost": 2.127,
-      "market_value_ref": 0,
-      "shares": 0,
-      "comment": "2026-03-16 已清仓"
+      "avg_cost": 2.084,
+      "shares": 9200,
+      "comment": "2026-03-16 "
     },
     {
       "code": "159880",
       "name": "有色ETF",
       "avg_cost": 2.317,
-      "market_value_ref": 0,
-      "shares": 3500
+      "shares": 12100,
+      "comment": "2.32"
     },
     {
       "code": "159770",
       "name": "机器人ETF",
       "avg_cost": 1.082,
-      "market_value_ref": 28820,
-      "shares": 26100
+      "shares": 44500,
+      "comment": "1.08"
     },
     {
       "code": "512480",
       "name": "半导体ETF",
       "avg_cost": 1.638,
-      "market_value_ref": 27370,
-      "shares": 16500
+      "shares": 28700,
+      "comment": "1.64"
     },
     {
       "code": "603565",
       "name": "中谷物流",
       "avg_cost": 11.14,
       "shares": 0,
-      "comment": "2026-03-25 已清仓（得分-8.5，PE高估）"
+      "comment": "2026-03-25 已清仓"
     },
     {
       "code": "601919",
       "name": "中远海控",
-      "avg_cost": 16.07,
-      "shares": 600,
-      "comment": "2026-03-16 精选TOP5买入"
+      "avg_cost": 15.454,
+      "shares": 1900,
+      "comment": "15.17"
     },
     {
       "code": "600901",
       "name": "江苏金租",
-      "avg_cost": 6.51,
-      "shares": 1300,
-      "comment": "2026-03-16 精选TOP5买入"
+      "avg_cost": 6.489,
+      "shares": 4300,
+      "comment": "6.48"
     },
     {
       "code": "002281",
       "name": "光迅科技",
       "avg_cost": 75.10,
-      "market_value_ref": 0,
       "shares": 0,
       "comment": "2026-03-10 已清仓"
     },
@@ -100,7 +97,6 @@
       "code": "512980",
       "name": "传媒ETF",
       "avg_cost": 1.167,
-      "market_value_ref": 0,
       "shares": 0,
       "comment": "2026-03-05 已清仓"
     },
@@ -108,9 +104,8 @@
       "code": "513399",
       "name": "纳斯达克ETF",
       "avg_cost": 1.167,
-      "market_value_ref": 8500,
       "shares": 0,
-      "comment": "暂不跟踪"
+      "comment": "已清仓"
     }
   ]
 }
