@@ -341,8 +341,11 @@ python3 tools/data/refresh_stock_pool.py
 ### 单股深度分析
 
 ```bash
-# 12策略完整分析
-python3 tools/analysis/analyze_single_stock.py 688122 --name "西部超导"
+# 快速分析（技术面+估值+量价）
+python3 tools/analysis/analyze_single_stock.py 688122 西部超导
+
+# 完整分析（含12策略+新闻）
+python3 tools/analysis/analyze_single_stock.py 688122 西部超导 --full
 ```
 
 ---
@@ -433,8 +436,7 @@ ai-trading-system/
 |   |       `-- data_prefetch.py        # fetch_index_daily（指数专用通道）
 |   |
 |   |-- api/broker/                 # 券商自动化（同花顺桌面/网页）
-|   |-- core/                       # 核心工具（动量计算、回测约束）
-|   `-- etf_rotation/               # ETF 轮动系统
+|   `-- core/                       # 核心工具（动量计算、回测约束）
 |
 |-- tools/                          # 工具脚本
 |   |-- analysis/
