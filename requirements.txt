@@ -36,6 +36,9 @@ pymysql==1.1.0
 sqlalchemy==2.0.19
 redis==4.6.0
 
+# 优化器
+cvxpy>=1.4.0
+
 # 配置管理
 pyyaml==6.0.1
 python-dotenv==1.0.0

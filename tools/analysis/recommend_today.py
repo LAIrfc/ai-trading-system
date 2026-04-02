@@ -396,16 +396,10 @@ def _render_holding_advice(holdings: list, all_results: list, today: str) -> str
         cost = h.get('avg_cost', 0)
         shares = h.get('shares', 0)
 
-        # 加载K线做深度分析（缓存优先，ETF等缓存为空时在线获取）
-        df_kline = load_cached_kline(code)
+        # 加载K线做深度分析（优先拉最新数据）
+        df_kline = fetch_stock_data(code, days=200)
         if df_kline.empty:
-            try:
-                from src.data.fetchers.data_prefetch import fetch_stock_daily
-                df_kline = fetch_stock_daily(code, datalen=200, timeout=10, min_bars=20)
-                if df_kline is None:
-                    df_kline = pd.DataFrame()
-            except Exception:
-                df_kline = pd.DataFrame()
+            df_kline = load_cached_kline(code)
         deep = _deep_analyze_kline(df_kline)
 
         price = deep.get('price', r.get('price', 0))
@@ -1667,10 +1661,16 @@ def _get_last_trading_day(now_dt=None):
         now_dt = datetime.now()
     d = now_dt.date()
     h, m = now_dt.hour, now_dt.minute
+    
+    # 如果今天是工作日且已过收盘（15:05），今天就是最后交易日
     if d.weekday() < 5 and (h, m) >= (15, 5):
         return d
+    
+    # 否则，最后交易日应该是"昨天或更早的最近一个工作日"
+    # 如果今天是工作日但未收盘，最后交易日是昨天（跳过周末）
+    # 如果今天是周末，最后交易日是上周五
     d -= timedelta(days=1)
-    while d.weekday() >= 5:
+    while d.weekday() >= 5:  # 跳过周六周日
         d -= timedelta(days=1)
     return d
 
@@ -1698,12 +1698,16 @@ def update_kline_cache(code: str, cache_dir: str = None, days: int = 200) -> pd.
         last_date = pd.Timestamp(cached_df['date'].max())
         days_behind = (pd.Timestamp(now.date()) - last_date).days
         
-        if days_behind == 0:
-            return cached_df
-        
+        # 盘中：仅当缓存已含当日数据时跳过网络；非盘中：已含最后交易日则跳过
         last_trading_day = _get_last_trading_day(now)
-        if last_date >= pd.Timestamp(last_trading_day):
-            return cached_df
+        if is_trading_hours:
+            if days_behind == 0:
+                return cached_df
+        else:
+            if days_behind == 0:
+                return cached_df
+            if last_date >= pd.Timestamp(last_trading_day):
+                return cached_df
 
     # 需要更新：下载最新数据（带总超时保护）
     provider = get_default_kline_provider()

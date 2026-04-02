@@ -76,3 +76,11 @@ __pycache__/
 mydate/backtest_kline/
 mydate/daily_kline/
 
+# 运行时状态（机器本地，不提交）
+results/*.json
+!results/.gitkeep
+
+# 工具输出（构建产物，不提交）
+tools/output/
+!tools/output/.gitkeep
+
