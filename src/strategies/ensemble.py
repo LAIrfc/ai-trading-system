@@ -48,6 +48,7 @@ from .sentiment import SentimentStrategy
 from .news_sentiment import NewsSentimentStrategy
 from .policy_event import PolicyEventStrategy
 from .money_flow import MoneyFlowStrategy
+from .sector_thresholds import get_profile, map_sector_code_to_category
 
 try:
     from src.strategies.v33_weights import (
@@ -186,8 +187,12 @@ class EnsembleStrategy(Strategy):
             except Exception:
                 pass
 
-    def set_symbol(self, symbol: str, stock_name: str = '') -> None:
-        """动态更新 symbol，供选股循环复用同一实例时逐股注入。"""
+    def set_symbol(self, symbol: str, stock_name: str = '',
+                   sector: str = '') -> None:
+        """动态更新 symbol，供选股循环复用同一实例时逐股注入。
+
+        当提供 sector 时，自动调整 PE/PB/PEPB 策略的分位数阈值。
+        """
         self.symbol = symbol
         if stock_name:
             self.stock_name = stock_name
@@ -199,6 +204,34 @@ class EnsembleStrategy(Strategy):
         mf_strat = self.sub_strategies.get('MONEY_FLOW')
         if mf_strat is not None:
             mf_strat.symbol = symbol
+
+        if sector:
+            self._apply_sector_thresholds(sector)
+
+    def _apply_sector_thresholds(self, sector: str) -> None:
+        """根据行业大类动态调整 PE/PB/PEPB 阈值和权重偏好。"""
+        profile = get_profile(sector)
+
+        pe_strat = self.sub_strategies.get('PE')
+        if pe_strat is not None:
+            pe_strat.low_quantile = profile.pe_low_quantile
+            pe_strat.high_quantile = profile.pe_high_quantile
+
+        pb_strat = self.sub_strategies.get('PB')
+        if pb_strat is not None:
+            pb_strat.low_quantile = profile.pb_low_quantile
+            pb_strat.high_quantile = profile.pb_high_quantile
+
+        pepb_strat = self.sub_strategies.get('PEPB')
+        if pepb_strat is not None:
+            pepb_strat.low_quantile = min(profile.pe_low_quantile, profile.pb_low_quantile)
+            pepb_strat.high_quantile = max(profile.pe_high_quantile, profile.pb_high_quantile)
+            if hasattr(pepb_strat, 'pe_strategy'):
+                pepb_strat.pe_strategy.low_quantile = profile.pe_low_quantile
+                pepb_strat.pe_strategy.high_quantile = profile.pe_high_quantile
+            if hasattr(pepb_strat, 'pb_strategy'):
+                pepb_strat.pb_strategy.low_quantile = profile.pb_low_quantile
+                pepb_strat.pb_strategy.high_quantile = profile.pb_high_quantile
     
     def get_market_regime(self) -> str:
         """

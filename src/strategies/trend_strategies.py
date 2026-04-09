@@ -514,7 +514,8 @@ class RelativeStrength:
                     # 回填到原始索引
                     index_strength_series = pd.Series(0.0, index=df.index)
                     index_strength_series.loc[common_idx] = relative_strength_series
-                    index_strength = index_strength_series.iloc[-1] if not index_strength_series.empty else 0.0
+                    val = index_strength_series.iloc[-1] if not index_strength_series.empty else 0.0
+                    index_strength = float(val) if pd.notna(val) else 0.0
             except Exception:
                 pass
         
@@ -542,7 +543,8 @@ class RelativeStrength:
                     # 回填到原始索引
                     sector_strength_series = pd.Series(0.0, index=df.index)
                     sector_strength_series.loc[common_idx] = relative_strength_series
-                    sector_strength = sector_strength_series.iloc[-1] if not sector_strength_series.empty else 0.0
+                    val = sector_strength_series.iloc[-1] if not sector_strength_series.empty else 0.0
+                    sector_strength = float(val) if pd.notna(val) else 0.0
             except Exception:
                 pass
         
@@ -559,8 +561,10 @@ class RelativeStrength:
         
         df['relative_strength_score'] = relative_strength_score
         df['signal'] = 0
-        df.loc[relative_strength_score > 0.3, 'signal'] = 1
-        df.loc[relative_strength_score < -0.3, 'signal'] = -1
+        # 必须用列/Series 做布尔掩码：relative_strength_score 常为 numpy 标量，
+        # df.loc[np.bool_(False), ...] 会把 False 当成索引标签并插入脏行，导致 iloc[-1] 为 NaN。
+        df.loc[df['relative_strength_score'] > 0.3, 'signal'] = 1
+        df.loc[df['relative_strength_score'] < -0.3, 'signal'] = -1
         df['score'] = relative_strength_score
         
         return df

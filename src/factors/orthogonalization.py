@@ -78,8 +78,13 @@ class FactorOrthogonalizer:
                 model.fit(X_valid, y_valid)
                 
                 # 残差 = 原因子 - 可被前序因子解释的部分
-                y_pred = model.predict(X)
+                # NaN-safe: X中含NaN时predict会返回NaN，用fillna(0)避免级联污染
+                X_safe = np.nan_to_num(X, nan=0.0)
+                y_pred = model.predict(X_safe)
                 residual = y.flatten() - y_pred.flatten()
+                # 原始y为NaN的行保持NaN
+                nan_mask = np.isnan(y.flatten())
+                residual[nan_mask] = np.nan
                 
                 result[col] = residual
                 self.models[col] = model
@@ -106,8 +111,11 @@ class FactorOrthogonalizer:
                 X = result[available_factors[:i]].values
                 y = factors[col].values.reshape(-1, 1)
                 
-                y_pred = self.models[col].predict(X)
+                X_safe = np.nan_to_num(X, nan=0.0)
+                y_pred = self.models[col].predict(X_safe)
                 residual = y.flatten() - y_pred.flatten()
+                nan_mask = np.isnan(y.flatten())
+                residual[nan_mask] = np.nan
                 
                 result[col] = residual
         

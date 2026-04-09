@@ -589,7 +589,65 @@ def fetch_realtime_bar(code: str) -> Optional[pd.DataFrame]:
     except Exception as e:
         logger.debug("[realtime] 新浪 %s 失败: %s", code, e)
 
+    # 源3: 妙想实时行情（配额有限，仅在前两源均失败时使用）
+    if os.environ.get("MX_APIKEY"):
+        try:
+            from src.data.mx_skills.data_adapter import MXDataAdapter
+            adapter = MXDataAdapter()
+            quote = adapter.get_realtime_quote(code)
+            if quote:
+                price_keys = {k: v for k, v in quote.items() if isinstance(v, (int, float)) and v > 0}
+                close_val = None
+                for key in ['最新价', '最新', 'close', '收盘价', '现价']:
+                    if key in quote and quote[key]:
+                        try:
+                            close_val = float(quote[key])
+                            break
+                        except (ValueError, TypeError):
+                            pass
+                if close_val and close_val > 0:
+                    df = pd.DataFrame([{
+                        'date': pd.Timestamp(today_str),
+                        'open': close_val,
+                        'high': close_val,
+                        'low': close_val,
+                        'close': close_val,
+                        'volume': 0,
+                    }])
+                    return df
+        except Exception as e:
+            logger.debug("[realtime] 妙想 %s 失败: %s", code, e)
+
     return None
+
+
+class MXDataKlineAdapter(KlineAdapter):
+    """妙想金融数据 K 线适配器 — 受每日 300 次配额限制，仅作最后降级手段。"""
+
+    @property
+    def source_id(self) -> str:
+        return "mx_data"
+
+    def get_kline(
+        self,
+        symbol: str,
+        start_date: Optional[str] = None,
+        end_date: Optional[str] = None,
+        datalen: Optional[int] = None,
+        timeout: int = 10,
+        **kwargs,
+    ) -> pd.DataFrame:
+        if not os.environ.get("MX_APIKEY"):
+            return pd.DataFrame()
+        try:
+            from src.data.mx_skills.data_adapter import MXDataAdapter
+            adapter = MXDataAdapter()
+            df = adapter.get_kline(symbol.strip(), start_date, end_date, datalen)
+            return _ensure_columns(df)
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).debug("[MXDataKlineAdapter] %s 失败: %s", symbol, e)
+            return pd.DataFrame()
 
 
 # 注册名 -> 适配器类，供 UnifiedDataProvider 按配置实例化
@@ -599,6 +657,7 @@ KLINE_ADAPTER_REGISTRY = {
     "tencent": TencentKlineAdapter,
     "tushare": TushareKlineAdapter,
     "baostock": BaostockStockAdapter,
+    "mx_data": MXDataKlineAdapter,
     "akshare_etf": AkshareETFAdapter,
     "push2his_etf": Push2hisETFAdapter,
     "baostock_etf": BaostockETFAdapter,

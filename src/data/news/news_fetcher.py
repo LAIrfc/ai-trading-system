@@ -1,7 +1,7 @@
 """
 个股新闻获取
 
-主 akshare.stock_news_em；备1 东方财富搜索 API；备2 财联社（需 CLS_API_KEY）；备3 同花顺（需 10JQKA_COOKIE）。
+主 curl_cffi/akshare.stock_news_em；备1 妙想资讯搜索（稳定官方API，需 MX_APIKEY）；备2 requests东方财富；备3 push2；备4 财联社；备5 同花顺。
 与 docs/data/API_INTERFACES_AND_FETCHERS.md 1.3.1 一致。
 """
 
@@ -305,6 +305,23 @@ def _fetch_via_10jqka(symbol: str, max_items: int = 20) -> Optional[pd.DataFrame
         return None
 
 
+def _fetch_via_mx_skills(symbol: str, max_items: int = 20) -> Optional[pd.DataFrame]:
+    """通过妙想资讯搜索 API 获取个股新闻（最后降级手段，消耗 MX 每日配额）"""
+    if not os.environ.get("MX_APIKEY"):
+        return None
+    try:
+        from src.data.mx_skills.news_adapter import MXNewsFetcher
+        fetcher = MXNewsFetcher()
+        df = fetcher.fetch_stock_news(symbol, max_items)
+        if df is not None and not df.empty:
+            logger.debug("妙想新闻获取成功: %s (%d 条)", symbol, len(df))
+            return df
+        return None
+    except Exception as e:
+        logger.debug("妙想新闻获取失败 %s: %s", symbol, e)
+        return None
+
+
 def fetch_stock_news(symbol: str, max_items: int = 20) -> pd.DataFrame:
     """
     获取个股最近新闻。回测时若设置 BACKTEST_PREFETCH_DIR 且存在 {DIR}/news/{symbol}.parquet 则直接读本地（文档 2.3）。
@@ -329,10 +346,12 @@ def fetch_stock_news(symbol: str, max_items: int = 20) -> pd.DataFrame:
                 return pd.read_parquet(path).head(max_items)
             except Exception as e:
                 logger.debug("回测预取新闻 %s 读本地失败: %s", symbol, e)
-    # 优先 curl_cffi（与 akshare 一致，易过反爬），再 akshare、requests、push2、财联社、同花顺
+    # 降级顺序: curl_cffi → akshare → 妙想(稳定官方API) → requests → push2 → 财联社 → 同花顺
     df = _fetch_via_curl_cffi(symbol, max_items)
     if df is None or df.empty:
         df = _fetch_via_akshare(symbol, max_items)
+    if df is None or df.empty:
+        df = _fetch_via_mx_skills(symbol, max_items)
     if df is None or df.empty:
         df = _fetch_via_requests(symbol, max_items)
         if df is None or df.empty:
@@ -349,7 +368,7 @@ def fetch_stock_news(symbol: str, max_items: int = 20) -> pd.DataFrame:
         df = _fetch_via_10jqka(symbol, max_items)
     if df is None or df.empty:
         logger.info(
-            "个股新闻全部源均无数据或失败（主 akshare/东方财富，备 财联社/同花顺 需 CLS_API_KEY、10JQKA_COOKIE）symbol=%s",
+            "个股新闻全部源均无数据或失败 symbol=%s",
             symbol,
         )
         return pd.DataFrame()

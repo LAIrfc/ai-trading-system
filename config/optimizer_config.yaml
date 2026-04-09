@@ -38,6 +38,11 @@ execution:
   max_adv_pct: 0.05          # 单票最大占日均成交额比例
   total_capital: 1000000     # 默认资金量
 
+sector_neutral:
+  enabled: true              # 启用行业中性约束
+  deviation: 0.05            # 单行业相对基准最大偏离（5%）
+  min_sector_stocks: 3       # 行业内最少股票数才加约束（避免过约束）
+
 fallback:
   empty_regime_ic: 0.15      # 无数据时默认IC
   max_lock_days: 5           # 极端波动锁仓天数

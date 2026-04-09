@@ -60,7 +60,10 @@ class UnifiedOptimizer:
                  prev_weights2: Optional[np.ndarray] = None,
                  cost_vector: Optional[np.ndarray] = None,
                  trend_mask: Optional[np.ndarray] = None,
-                 codes: Optional[List[str]] = None
+                 codes: Optional[List[str]] = None,
+                 sector_map: Optional[Dict[str, str]] = None,
+                 benchmark_sector_weights: Optional[Dict[str, float]] = None,
+                 sector_deviation: float = 0.05,
                  ) -> Dict:
         """
         执行统一优化
@@ -75,6 +78,9 @@ class UnifiedOptimizer:
             cost_vector: (n,) 每股交易成本
             trend_mask: (n,) bool 趋势股标记
             codes: 股票代码列表
+            sector_map: {code: sector_name} 股票→行业映射
+            benchmark_sector_weights: {sector: weight} 基准行业权重（等权时自动计算）
+            sector_deviation: 单行业相对基准的最大偏离（默认0.05=5%）
         Returns:
             dict: {weights, status, diagnostics}
         """
@@ -97,21 +103,67 @@ class UnifiedOptimizer:
         cvar_w = self.cvar_weight * max(0, 1.0 - regime_prob)
         var_w = 1.0 - cvar_w
 
+        sector_groups = self._build_sector_groups(
+            codes, sector_map, benchmark_sector_weights, sector_deviation, n
+        )
+
         if HAS_CVXPY:
             return self._optimize_cvxpy(
                 er_adj, covariance, returns_hist, regime_prob,
                 prev_weights, prev_weights2, cost_vector, trend_mask,
-                var_w, cvar_w, codes
+                var_w, cvar_w, codes, sector_groups
             )
         else:
             return self._optimize_fallback(
                 er_adj, covariance, prev_weights, cost_vector,
-                trend_mask, codes
+                trend_mask, codes, sector_groups
             )
+
+    @staticmethod
+    def _build_sector_groups(
+        codes: Optional[List[str]],
+        sector_map: Optional[Dict[str, str]],
+        benchmark_weights: Optional[Dict[str, float]],
+        deviation: float,
+        n: int,
+    ) -> Optional[List[Tuple[np.ndarray, float, float]]]:
+        """
+        构建行业约束分组。
+
+        Returns:
+            [(indices, lower_bound, upper_bound), ...] or None
+        """
+        if codes is None or sector_map is None or n == 0:
+            return None
+
+        sector_to_idx: Dict[str, List[int]] = {}
+        for i, code in enumerate(codes):
+            sec = sector_map.get(code)
+            if sec:
+                sector_to_idx.setdefault(sec, []).append(i)
+
+        if not sector_to_idx:
+            return None
+
+        if benchmark_weights is None:
+            total_stocks = sum(len(v) for v in sector_to_idx.values())
+            benchmark_weights = {
+                s: len(idxs) / total_stocks for s, idxs in sector_to_idx.items()
+            }
+
+        groups = []
+        for sector, idxs in sector_to_idx.items():
+            idx_arr = np.array(idxs)
+            bw = benchmark_weights.get(sector, 0.0)
+            lo = max(0.0, bw - deviation)
+            hi = min(1.0, bw + deviation)
+            groups.append((idx_arr, lo, hi))
+
+        return groups
 
     def _optimize_cvxpy(self, er_adj, cov, returns_hist, regime_prob,
                         prev_w, prev_w2, cost_vec, trend_mask,
-                        var_w, cvar_w, codes):
+                        var_w, cvar_w, codes, sector_groups=None):
         n = len(er_adj)
         T = returns_hist.shape[0] if returns_hist is not None else 0
         w = cp.Variable(n)
@@ -163,6 +215,11 @@ class UnifiedOptimizer:
             if len(trend_idx) > 0:
                 constraints.append(cp.sum(w[trend_idx]) <= self.max_trend_pct)
 
+        if sector_groups:
+            for idx_arr, lo, hi in sector_groups:
+                constraints.append(cp.sum(w[idx_arr]) >= lo)
+                constraints.append(cp.sum(w[idx_arr]) <= hi)
+
         prob = cp.Problem(objective, constraints)
 
         status = 'failed'
@@ -191,6 +248,14 @@ class UnifiedOptimizer:
         else:
             w_val = np.ones(n) / n
 
+        sector_diag = {}
+        if sector_groups and codes:
+            for idx_arr, lo, hi in sector_groups:
+                sw = float(w_val[idx_arr].sum())
+                if sw > 0.001:
+                    sec_code = codes[idx_arr[0]] if len(idx_arr) > 0 else '?'
+                    sector_diag[f'sector_{sec_code}_wt'] = round(sw, 4)
+
         diagnostics = {
             'solver_status': status,
             'portfolio_var': float(w_val @ cov @ w_val),
@@ -198,6 +263,8 @@ class UnifiedOptimizer:
             'turnover': float(np.sum(np.abs(w_val - prev_w))),
             'max_weight': float(w_val.max()),
             'n_stocks': int((w_val > 0.001).sum()),
+            'sector_neutral': bool(sector_groups),
+            'n_sector_constraints': len(sector_groups) if sector_groups else 0,
         }
 
         return {
@@ -208,8 +275,8 @@ class UnifiedOptimizer:
         }
 
     def _optimize_fallback(self, er_adj, cov, prev_w, cost_vec,
-                           trend_mask, codes):
-        """无 cvxpy 时的解析降级方案：风险平价 + 预期收益调整"""
+                           trend_mask, codes, sector_groups=None):
+        """无 cvxpy 时的解析降级方案：风险平价 + 预期收益调整 + 行业约束"""
         n = len(er_adj)
 
         vols = np.sqrt(np.diag(cov)) + 1e-8
@@ -238,6 +305,15 @@ class UnifiedOptimizer:
         else:
             w = np.ones(n) / n
 
+        if sector_groups:
+            for idx_arr, _lo, hi in sector_groups:
+                sec_w = w[idx_arr].sum()
+                if sec_w > hi and sec_w > 1e-8:
+                    w[idx_arr] *= hi / sec_w
+            w_sum = w.sum()
+            if w_sum > 1e-6:
+                w /= w_sum
+
         return {
             'weights': w,
             'status': 'fallback_analytical',
@@ -247,6 +323,7 @@ class UnifiedOptimizer:
                 'expected_return': float(er_adj @ w),
                 'max_weight': float(w.max()),
                 'n_stocks': int((w > 0.001).sum()),
+                'sector_neutral': bool(sector_groups),
             },
             'codes': codes
         }
