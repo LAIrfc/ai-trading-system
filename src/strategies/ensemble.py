@@ -1,13 +1,14 @@
 """
 多策略组合投票策略 (Ensemble Strategy)
 
-当前架构：L0(PolicyEvent过滤) + L3(12策略固定权重投票)
-L2 层已暂时关闭（待历史回测优化系数）
+架构：L0(PolicyEvent过滤) + L2(波动率自适应权重) + L3(13策略加权投票+相关性折扣)
 
 原理:
-- 同时运行12个子策略（技术6+基本面3+消息面+资金面+市场情绪）
+- 同时运行13个子策略（技术6+基本面4+消息面+资金面+市场情绪）
 - 每个策略独立给出 BUY / SELL / HOLD 信号 + confidence + position
-- 采用加权投票机制（净得分法，阈值0.07/-0.07）
+- 采用加权投票机制（净得分法，阈值0.07/-0.15）
+- L2 层基于个股波动率即时调整技术面/基本面权重
+- 高相关策略组（NEWS+MONEY_FLOW）同方向时折扣避免双重计分
 
 投票模式:
 - 'weighted':  按策略权重加权投票（推荐，默认）
@@ -25,8 +26,8 @@ L2 层已暂时关闭（待历史回测优化系数）
 - mode:           投票模式（默认 'weighted'）
 - weights:        各策略权重 dict（默认使用已验证的固定权重）
 - dual_reverse:   DUAL策略是否反向（默认True，IC从-0.39提升至+0.39）
-- symbol:         股票代码（NewsSentiment/MoneyFlow 需要）
-- stock_name:     股票名称（NewsSentiment LLM 分析用）
+- symbol:         股票代码（NewsSentiment/MoneyFlow/业绩增速 需要）
+- stock_name:     股票名称（NewsSentiment LLM 分析用；业绩增速可选展示）
 """
 
 import logging
@@ -48,6 +49,7 @@ from .sentiment import SentimentStrategy
 from .news_sentiment import NewsSentimentStrategy
 from .policy_event import PolicyEventStrategy
 from .money_flow import MoneyFlowStrategy
+from .earnings_growth import EarningsGrowthStrategy
 from .sector_thresholds import get_profile, map_sector_code_to_category
 
 try:
@@ -96,7 +98,7 @@ class EnsembleStrategy(Strategy):
     """
 
     name = '多策略组合'
-    description = '12策略固定权重投票（6技术+3基本面+消息面+资金面+情绪面）'
+    description = '13策略加权投票（6技术+4基本面+消息面+资金面+情绪面，含L2波动率自适应+相关性折扣）'
 
     param_ranges = {
         'buy_threshold':  (0.3, 0.5, 0.8, 0.05),
@@ -130,7 +132,7 @@ class EnsembleStrategy(Strategy):
         self.stock_name = stock_name
         self.dual_reverse = dual_reverse
 
-        # 子策略实例（技术面 6 + 基本面 3 + 消息面 1 + 资金面 1 + 情绪面 1）
+        # 子策略实例（技术面 6 + 基本面 3 + 消息面 1 + 资金面 1 + 情绪面 1 + 业绩增速 1）
         self.sub_strategies: Dict[str, Strategy] = {
             'MA':           MACrossStrategy(),
             'MACD':         MACDStrategy(),
@@ -144,30 +146,33 @@ class EnsembleStrategy(Strategy):
             'NEWS':         NewsSentimentStrategy(symbol=symbol, stock_name=stock_name),
             'MONEY_FLOW':   MoneyFlowStrategy(symbol=symbol),
             'SENTIMENT':    SentimentStrategy(),
+            'EARNINGS_GROWTH': EarningsGrowthStrategy(symbol=symbol, stock_name=stock_name),
         }
 
-        # 默认权重（基于完整12策略全量回测优化，836只×300只验证）
+        # 默认权重（基于历史多策略全量回测优化，836只×300只验证；含业绩增速后需重新校准）
         # 2026-03-24 权重校准结论：
         #   - 补全PE/PB数据后，基本面策略表现最优（PB Sharpe 0.38，PE 0.25）
         #   - composite方法权重使Sharpe从0.0022提升到0.0733（+32倍）
         #   - 核心变化：基本面权重大幅提升，技术面微调
+        # 默认权重与 tools/analysis/recommend_today.py 中 MR_WEIGHTS 保持一致（该入口为主调参面）
         self.weights: Dict[str, float] = weights or {
-            'PB':         2.00,  # 基本面：Sharpe最高(0.38)，正收益率76%
+            'PEPB':       2.00,  # 基本面唯一估值投票（综合PE+PB，避免三重计算）
             'BOLL':       1.95,  # 技术面：Sharpe 0.18，正收益率72.5%
             'RSI':        1.82,  # 技术面：Sharpe 0.14，正收益率66.6%
-            'PE':         1.68,  # 基本面：Sharpe 0.25，正收益率62.1%
-            'PEPB':       1.61,  # 基本面：Sharpe 0.22，双因子共振
             'KDJ':        1.50,  # 技术面：Sharpe 0.14，正收益率64.6%
             'DUAL':       1.39,  # 技术面：反向使用后Sharpe 0.24
-            'MACD':       1.13,  # 技术面：Sharpe 0.08
-            'MA':         0.88,  # 技术面：Sharpe 0.07
+            'MACD':       0.50,  # 技术确认因子
+            'PE':         0.30,  # 诊断因子（PEPB已覆盖，仅辅助参考）
+            'PB':         0.30,  # 诊断因子（PEPB已覆盖，仅辅助参考）
+            'MA':         0.30,  # 技术确认因子
             'SENTIMENT':  0.32,  # 情绪面：市场情绪+个股过滤
             'NEWS':       0.32,  # 消息面：个股新闻LLM
-            'MONEY_FLOW': 0.30,  # 资金面：龙虎榜+大宗（回测中无数据）
+            'MONEY_FLOW': 0.30,  # 资金面：龙虎榜+大宗
+            'EARNINGS_GROWTH': 1.50,  # 业绩预告增速（东方财富 yjyg）—— 核心基本面因子，高权重
         }
 
         # min_bars 只取技术策略的最大值；其他策略有数据时参与，无数据时被剔除逻辑过滤
-        non_tech_keys = {'PE', 'PB', 'PEPB', 'NEWS', 'MONEY_FLOW', 'SENTIMENT'}
+        non_tech_keys = {'PE', 'PB', 'PEPB', 'NEWS', 'MONEY_FLOW', 'SENTIMENT', 'EARNINGS_GROWTH'}
         tech_strategies = {k: v for k, v in self.sub_strategies.items() if k not in non_tech_keys}
         self.min_bars = max(s.min_bars for s in tech_strategies.values())
 
@@ -188,10 +193,12 @@ class EnsembleStrategy(Strategy):
                 pass
 
     def set_symbol(self, symbol: str, stock_name: str = '',
-                   sector: str = '') -> None:
+                   sector: str = '',
+                   sector_codes: set = None) -> None:
         """动态更新 symbol，供选股循环复用同一实例时逐股注入。
 
         当提供 sector 时，自动调整 PE/PB/PEPB 策略的分位数阈值。
+        当提供 sector_codes 时，传递给 EARNINGS_GROWTH 用于同行业景气度外推。
         """
         self.symbol = symbol
         if stock_name:
@@ -204,6 +211,13 @@ class EnsembleStrategy(Strategy):
         mf_strat = self.sub_strategies.get('MONEY_FLOW')
         if mf_strat is not None:
             mf_strat.symbol = symbol
+        eg_strat = self.sub_strategies.get('EARNINGS_GROWTH')
+        if eg_strat is not None:
+            eg_strat.symbol = symbol
+            if stock_name:
+                eg_strat.stock_name = stock_name
+            if sector_codes is not None:
+                eg_strat.sector_codes = sector_codes
 
         if sector:
             self._apply_sector_thresholds(sector)
@@ -280,7 +294,7 @@ class EnsembleStrategy(Strategy):
         回测前预取各子策略外部数据。
         实盘无需调用，analyze 时实时获取。
         """
-        # 预取11个子策略的数据
+        # 预取各子策略的外部数据
         for strat in self.sub_strategies.values():
             if hasattr(strat, 'prepare_backtest'):
                 try:
@@ -356,16 +370,63 @@ class EnsembleStrategy(Strategy):
         self._weight_cooldown_until = self._weight_adjustment_date + pd.Timedelta(days=7)
         logger.info('动态权重已更新: 市场状态=%s，冷却至%s', state, self._weight_cooldown_until.date())
 
+    def _compute_volatility_adjusted_weights(self, df: pd.DataFrame) -> Optional[Dict[str, float]]:
+        """
+        L2: 基于个股波动率的即时权重调整。
+
+        原理：高波动环境 → 技术面噪音放大，基本面/业绩面信噪比相对更好；
+        低波动环境 → 技术面信号更可靠，可适度提权。
+
+        使用个股 20 日历史波动率（年化），与 252 日长期均值比较：
+        - vol_ratio > 1.5: 高波动，技术面 ×0.8，基本面 ×1.1
+        - vol_ratio < 0.7: 低波动，技术面 ×1.1，基本面 ×0.9
+        - 其他: 不调整
+        """
+        if df is None or len(df) < 60:
+            return None
+        try:
+            import numpy as _np
+            close = df['close'].astype(float).values
+            returns = _np.diff(_np.log(close))
+            if len(returns) < 40:
+                return None
+            vol_20 = float(_np.std(returns[-20:]) * _np.sqrt(252))
+            vol_long = float(_np.std(returns[-252:]) * _np.sqrt(252)) if len(returns) >= 252 else float(_np.std(returns) * _np.sqrt(252))
+            if vol_long < 1e-9:
+                return None
+            vol_ratio = vol_20 / vol_long
+        except Exception:
+            return None
+
+        TECH = {'MA', 'MACD', 'RSI', 'BOLL', 'KDJ', 'DUAL'}
+        FUND = {'PE', 'PB', 'PEPB', 'EARNINGS_GROWTH'}
+
+        if vol_ratio > 1.5:
+            tech_mult, fund_mult = 0.8, 1.1
+        elif vol_ratio < 0.7:
+            tech_mult, fund_mult = 1.1, 0.9
+        else:
+            return None
+
+        adjusted = {}
+        for name, w in self.weights.items():
+            if name in TECH:
+                adjusted[name] = w * tech_mult
+            elif name in FUND:
+                adjusted[name] = w * fund_mult
+            else:
+                adjusted[name] = w
+        return adjusted
+
     def analyze(self, df: pd.DataFrame) -> StrategySignal:
         """
-        12策略加权投票决策
-        
-        当前架构：L0(PolicyEvent过滤) + L3(12策略固定权重投票)
-        L2 层已暂时关闭（待历史回测优化系数）
+        13策略加权投票决策
+
+        架构：L0(PolicyEvent过滤) + L2(波动率自适应权重) + L3(13策略加权投票)
+        L2 基于个股即时波动率，无滞后；默认不调整，仅在波动率偏离时启用。
         """
 
-        # L1/L2 层已关闭，使用固定权重
-        adjusted_weights = None
+        adjusted_weights = self._compute_volatility_adjusted_weights(df)
 
         # ========= 持仓成本感知（优先级最高）=========
         # 传入 holding_cost 时，检查当前价格是否触及止损/预警线
@@ -564,14 +625,40 @@ class EnsembleStrategy(Strategy):
             return 'BUY', best[1].confidence, f"{best[0]}发出买入: {best[1].reason}"
         return 'HOLD', 0.5, "所有策略均持观望"
 
+    # NEWS 和 MONEY_FLOW 同方向时对 MONEY_FLOW 打折，避免双重计分
+    # 新闻事件与龙虎榜/大宗交易往往共生（同一事件引发资金异动+新闻报道）
+    _CORRELATED_PAIRS = {
+        ('NEWS', 'MONEY_FLOW'): 0.5,
+    }
+
+    def _apply_correlation_discount(self, votes: list, weights: dict) -> dict:
+        """
+        对高相关策略组施加折扣，返回调整后的权重副本。
+
+        规则：当一对高相关策略（如 NEWS+MONEY_FLOW）投出相同方向时，
+        权重较低的那个乘以折扣系数，避免同一信息源被双重计分。
+        """
+        vote_names = {n for n, _ in votes}
+        adjusted = dict(weights)
+        for (s1, s2), discount in self._CORRELATED_PAIRS.items():
+            if s1 in vote_names and s2 in vote_names:
+                w1 = adjusted.get(s1, 1.0)
+                w2 = adjusted.get(s2, 1.0)
+                if w1 >= w2:
+                    adjusted[s2] = w2 * discount
+                else:
+                    adjusted[s1] = w1 * discount
+        return adjusted
+
     def _weighted(self, buy_votes, sell_votes, total, adjusted_weights=None):
         """
-        加权投票（净得分机制）— 让权重真正起作用
+        加权投票（净得分机制）— 含相关性折扣
         
         核心逻辑：
         1. 计算加权得分：score = Σ(权重 × confidence)
-        2. 净得分：net_score = (buy_score - sell_score) / active_weight_sum
-        3. 决策阈值（实例属性 net_buy_threshold / net_sell_threshold）：
+        2. 相关性折扣：同方向高相关策略组中权重较低者打折
+        3. 净得分：net_score = (buy_score - sell_score) / active_weight_sum
+        4. 决策阈值（实例属性 net_buy_threshold / net_sell_threshold）：
            - net_score > net_buy_threshold (默认 0.07) → BUY
            - net_score < net_sell_threshold (默认 -0.15) → SELL
            - 否则 → HOLD
@@ -591,16 +678,18 @@ class EnsembleStrategy(Strategy):
         if not buy_votes and not sell_votes:
             return 'HOLD', 0.5, "无有效方向性信号"
 
-        # 使用L2调整后的权重（如果有）
         weights_to_use = adjusted_weights if adjusted_weights else self.weights
-        
-        buy_score = sum(weights_to_use.get(n, 1.0) * s.confidence
+
+        buy_w = self._apply_correlation_discount(buy_votes, weights_to_use)
+        sell_w = self._apply_correlation_discount(sell_votes, weights_to_use)
+
+        buy_score = sum(buy_w.get(n, 1.0) * s.confidence
                         for n, s in buy_votes)
-        sell_score = sum(weights_to_use.get(n, 1.0) * s.confidence
+        sell_score = sum(sell_w.get(n, 1.0) * s.confidence
                          for n, s in sell_votes)
 
-        active_weight_sum = (sum(weights_to_use.get(n, 1.0) for n, _ in buy_votes) +
-                             sum(weights_to_use.get(n, 1.0) for n, _ in sell_votes))
+        active_weight_sum = (sum(buy_w.get(n, 1.0) for n, _ in buy_votes) +
+                             sum(sell_w.get(n, 1.0) for n, _ in sell_votes))
         if active_weight_sum == 0:
             return 'HOLD', 0.5, "无有效策略权重"
 
@@ -636,9 +725,7 @@ class ConservativeEnsemble(EnsembleStrategy):
     - 卖出仅需 ≥34% 策略看空（阈值0.34，保护优先）
     
     注意: 阈值是比例而非绝对数量，因此适用于任意数量的子策略。
-    当前默认是 11 个子策略（技术6 + 基本面3 + NEWS + MONEY_FLOW），阈值仍然有效：
-    - 买入: 需要 ≥6/11 策略看多（50%阈值）
-    - 卖出: 需要 ≥4/11 策略看空（34%阈值）
+    当前为多数投票：阈值按「同意票数 / 参与投票子策略数」比例计算，子策略数量变化时仍适用。
     """
     name = '保守组合'
     description = '多数看多才买入、少数看空即卖出，保护优先'
@@ -654,7 +741,7 @@ class BalancedEnsemble(EnsembleStrategy):
     - 买入和卖出均需 ≥50% 策略同意（阈值0.5）
     
     注意: 阈值是比例，适用于任意数量的子策略。
-    当前默认是 11 个子策略，买入/卖出均需 ≥6/11 策略同意。
+    买入与卖出均需达到各自阈值的同意比例（与当前子策略数量联动）。
     """
     name = '均衡组合'
     description = '过半策略同意就行动，平衡收益与风险'
@@ -671,7 +758,7 @@ class AggressiveEnsemble(EnsembleStrategy):
     - HOLD 不参与计分，反应更灵敏
     
     注意: 阈值是比例，适用于任意数量的子策略。
-    当前默认是 11 个子策略，加权投票模式下阈值仍然有效。
+    加权投票模式下阈值与子策略数量无关，仍按净得分与阈值判定。
     """
     name = '激进组合'
     description = '加权投票，HOLD不计分，反应灵敏'

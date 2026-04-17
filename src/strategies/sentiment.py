@@ -24,6 +24,12 @@ logger = logging.getLogger(__name__)
 # 回测预取缓存：同一日期范围只拉一次（市场级数据），避免单策略回测+组合回测重复拉取
 _backtest_sentiment_cache: dict = {}
 
+# 会话级市场情绪缓存：同一进程同一天只拉一次
+_SESSION_SENTIMENT_V2: Optional[pd.DataFrame] = None
+_SESSION_SENTIMENT_V2_DATE: str = ""
+_SESSION_SENTIMENT_LEGACY: Optional[float] = None
+_SESSION_SENTIMENT_LEGACY_DATE: str = ""
+
 # 趋势过滤参数（V3.3）
 MACD_SLOPE_WINDOW = 3
 PRICE_LOOKBACK = 5
@@ -122,7 +128,11 @@ def _trend_filter_sell(df: pd.DataFrame) -> bool:
 
 
 def _get_sentiment_v2_last_two(lookback_days: int = 80) -> Optional[pd.DataFrame]:
-    """获取最近两个交易日的 S、S_low、S_high（V3.3 多指标）。"""
+    """获取最近两个交易日的 S、S_low、S_high（V3.3 多指标），同一天只拉一次。"""
+    global _SESSION_SENTIMENT_V2, _SESSION_SENTIMENT_V2_DATE
+    today = datetime.now().strftime("%Y-%m-%d")
+    if _SESSION_SENTIMENT_V2_DATE == today and _SESSION_SENTIMENT_V2 is not None:
+        return _SESSION_SENTIMENT_V2.copy()
     try:
         from src.data.sentiment.sentiment_index import get_sentiment_series_v2
         end = datetime.now()
@@ -130,8 +140,13 @@ def _get_sentiment_v2_last_two(lookback_days: int = 80) -> Optional[pd.DataFrame
         end_str = end.strftime("%Y-%m-%d")
         df = get_sentiment_series_v2(start, end_str)
         if df is None or len(df) < 2:
+            _SESSION_SENTIMENT_V2_DATE = today
+            _SESSION_SENTIMENT_V2 = None
             return None
-        return df.tail(2).copy()
+        result = df.tail(2).copy()
+        _SESSION_SENTIMENT_V2 = result
+        _SESSION_SENTIMENT_V2_DATE = today
+        return result.copy()
     except Exception as e:
         logger.debug("获取情绪 V2 失败: %s", e)
         return None
@@ -151,7 +166,11 @@ def _get_sentiment_v2_for_date(start_date: str, end_date: str) -> Optional[pd.Da
 
 
 def _get_latest_sentiment_legacy(lookback_days: int = 80) -> Optional[float]:
-    """旧版：最近一日情绪指数 0~100。"""
+    """旧版：最近一日情绪指数 0~100，同一天只拉一次。"""
+    global _SESSION_SENTIMENT_LEGACY, _SESSION_SENTIMENT_LEGACY_DATE
+    today = datetime.now().strftime("%Y-%m-%d")
+    if _SESSION_SENTIMENT_LEGACY_DATE == today:
+        return _SESSION_SENTIMENT_LEGACY
     try:
         from src.data.sentiment import get_sentiment_series
         end = datetime.now()
@@ -159,8 +178,13 @@ def _get_latest_sentiment_legacy(lookback_days: int = 80) -> Optional[float]:
         end_str = end.strftime("%Y-%m-%d")
         df = get_sentiment_series(start, end_str)
         if df.empty or pd.isna(df["sentiment_index"].iloc[-1]):
+            _SESSION_SENTIMENT_LEGACY = None
+            _SESSION_SENTIMENT_LEGACY_DATE = today
             return None
-        return float(df["sentiment_index"].iloc[-1])
+        val = float(df["sentiment_index"].iloc[-1])
+        _SESSION_SENTIMENT_LEGACY = val
+        _SESSION_SENTIMENT_LEGACY_DATE = today
+        return val
     except Exception as e:
         logger.debug("获取情绪指数失败: %s", e)
         return None

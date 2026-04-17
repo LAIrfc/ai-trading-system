@@ -21,6 +21,9 @@ logger = logging.getLogger(__name__)
 BUY_MAX_DAILY_RETURN = 0.03   # 买入：当日涨幅 < 3%
 SELL_MIN_DAILY_RETURN = -0.02  # 卖出：当日跌幅 < 2%（即 return > -2%）
 
+# 会话级新闻缓存：同一进程中对同一个 symbol 只拉一次新闻
+_SESSION_NEWS_CACHE: dict = {}  # {symbol: (S_news, N, weight) or None}
+
 
 def _daily_return_from_df(df: pd.DataFrame) -> Optional[float]:
     """最近一日收益率（日频近似预期差用）。"""
@@ -33,16 +36,20 @@ def _daily_return_from_df(df: pd.DataFrame) -> Optional[float]:
 
 
 def _get_news_sentiment_v33(symbol: str, use_llm: bool = True, stock_name: str = "") -> Optional[tuple]:
-    """(S_news, N, mean_source_weight)。无数据返回 None。"""
+    """(S_news, N, mean_source_weight)。无数据返回 None。同一 symbol 只拉一次。"""
+    if symbol in _SESSION_NEWS_CACHE:
+        return _SESSION_NEWS_CACHE[symbol]
     try:
         from src.data.news import get_news_sentiment_v33
-        return get_news_sentiment_v33(symbol, max_same_direction=3, use_llm=use_llm, stock_name=stock_name)
+        result = get_news_sentiment_v33(symbol, max_same_direction=3, use_llm=use_llm, stock_name=stock_name)
     except ImportError:
         try:
             from data.news import get_news_sentiment_v33
-            return get_news_sentiment_v33(symbol, max_same_direction=3, use_llm=use_llm, stock_name=stock_name)
+            result = get_news_sentiment_v33(symbol, max_same_direction=3, use_llm=use_llm, stock_name=stock_name)
         except ImportError:
-            return None
+            result = None
+    _SESSION_NEWS_CACHE[symbol] = result
+    return result
 
 
 def _get_news_sentiment_legacy(symbol: str, max_news: int = 10) -> Optional[float]:

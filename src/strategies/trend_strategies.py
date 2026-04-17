@@ -485,19 +485,22 @@ class RelativeStrength:
             lookback = self.lookback
         
         df = df.copy()
-        close = df['close']
-        
-        # 个股收益率
-        stock_returns = close.pct_change(lookback)
+        stock_for_ret = df.copy()
+        use_date_index = 'date' in stock_for_ret.columns
+        if use_date_index:
+            stock_for_ret = stock_for_ret.set_index('date')
+        stock_returns = stock_for_ret['close'].pct_change(lookback)
         
         # ========== 1. 相对指数强度 ==========
         index_strength = 0.0
         if index_df is not None and not index_df.empty:
             try:
-                index_close = index_df['close']
-                index_returns = index_close.pct_change(lookback)
+                index_work = index_df.copy()
+                if 'date' in index_work.columns:
+                    index_work = index_work.set_index('date')
+                index_returns = index_work['close'].pct_change(lookback)
                 
-                # 对齐索引
+                # 对齐索引（有 date 列时用日期索引对齐，避免默认 RangeIndex 按行号错误配对）
                 common_idx = stock_returns.index.intersection(index_returns.index)
                 if len(common_idx) > 0:
                     stock_ret_aligned = stock_returns.loc[common_idx]
@@ -511,9 +514,14 @@ class RelativeStrength:
                     relative_strength_series = excess_return / (tracking_error + 1e-6)
                     relative_strength_series = np.clip(relative_strength_series, -2, 2) / 2  # 标准化到[-1,1]
                     
-                    # 回填到原始索引
-                    index_strength_series = pd.Series(0.0, index=df.index)
-                    index_strength_series.loc[common_idx] = relative_strength_series
+                    # 回填到原始 DataFrame 行索引
+                    if use_date_index:
+                        index_strength_series = (
+                            df['date'].map(relative_strength_series).fillna(0.0).astype(float)
+                        )
+                    else:
+                        index_strength_series = pd.Series(0.0, index=df.index)
+                        index_strength_series.loc[common_idx] = relative_strength_series
                     val = index_strength_series.iloc[-1] if not index_strength_series.empty else 0.0
                     index_strength = float(val) if pd.notna(val) else 0.0
             except Exception:
@@ -523,8 +531,10 @@ class RelativeStrength:
         sector_strength = 0.0
         if sector_df is not None and not sector_df.empty:
             try:
-                sector_close = sector_df['close']
-                sector_returns = sector_close.pct_change(lookback)
+                sector_work = sector_df.copy()
+                if 'date' in sector_work.columns:
+                    sector_work = sector_work.set_index('date')
+                sector_returns = sector_work['close'].pct_change(lookback)
                 
                 # 对齐索引
                 common_idx = stock_returns.index.intersection(sector_returns.index)
@@ -540,9 +550,14 @@ class RelativeStrength:
                     relative_strength_series = excess_return / (tracking_error + 1e-6)
                     relative_strength_series = np.clip(relative_strength_series, -2, 2) / 2
                     
-                    # 回填到原始索引
-                    sector_strength_series = pd.Series(0.0, index=df.index)
-                    sector_strength_series.loc[common_idx] = relative_strength_series
+                    # 回填到原始 DataFrame 行索引
+                    if use_date_index:
+                        sector_strength_series = (
+                            df['date'].map(relative_strength_series).fillna(0.0).astype(float)
+                        )
+                    else:
+                        sector_strength_series = pd.Series(0.0, index=df.index)
+                        sector_strength_series.loc[common_idx] = relative_strength_series
                     val = sector_strength_series.iloc[-1] if not sector_strength_series.empty else 0.0
                     sector_strength = float(val) if pd.notna(val) else 0.0
             except Exception:

@@ -1,7 +1,7 @@
 """
 统一的妙想 API 客户端 — 封装所有 5 个 skill 的 HTTP 调用。
 
-所有请求经过 RateLimiter 管控，每日上限 300 次（跨 skill 共享）。
+各 skill 有独立配额，由 RateLimiter 按 skill 分别管控。
 """
 
 import json
@@ -19,9 +19,27 @@ logger = logging.getLogger(__name__)
 
 _BASE = "https://mkapi2.dfcfs.com/finskillshub"
 
+_PATH_TO_SKILL = {
+    "/api/claw/query": "mx-data",
+    "/api/claw/news-search": "mx-search",
+    "/api/claw/stock-screen": "mx-xuangu",
+    "/api/claw/self-select/get": "mx-zixuan",
+    "/api/claw/self-select/manage": "mx-zixuan",
+    "/api/claw/mockTrading/positions": "mx-moni",
+    "/api/claw/mockTrading/balance": "mx-moni",
+    "/api/claw/mockTrading/orders": "mx-moni",
+    "/api/claw/mockTrading/trade": "mx-moni",
+    "/api/claw/mockTrading/cancel": "mx-moni",
+}
+
+
+def _resolve_skill(path: str) -> str:
+    normalized = path if path.startswith("/") else f"/{path}"
+    return _PATH_TO_SKILL.get(normalized, "mx-data")
+
 
 class MXQuotaExhausted(Exception):
-    """当日 API 调用次数已用尽"""
+    """当日某 skill API 调用次数已用尽"""
 
 
 class MXClient:
@@ -38,10 +56,11 @@ class MXClient:
     # ─── internal ────────────────────────────────────────────────────
 
     def _post(self, path: str, body: dict, timeout: int = 30) -> dict:
-        if not self._limiter.acquire():
-            st = self._limiter.status()
+        skill = _resolve_skill(path)
+        if not self._limiter.acquire(skill=skill):
+            rem = self._limiter.remaining_for(skill)
             raise MXQuotaExhausted(
-                f"妙想 API 今日已用 {st['used']}/{st['limit']} 次"
+                f"妙想 {skill} 今日配额已用尽 (剩余{rem}次)"
             )
         headers = {"Content-Type": "application/json", "apikey": self.api_key}
         url = f"{_BASE}{path}" if path.startswith("/") else f"{_BASE}/{path}"
@@ -50,7 +69,7 @@ class MXClient:
             resp.raise_for_status()
             return resp.json()
         except Exception:
-            logger.exception("MX API 请求失败: %s", path)
+            logger.exception("MX API 请求失败: %s (skill=%s)", path, skill)
             raise
 
     # ─── mx-data (金融数据) ──────────────────────────────────────────

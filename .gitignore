@@ -52,6 +52,13 @@ htmlcov/
 # 文档构建
 docs/_build/
 
+# 敏感配置（API key / token）
+.env
+.env.*
+!.env.example
+mydate/ai_config.json
+mydate/.mx_state/
+
 # 临时文件
 *.tmp
 *.bak

@@ -1,5 +1,12 @@
 """
-每日 API 调用限制管理器 (跨所有 mx_skills 共享)
+每日 API 调用限制管理器 — 按 skill 独立计数。
+
+妙想各 skill 有独立配额：
+  - mx-search (资讯搜索):  300 次/天
+  - mx-data   (金融数据):  300 次/天
+  - mx-xuangu (智能选股):  300 次/天
+  - mx-moni   (模拟组合):  3000 次/天
+  - mx-zixuan (自选股):    500 次/天
 
 使用本地文件持久化当日计数，进程重启不丢失。
 """
@@ -9,11 +16,22 @@ import os
 import threading
 from datetime import date
 from pathlib import Path
-from typing import Optional
+from typing import Dict, Optional
+
+
+SKILL_LIMITS: Dict[str, int] = {
+    "mx-search": 300,
+    "mx-data": 300,
+    "mx-xuangu": 300,
+    "mx-moni": 3000,
+    "mx-zixuan": 500,
+}
+
+DEFAULT_SKILL = "mx-data"
 
 
 class MXRateLimiter:
-    DAILY_LIMIT = 300
+    DAILY_LIMIT = 300  # legacy fallback
 
     def __init__(self, state_dir: Optional[str] = None):
         if state_dir is None:
@@ -24,7 +42,7 @@ class MXRateLimiter:
         self._state_file = self._state_dir / "rate_limit.json"
         self._lock = threading.Lock()
         self._today: str = ""
-        self._count: int = 0
+        self._counts: Dict[str, int] = {}
         self._load()
 
     def _load(self):
@@ -33,68 +51,99 @@ class MXRateLimiter:
             try:
                 data = json.loads(self._state_file.read_text(encoding="utf-8"))
                 if data.get("date") == today_str:
-                    self._count = data.get("count", 0)
+                    raw = data.get("counts", {})
+                    if isinstance(raw, dict):
+                        self._counts = {k: int(v) for k, v in raw.items()}
+                    elif isinstance(data.get("count"), int):
+                        self._counts = {DEFAULT_SKILL: data["count"]}
+                    else:
+                        self._counts = {}
                     self._today = today_str
                     return
             except (json.JSONDecodeError, OSError):
                 pass
         self._today = today_str
-        self._count = 0
+        self._counts = {}
         self._save()
 
     def _save(self):
+        total = sum(self._counts.values())
         try:
             self._state_file.write_text(
-                json.dumps({"date": self._today, "count": self._count}),
+                json.dumps({
+                    "date": self._today,
+                    "counts": self._counts,
+                    "count": total,
+                }),
                 encoding="utf-8",
             )
         except OSError:
             pass
 
-    @property
-    def remaining(self) -> int:
-        with self._lock:
-            self._maybe_reset()
-            return max(0, self.DAILY_LIMIT - self._count)
-
-    @property
-    def used(self) -> int:
-        with self._lock:
-            self._maybe_reset()
-            return self._count
-
     def _maybe_reset(self):
         today_str = date.today().isoformat()
         if self._today != today_str:
             self._today = today_str
-            self._count = 0
+            self._counts = {}
             self._save()
 
-    def acquire(self, n: int = 1) -> bool:
-        """Try to acquire n API call slots. Returns False if would exceed limit."""
+    def _get_limit(self, skill: str) -> int:
+        return SKILL_LIMITS.get(skill, self.DAILY_LIMIT)
+
+    def _get_count(self, skill: str) -> int:
+        return self._counts.get(skill, 0)
+
+    @property
+    def remaining(self) -> int:
+        """Legacy: returns remaining for DEFAULT_SKILL."""
+        return self.remaining_for(DEFAULT_SKILL)
+
+    @property
+    def used(self) -> int:
+        """Legacy: returns total used across all skills."""
         with self._lock:
             self._maybe_reset()
-            if self._count + n > self.DAILY_LIMIT:
+            return sum(self._counts.values())
+
+    def remaining_for(self, skill: str) -> int:
+        with self._lock:
+            self._maybe_reset()
+            limit = self._get_limit(skill)
+            used = self._get_count(skill)
+            return max(0, limit - used)
+
+    def acquire(self, n: int = 1, skill: str = DEFAULT_SKILL) -> bool:
+        with self._lock:
+            self._maybe_reset()
+            limit = self._get_limit(skill)
+            used = self._get_count(skill)
+            if used + n > limit:
                 return False
-            self._count += n
+            self._counts[skill] = used + n
             self._save()
             return True
 
-    def force_consume(self, n: int = 1):
-        """Record n calls without checking limit (for post-hoc accounting)."""
+    def force_consume(self, n: int = 1, skill: str = DEFAULT_SKILL):
         with self._lock:
             self._maybe_reset()
-            self._count += n
+            self._counts[skill] = self._get_count(skill) + n
             self._save()
 
     def status(self) -> dict:
         with self._lock:
             self._maybe_reset()
+            total_used = sum(self._counts.values())
+            total_limit = sum(SKILL_LIMITS.values())
+            per_skill = {}
+            for sk, lim in SKILL_LIMITS.items():
+                u = self._get_count(sk)
+                per_skill[sk] = {"used": u, "limit": lim, "remaining": max(0, lim - u)}
             return {
                 "date": self._today,
-                "used": self._count,
-                "remaining": max(0, self.DAILY_LIMIT - self._count),
-                "limit": self.DAILY_LIMIT,
+                "used": total_used,
+                "remaining": max(0, total_limit - total_used),
+                "limit": total_limit,
+                "skills": per_skill,
             }
 
 

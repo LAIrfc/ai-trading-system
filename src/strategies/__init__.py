@@ -15,10 +15,10 @@
 策略分类:
   技术面 (technical): MA, MACD, RSI, BOLL, KDJ, DUAL
   基本面 (fundamental): PE, PB, PEPB
-  消息面+资金面: NEWS(新闻情感), MONEY_FLOW(龙虎榜/大宗)
+  消息面+资金面: NEWS(新闻情感), MONEY_FLOW(龙虎榜/大宗), EarningsGrowth(业绩预告增速)
   市场级(不入Ensemble): Sentiment(市场情绪), PolicyEvent(政策事件，作选股前大盘过滤)
 
-  组合策略 (ensemble): EnsembleStrategy(11子策略) / 保守/均衡/激进 / V33别名
+  组合策略 (ensemble): EnsembleStrategy(多子策略投票) / 保守/均衡/激进 / V33别名
 """
 
 from .base import Strategy, StrategySignal
@@ -44,6 +44,7 @@ from .sentiment import SentimentStrategy
 from .news_sentiment import NewsSentimentStrategy
 from .policy_event import PolicyEventStrategy
 from .money_flow import MoneyFlowStrategy
+from .earnings_growth import EarningsGrowthStrategy
 
 # ---- 组合策略 ----
 from .ensemble import (EnsembleStrategy, ConservativeEnsemble,
@@ -68,6 +69,7 @@ STRATEGY_REGISTRY = {
     'NewsSentiment': NewsSentimentStrategy,
     'PolicyEvent':  PolicyEventStrategy,
     'MoneyFlow':    MoneyFlowStrategy,
+    'EarningsGrowth': EarningsGrowthStrategy,
     # 组合策略
     '保守组合': ConservativeEnsemble,
     '均衡组合': BalancedEnsemble,

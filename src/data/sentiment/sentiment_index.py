@@ -190,9 +190,20 @@ def get_turnover_rate_series(
 
 def get_margin_buy_ratio_series(start_date: str, end_date: str) -> pd.Series:
     """
-    融资买入占比序列。主 akshare stock_margin_trade_summary（沪+深）。
+    融资买入占比序列。主 akshare stock_margin_trade_summary（沪+深）；备 tushare margin。
     返回日频序列，值为融资买入额归一化（0~1）作为情绪代理。
     """
+    s = _get_margin_akshare(start_date, end_date)
+    if s is not None and not s.empty:
+        return s
+    s = _get_margin_tushare(start_date, end_date)
+    if s is not None and not s.empty:
+        logger.info("融资买入: akshare 失败，已用 tushare 备用")
+        return s
+    return pd.Series(dtype=float)
+
+
+def _get_margin_akshare(start_date: str, end_date: str) -> Optional[pd.Series]:
     try:
         import akshare as ak
         out = []
@@ -212,18 +223,45 @@ def get_margin_buy_ratio_series(start_date: str, end_date: str) -> pd.Series:
             except Exception as e:
                 logger.debug("融资融券 %s 失败: %s", symbol, e)
         if not out:
-            return pd.Series(dtype=float)
+            return None
         merged = pd.concat(out, ignore_index=True)
         merged = merged.groupby("date")["margin_buy"].sum().reset_index().set_index("date").sort_index()
         start_ts, end_ts = pd.Timestamp(start_date), pd.Timestamp(end_date)
         merged = merged[(merged.index >= start_ts) & (merged.index <= end_ts)]
         if merged.empty:
-            return pd.Series(dtype=float)
+            return None
         s = merged["margin_buy"] / (merged["margin_buy"].max() + 1e-8)
         return s.squeeze()
     except Exception as e:
-        logger.debug("get_margin_buy_ratio_series 失败: %s", e)
-        return pd.Series(dtype=float)
+        logger.debug("_get_margin_akshare 失败: %s", e)
+        return None
+
+
+def _get_margin_tushare(start_date: str, end_date: str) -> Optional[pd.Series]:
+    try:
+        import tushare as ts
+        import os
+        token = getattr(ts, "token", None) or os.environ.get("TUSHARE_TOKEN")
+        if not token:
+            return None
+        pro = ts.pro_api(token)
+        start_str = start_date.replace("-", "")[:8]
+        end_str = end_date.replace("-", "")[:8]
+        df = pro.margin(start_date=start_str, end_date=end_str)
+        if df is None or df.empty:
+            return None
+        df["date"] = pd.to_datetime(df["trade_date"])
+        buy_col = "rzjme" if "rzjme" in df.columns else "rzmre" if "rzmre" in df.columns else None
+        if buy_col is None:
+            return None
+        merged = df.groupby("date")[buy_col].sum().reset_index().set_index("date").sort_index()
+        if merged.empty:
+            return None
+        s = merged[buy_col] / (merged[buy_col].max() + 1e-8)
+        return s.squeeze()
+    except Exception as e:
+        logger.debug("_get_margin_tushare 失败: %s", e)
+        return None
 
 
 def get_option_pcr_series(start_date: str, end_date: str) -> pd.Series:
@@ -233,8 +271,8 @@ def get_option_pcr_series(start_date: str, end_date: str) -> pd.Series:
     """
     try:
         import akshare as ak
-        # 50ETF 期权日统计（若有）；接口名可能为 option_50etf_daily 等
-        for name in ["option_sse_daily", "option_50etf_daily", "option_sz_daily"]:
+        for name in ["option_sse_daily", "option_50etf_daily", "option_sz_daily",
+                      "option_sse_list_sina", "option_finance_board"]:
             func = getattr(ak, name, None)
             if func is None:
                 continue
@@ -246,7 +284,8 @@ def get_option_pcr_series(start_date: str, end_date: str) -> pd.Series:
                 if not date_col:
                     continue
                 df["date"] = pd.to_datetime(df[date_col[0]], errors="coerce")
-                pcr_col = [c for c in df.columns if "pcr" in c.lower() or "PCR" in c or "认沽" in str(c) and "认购" in str(c)][:1]
+                pcr_col = [c for c in df.columns if "pcr" in c.lower() or "PCR" in c
+                           or ("认沽" in str(c) and "认购" in str(c))][:1]
                 if pcr_col:
                     s = df.groupby("date")[pcr_col[0]].mean()
                 else:
@@ -258,10 +297,50 @@ def get_option_pcr_series(start_date: str, end_date: str) -> pd.Series:
                 return s
             except Exception:
                 continue
+        pcr = _compute_pcr_from_put_call_volume(start_date, end_date)
+        if pcr is not None and not pcr.empty:
+            logger.info("期权PCR: 使用认沽/认购成交量合成")
+            return pcr
         return pd.Series(dtype=float)
     except Exception as e:
         logger.debug("get_option_pcr_series 失败: %s", e)
         return pd.Series(dtype=float)
+
+
+def _compute_pcr_from_put_call_volume(start_date: str, end_date: str) -> Optional[pd.Series]:
+    """从 akshare 期权成交量数据合成 PCR（认沽成交量/认购成交量）。"""
+    try:
+        import akshare as ak
+        for func_name in ["option_sse_underlying_spot_em", "option_sse_spot_price_sina"]:
+            func = getattr(ak, func_name, None)
+            if func is None:
+                continue
+            try:
+                df = func()
+                if df is None or df.empty:
+                    continue
+                put_col = [c for c in df.columns if "认沽" in str(c) and ("量" in str(c) or "额" in str(c))]
+                call_col = [c for c in df.columns if "认购" in str(c) and ("量" in str(c) or "额" in str(c))]
+                if put_col and call_col:
+                    date_col = [c for c in df.columns if "日期" in str(c) or "date" in c.lower()][:1]
+                    if not date_col:
+                        continue
+                    df["date"] = pd.to_datetime(df[date_col[0]], errors="coerce")
+                    put_v = pd.to_numeric(df[put_col[0]], errors="coerce").fillna(0)
+                    call_v = pd.to_numeric(df[call_col[0]], errors="coerce").fillna(0)
+                    pcr = put_v / call_v.replace(0, np.nan)
+                    pcr = pcr.fillna(1.0)
+                    s = pd.Series(pcr.values, index=df["date"])
+                    s = s.dropna()
+                    start_ts, end_ts = pd.Timestamp(start_date), pd.Timestamp(end_date)
+                    s = s[(s.index >= start_ts) & (s.index <= end_ts)]
+                    if not s.empty:
+                        return s
+            except Exception:
+                continue
+    except Exception as e:
+        logger.debug("_compute_pcr_from_put_call_volume 失败: %s", e)
+    return None
 
 
 def get_new_high_low_ratio_series(
@@ -390,7 +469,7 @@ def get_sentiment_series_v2(
     common_index = idx_df.index
     indicators = pd.DataFrame(index=common_index)
 
-    # 6 大指标独立获取，对齐到 common_index
+    succeeded, failed = [], []
     for name, getter in [
         ("advance_decline_ratio", lambda: get_advance_decline_ratio_series(start_early, end_str, index_symbol)),
         ("turnover_rate", lambda: get_turnover_rate_series(start_early, end_str, index_symbol)),
@@ -403,16 +482,27 @@ def get_sentiment_series_v2(
             s = getter()
             if s is not None and not s.empty:
                 indicators[name] = s.reindex(common_index).ffill().fillna(0)
+                succeeded.append(name)
+            else:
+                failed.append(name)
         except Exception as e:
             logger.debug("情绪指标 %s 获取失败: %s", name, e)
+            failed.append(name)
+
+    if succeeded:
+        logger.info("情绪指标获取: 成功=%s (%d/6), 失败=%s", succeeded, len(succeeded), failed or "无")
+    else:
+        logger.warning("情绪指标全部获取失败: %s", failed)
 
     if indicators.dropna(axis=1, how="all").empty or not any(indicators.columns.isin(DEFAULT_WEIGHTS)):
-        # 回退：仅用指数动量 + 波动率
         close = idx_df["close"].astype(float)
         indicators = pd.DataFrame(index=common_index)
         indicators["advance_decline_ratio"] = (close.pct_change(5) > 0).astype(float).rolling(5, min_periods=1).mean()
         indicators["volatility_index"] = get_volatility_index_series(start_early, end_str, index_symbol).reindex(common_index).fillna(0)
+        ret = close.pct_change()
+        indicators["turnover_rate"] = ret.abs().rolling(5, min_periods=1).mean() * 100
         indicators = indicators.dropna(axis=1, how="all")
+        logger.info("情绪指标回退: 使用指数动量+波动率+换手率代理 (%d 个指标)", len(indicators.columns))
 
     if indicators.empty:
         return pd.DataFrame()

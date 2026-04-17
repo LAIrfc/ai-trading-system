@@ -161,13 +161,13 @@ def get_news_sentiment_v33(
             lambda x: get_source_weight(str(x) if pd.notna(x) else "")
         )
 
-        # 24h 窗口过滤
+        # 回看窗口过滤（按小时；含周末，不因交易日截断）
         if "date" in df.columns:
             parsed = pd.to_datetime(df["date"], errors="coerce")
             df["_pt"] = parsed
             df = df.dropna(subset=["_pt"])
-            cutoff_date = (ref - timedelta(days=1)).date() if hasattr(ref, "date") else ref
-            df = df[df["_pt"].dt.date >= cutoff_date].drop(columns=["_pt"], errors="ignore")
+            cutoff = ref - timedelta(hours=lookback_hours)
+            df = df[df["_pt"] >= cutoff].drop(columns=["_pt"], errors="ignore")
         if df.empty:
             return None
 

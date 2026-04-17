@@ -40,9 +40,50 @@ def _get_money_flow_signal(symbol: str) -> Tuple[Optional[str], Optional[float],
         if s is not None:
             _MONEY_FLOW_CACHE[symbol] = (s[0], s[1], s[2], time.time())
             return s[0], s[1], s[2]
+        s = _get_lhb_weak_signal(symbol)
+        if s is not None:
+            _MONEY_FLOW_CACHE[symbol] = (s[0], s[1], s[2], time.time())
+            return s[0], s[1], s[2]
     except Exception as e:
         logger.debug("MoneyFlow 信号获取失败 %s: %s", symbol, e)
     return None, None, None
+
+
+def _get_lhb_weak_signal(symbol: str) -> Optional[Tuple[str, float, float]]:
+    """弱信号：龙虎榜有机构席位净买入但未满足连续2日条件时，输出低置信度BUY。"""
+    try:
+        from src.data.money_flow import fetch_stock_lhb
+        from src.data.money_flow.seat import normalize_seat_name, get_seat_weight
+    except ImportError:
+        try:
+            from data.money_flow import fetch_stock_lhb
+            from data.money_flow.seat import normalize_seat_name, get_seat_weight
+        except ImportError:
+            return None
+    try:
+        df = fetch_stock_lhb(symbol, days_back=10)
+        if df is None or df.empty:
+            return None
+        df = df.copy()
+        if "net_amt" not in df.columns:
+            return None
+        df["weight"] = df["seat_name"].map(get_seat_weight)
+        inst_mask = (df["weight"] > 1.0) & (df["net_amt"] > 0)
+        inst_buys = df[inst_mask]
+        if inst_buys.empty:
+            return None
+        total_net = float(inst_buys["net_amt"].sum())
+        avg_weight = float(inst_buys["weight"].mean())
+        if total_net > 0 and avg_weight >= 1.0:
+            conf = min(0.35, 0.15 * avg_weight)
+            return ("BUY", round(conf, 2), 0.55)
+        sell_mask = (df["weight"] > 1.0) & (df["net_amt"] < 0)
+        total_sell = float(df[sell_mask]["net_amt"].sum())
+        if total_sell < 0 and abs(total_sell) > total_net * 2:
+            return ("SELL", 0.25, 0.3)
+    except Exception as e:
+        logger.debug("MoneyFlow 弱信号获取失败 %s: %s", symbol, e)
+    return None
 
 
 def _get_money_flow_from_cache(symbol: str) -> Tuple[Optional[str], Optional[float], Optional[float]]:

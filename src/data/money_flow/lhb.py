@@ -72,6 +72,59 @@ def _fetch_lhb_10jqka(symbol: str, start: str, end: str) -> pd.DataFrame:
         return pd.DataFrame()
 
 
+def _fetch_lhb_akshare_alt(symbol: str, start: str, end: str) -> pd.DataFrame:
+    """akshare 备用龙虎榜接口：stock_lhb_detail_em（按日期维度）。"""
+    try:
+        import akshare as ak
+        code = symbol[-6:] if len(symbol) >= 6 else symbol.zfill(6)
+        for func_name in ["stock_lhb_detail_em", "stock_lhb_ggtj_em"]:
+            func = getattr(ak, func_name, None)
+            if func is None:
+                continue
+            try:
+                df = func(symbol=code)
+                if df is None or df.empty:
+                    continue
+                col_map = {
+                    "上榜日期": "date", "日期": "date", "交易日期": "date",
+                    "营业部名称": "seat_name", "营业部": "seat_name",
+                    "买入额": "buy_amt", "买入金额": "buy_amt",
+                    "卖出额": "sell_amt", "卖出金额": "sell_amt",
+                    "净额": "net_amt", "净买额": "net_amt",
+                }
+                df = df.rename(columns={k: v for k, v in col_map.items() if k in df.columns})
+                if "date" not in df.columns:
+                    continue
+                df["date"] = pd.to_datetime(df["date"], errors="coerce")
+                for col in ["buy_amt", "sell_amt", "net_amt"]:
+                    if col not in df.columns:
+                        df[col] = 0.0
+                    df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0)
+                if "seat_name" not in df.columns:
+                    name_col = [c for c in df.columns if "营业部" in str(c) or "机构" in str(c)][:1]
+                    if name_col:
+                        df["seat_name"] = df[name_col[0]]
+                    else:
+                        continue
+                df["ratio_pct"] = 0.0
+                ratio_col = [c for c in df.columns if "比例" in str(c) or "占比" in str(c)]
+                if ratio_col:
+                    df["ratio_pct"] = pd.to_numeric(df[ratio_col[0]], errors="coerce").fillna(0)
+                    if df["ratio_pct"].max() > 1:
+                        df["ratio_pct"] = df["ratio_pct"] / 100.0
+                start_ts = pd.Timestamp(start)
+                end_ts = pd.Timestamp(end)
+                df = df[(df["date"] >= start_ts) & (df["date"] <= end_ts)]
+                if df.empty:
+                    continue
+                return df[["date", "seat_name", "buy_amt", "sell_amt", "net_amt", "ratio_pct"]].sort_values("date").reset_index(drop=True)
+            except Exception as e:
+                logger.debug("akshare 备用龙虎榜 %s(%s) 失败: %s", symbol, func_name, e)
+    except Exception as e:
+        logger.debug("_fetch_lhb_akshare_alt 失败 %s: %s", symbol, e)
+    return pd.DataFrame()
+
+
 def fetch_stock_lhb(
     symbol: str,
     trade_date: Optional[str] = None,
@@ -98,14 +151,12 @@ def fetch_stock_lhb(
                 logger.debug("回测预取龙虎榜 %s 读本地失败: %s", symbol, e)
     try:
         import akshare as ak
-        # 东方财富个股龙虎榜：按日、买入/卖出分别接口
         out = []
         for flag in ["买入", "卖出"]:
             try:
                 df = ak.stock_lhb_stock_detail_em(symbol=symbol, start_date=start, end_date=end, flag=flag)
                 if df is None or df.empty:
                     continue
-                # 列名兼容：akshare 版本可能不同
                 col_map = {
                     "交易日期": "date", "日期": "date",
                     "营业部名称": "seat_name", "营业部": "seat_name",
@@ -127,6 +178,10 @@ def fetch_stock_lhb(
             except Exception as e:
                 logger.debug("龙虎榜 %s %s 失败: %s", symbol, flag, e)
         if not out:
+            df_alt = _fetch_lhb_akshare_alt(symbol, start, end)
+            if df_alt is not None and not df_alt.empty:
+                logger.info("[lhb] 标的=%s 主接口无数据，已用 akshare 备用接口", symbol)
+                return df_alt
             df_backup = _fetch_lhb_10jqka(symbol, start, end)
             if df_backup is not None and not df_backup.empty:
                 logger.info("[lhb] 标的=%s akshare 无数据，已用同花顺备用", symbol)
@@ -137,6 +192,10 @@ def fetch_stock_lhb(
         return merged.dropna(subset=["date"]).sort_values("date").reset_index(drop=True)
     except Exception as e:
         logger.debug("fetch_stock_lhb 失败 %s: %s", symbol, e)
+        df_alt = _fetch_lhb_akshare_alt(symbol, start, end)
+        if df_alt is not None and not df_alt.empty:
+            logger.info("[lhb] 标的=%s 主接口异常，已用 akshare 备用接口", symbol)
+            return df_alt
         df_backup = _fetch_lhb_10jqka(symbol, start, end)
         if df_backup is not None and not df_backup.empty:
             logger.info("[lhb] 标的=%s akshare 异常，已用同花顺备用", symbol)

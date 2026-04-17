@@ -206,12 +206,14 @@ def run_version(version, factor_df, regime_score, prev_weights, hold_ages,
         raw_w = inv_vol / inv_vol.sum()
         return raw_w.to_dict()
 
-    elif version == 'v6.4':
+    elif version in ('v6.4', 'v6.4_funnel'):
         from src.factors.orthogonalization import FactorOrthogonalizer
         from src.factors.normalization import RankNormalizer
         from src.alpha.alpha_penalty import compute_alpha_with_penalty, nonlinear_alpha_mapping
         from src.risk.risk_model import compute_expected_return, ewma_covariance
         from src.optimizer.unified_optimizer import UnifiedOptimizer
+
+        is_funnel = (version == 'v6.4_funnel')
 
         orth = FactorOrthogonalizer()
         try:
@@ -233,7 +235,26 @@ def run_version(version, factor_df, regime_score, prev_weights, hold_ages,
         normalizer = RankNormalizer(method='percentile')
         norm_scores = normalizer.transform(raw_scores)
 
-        final_codes = apply_holding_continuity(norm_scores, prev_weights, hold_ages, factor_df)
+        if is_funnel:
+            # Phase2 funnel: same orthogonalized score as v6.4 for ranking,
+            # plus industry concentration penalty to enforce diversification.
+            # This isolates the impact of the concentration control mechanism.
+            unified = norm_scores.copy()
+
+            sector_proxy = factor_df.index.str[:3]
+            top_2n = unified.nlargest(TOP_N * 2)
+            sector_counts = pd.Series(top_2n.index.str[:3]).value_counts()
+            max_per_sector = max(TOP_N // 4, 3)
+            for sec in sector_counts[sector_counts > max_per_sector].index:
+                sec_mask = factor_df.index.str[:3] == sec
+                sec_sorted = unified[sec_mask].sort_values(ascending=False)
+                penalty_codes = sec_sorted.index[max_per_sector:]
+                unified.loc[penalty_codes] *= 0.85
+
+            final_codes = apply_holding_continuity(unified, prev_weights, hold_ages, factor_df)
+        else:
+            final_codes = apply_holding_continuity(norm_scores, prev_weights, hold_ages, factor_df)
+
         n_top = len(final_codes)
         if n_top == 0:
             return {}
@@ -342,7 +363,7 @@ def backtest():
         print("Insufficient data")
         return
 
-    versions = ['v5.2', 'v6.1', 'v6.4']
+    versions = ['v5.2', 'v6.1', 'v6.4', 'v6.4_qg', 'v6.4_funnel']
     nav = {v: [1.0] for v in versions}
     nav_dates = [dates[start_idx]]
     turnover_hist = {v: [] for v in versions}
@@ -390,13 +411,77 @@ def backtest():
         idx_avail = index_df[idx_mask]
         regime_score = calc_regime_score_simple(idx_avail, len(idx_avail) - 1) if len(idx_avail) > 60 else 0.0
 
+        factor_df_qg = None
         for v in versions:
+            use_factor_df = factor_df
+            actual_version = v
+            if v == 'v6.4_funnel':
+                actual_version = 'v6.4_funnel'
+                if factor_df_qg is None:
+                    qg_mask = pd.Series(True, index=factor_df.index)
+                    if 'close' in factor_df.columns:
+                        qg_mask &= factor_df['close'] >= 3.0
+                    for code_idx in factor_df.index:
+                        if code_idx in all_data:
+                            adf = all_data[code_idx]
+                            amask = adf['date'] <= current_date
+                            aavail = adf[amask]
+                            if len(aavail) >= 20:
+                                vol5 = aavail['volume'].iloc[-5:].mean()
+                                vol20 = aavail['volume'].iloc[-20:].mean()
+                                vr = vol5 / (vol20 + 1e-8)
+                                if vr < 0.4:
+                                    qg_mask.loc[code_idx] = False
+                    factor_df_qg = factor_df[qg_mask]
+                    if len(factor_df_qg) < 30:
+                        factor_df_qg = factor_df
+                use_factor_df = factor_df_qg
+            elif v == 'v6.4_qg':
+                actual_version = 'v6.4'
+                if factor_df_qg is None:
+                    qg_mask = pd.Series(True, index=factor_df.index)
+                    if 'close' in factor_df.columns:
+                        qg_mask &= factor_df['close'] >= 3.0
+                    for code_idx in factor_df.index:
+                        if code_idx in all_data:
+                            adf = all_data[code_idx]
+                            amask = adf['date'] <= current_date
+                            aavail = adf[amask]
+                            if len(aavail) >= 20:
+                                vol5 = aavail['volume'].iloc[-5:].mean()
+                                vol20 = aavail['volume'].iloc[-20:].mean()
+                                vr = vol5 / (vol20 + 1e-8)
+                                if vr < 0.4:
+                                    qg_mask.loc[code_idx] = False
+                                if 'pe_ttm' in aavail.columns:
+                                    pe_val = aavail['pe_ttm'].iloc[-1]
+                                    if pd.notna(pe_val) and (pe_val <= 0 or pe_val >= 200):
+                                        qg_mask.loc[code_idx] = False
+                                if 'market_cap' in aavail.columns:
+                                    mc_val = aavail['market_cap'].iloc[-1]
+                                    if pd.notna(mc_val) and mc_val < 50e8:
+                                        qg_mask.loc[code_idx] = False
+                    factor_df_qg = factor_df[qg_mask]
+                    if len(factor_df_qg) < 30:
+                        factor_df_qg = factor_df
+                use_factor_df = factor_df_qg
             try:
-                new_weights = run_version(v, factor_df, regime_score,
+                new_weights = run_version(actual_version, use_factor_df, regime_score,
                                           prev_weights[v], hold_ages[v],
                                           all_data=all_data, current_date=current_date)
             except Exception:
                 new_weights = prev_weights[v]
+
+            # 市场状态联动仓位: 熊市降低总仓位
+            if v in ('v6.4', 'v6.4_qg', 'v6.4_funnel') and new_weights:
+                if regime_score < -0.3:
+                    exposure = 0.3 + 0.4 * (regime_score + 1.0)  # 强熊→30%, 弱熊→~50%
+                elif regime_score < 0.0:
+                    exposure = 0.7 + regime_score  # 弱空→70%
+                else:
+                    exposure = 1.0
+                exposure = np.clip(exposure, 0.2, 1.0)
+                new_weights = {k: v_w * exposure for k, v_w in new_weights.items()}
 
             # turnover
             all_codes_set = set(list(new_weights.keys()) + list(prev_weights[v].keys()))
@@ -470,34 +555,50 @@ def backtest():
     def fmt(v):
         return f"{v:>+10.2%}" if abs(v) < 100 else f"{v:>10.2f}"
 
-    header = f"{'Metric':>20} | {'v5.2':>10} | {'v6.1':>10} | {'v6.4':>10} | {'CSI300':>10}"
+    header = f"{'Metric':>20} | {'v5.2':>10} | {'v6.1':>10} | {'v6.4':>10} | {'funnel':>10} | {'CSI300':>10}"
     print(header)
     print("-" * len(header))
 
     r = results
+    def _g(v, k):
+        return r.get(v, {}).get(k, 0)
+
     rows = [
-        ('Total Return',    r['v5.2']['ret'],  r['v6.1']['ret'],  r['v6.4']['ret'],  bench_return),
-        ('Annual Return',   r['v5.2']['ann'],  r['v6.1']['ann'],  r['v6.4']['ann'],  bench_ann),
-        ('Annual Vol',      r['v5.2']['vol'],  r['v6.1']['vol'],  r['v6.4']['vol'],  None),
-        ('Sharpe Ratio',    r['v5.2']['sharpe'], r['v6.1']['sharpe'], r['v6.4']['sharpe'], None),
-        ('Max Drawdown',    r['v5.2']['dd'],   r['v6.1']['dd'],   r['v6.4']['dd'],   None),
-        ('Calmar Ratio',    r['v5.2']['calmar'], r['v6.1']['calmar'], r['v6.4']['calmar'], None),
-        ('Win Rate',        r['v5.2']['wr'],   r['v6.1']['wr'],   r['v6.4']['wr'],   None),
-        ('Avg Turnover',    r['v5.2']['turnover'], r['v6.1']['turnover'], r['v6.4']['turnover'], None),
+        ('Total Return',  'ret',      bench_return),
+        ('Annual Return', 'ann',      bench_ann),
+        ('Annual Vol',    'vol',      None),
+        ('Sharpe Ratio',  'sharpe',   None),
+        ('Max Drawdown',  'dd',       None),
+        ('Calmar Ratio',  'calmar',   None),
+        ('Win Rate',      'wr',       None),
+        ('Avg Turnover',  'turnover', None),
     ]
 
-    for name, v52, v61, v64, bench in rows:
+    for name, key, bench in rows:
         b = fmt(bench) if bench is not None else f"{'--':>10}"
-        print(f"{name:>20} | {fmt(v52)} | {fmt(v61)} | {fmt(v64)} | {b}")
+        print(f"{name:>20} | {fmt(_g('v5.2',key))} | {fmt(_g('v6.1',key))} | {fmt(_g('v6.4',key))} | {fmt(_g('v6.4_funnel',key))} | {b}")
 
+    # v6.4_funnel vs v6.4 comparison (A/B核心)
+    print(f"\n{'='*75}")
+    print("  A/B: v6.4_funnel (分层漏斗) vs v6.4 (并列分池)")
+    print(f"{'='*75}")
+    d_ret = _g('v6.4_funnel','ret') - _g('v6.4','ret')
+    d_dd  = _g('v6.4_funnel','dd')  - _g('v6.4','dd')
+    d_sr  = _g('v6.4_funnel','sharpe') - _g('v6.4','sharpe')
+    d_to  = _g('v6.4_funnel','turnover') - _g('v6.4','turnover')
+    print(f"  Return delta:    {d_ret:>+.2%}")
+    print(f"  Drawdown delta:  {d_dd:>+.2%} ({'better' if d_dd > 0 else 'worse'})")
+    print(f"  Sharpe delta:    {d_sr:>+.4f}")
+    print(f"  Turnover delta:  {d_to:>+.2%}")
+    
     # v6.4 vs v5.2 improvement
     print(f"\n{'='*75}")
     print("  V6.4 vs V5.2 Comparison")
     print(f"{'='*75}")
-    d_ret = r['v6.4']['ret'] - r['v5.2']['ret']
-    d_dd  = r['v6.4']['dd']  - r['v5.2']['dd']
-    d_sr  = r['v6.4']['sharpe'] - r['v5.2']['sharpe']
-    d_to  = r['v6.4']['turnover'] - r['v5.2']['turnover']
+    d_ret = _g('v6.4','ret') - _g('v5.2','ret')
+    d_dd  = _g('v6.4','dd')  - _g('v5.2','dd')
+    d_sr  = _g('v6.4','sharpe') - _g('v5.2','sharpe')
+    d_to  = _g('v6.4','turnover') - _g('v5.2','turnover')
     print(f"  Return delta:    {d_ret:>+.2%}")
     print(f"  Drawdown delta:  {d_dd:>+.2%} ({'better' if d_dd > 0 else 'worse'})")
     print(f"  Sharpe delta:    {d_sr:>+.4f}")
@@ -507,17 +608,17 @@ def backtest():
     print(f"\n{'='*75}")
     print("  NAV Curve (monthly)")
     print(f"{'='*75}")
-    print(f"{'Date':>12} | {'v5.2':>8} | {'v6.1':>8} | {'v6.4':>8}")
-    print("-" * 48)
+    print(f"{'Date':>12} | {'v5.2':>8} | {'v6.1':>8} | {'v6.4':>8} | {'funnel':>8}")
+    print("-" * 60)
 
     last_month = None
     for i, d in enumerate(nav_dates):
         month_key = d.strftime('%Y-%m')
         if month_key != last_month:
             last_month = month_key
-            print(f"{d.strftime('%Y-%m-%d'):>12} | {nav['v5.2'][i]:>8.4f} | {nav['v6.1'][i]:>8.4f} | {nav['v6.4'][i]:>8.4f}")
+            print(f"{d.strftime('%Y-%m-%d'):>12} | {nav['v5.2'][i]:>8.4f} | {nav['v6.1'][i]:>8.4f} | {nav['v6.4'][i]:>8.4f} | {nav['v6.4_funnel'][i]:>8.4f}")
 
-    print(f"{nav_dates[-1].strftime('%Y-%m-%d'):>12} | {nav['v5.2'][-1]:>8.4f} | {nav['v6.1'][-1]:>8.4f} | {nav['v6.4'][-1]:>8.4f}")
+    print(f"{nav_dates[-1].strftime('%Y-%m-%d'):>12} | {nav['v5.2'][-1]:>8.4f} | {nav['v6.1'][-1]:>8.4f} | {nav['v6.4'][-1]:>8.4f} | {nav['v6.4_funnel'][-1]:>8.4f}")
 
     # ========== Segment analysis ==========
     print(f"\n{'='*75}")
