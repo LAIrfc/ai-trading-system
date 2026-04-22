@@ -1,10 +1,10 @@
 """
 多策略组合投票策略 (Ensemble Strategy)
 
-架构：L0(PolicyEvent过滤) + L2(波动率自适应权重) + L3(13策略加权投票+相关性折扣)
+架构：L0(PolicyEvent过滤) + L2(波动率自适应权重) + L3(14策略加权投票+相关性折扣)
 
 原理:
-- 同时运行13个子策略（技术6+基本面4+消息面+资金面+市场情绪）
+- 同时运行14个子策略（技术6+基本面4+消息面+资金面+市场情绪+行业趋势）
 - 每个策略独立给出 BUY / SELL / HOLD 信号 + confidence + position
 - 采用加权投票机制（净得分法，阈值0.07/-0.15）
 - L2 层基于个股波动率即时调整技术面/基本面权重
@@ -50,6 +50,7 @@ from .news_sentiment import NewsSentimentStrategy
 from .policy_event import PolicyEventStrategy
 from .money_flow import MoneyFlowStrategy
 from .earnings_growth import EarningsGrowthStrategy
+from .industry_trend import IndustryTrendStrategy
 from .sector_thresholds import get_profile, map_sector_code_to_category
 
 try:
@@ -81,6 +82,12 @@ MAJOR_NEGATIVE_REASON_KEY = "重大利空"
 # 冲突规则：卖出总分 × 此系数 与 买入总分 比较
 SELL_SCORE_MULTIPLIER = 1.2
 
+# ── 功能开关 ──
+# 默认关闭：当前大多策略输出HOLD，共振/动态权重无实际效果。
+# 等策略活跃度提升后启用（建议先用 strategy_activation_rate.py 诊断）。
+ENABLE_RESONANCE_THRESHOLD = False
+ENABLE_WEAK_DYNAMIC_WEIGHT = False
+
 
 class EnsembleStrategy(Strategy):
     """
@@ -98,7 +105,7 @@ class EnsembleStrategy(Strategy):
     """
 
     name = '多策略组合'
-    description = '13策略加权投票（6技术+4基本面+消息面+资金面+情绪面，含L2波动率自适应+相关性折扣）'
+    description = '14策略加权投票（6技术+4基本面+消息面+资金面+情绪面+行业趋势，含L2波动率自适应+相关性折扣）'
 
     param_ranges = {
         'buy_threshold':  (0.3, 0.5, 0.8, 0.05),
@@ -132,7 +139,7 @@ class EnsembleStrategy(Strategy):
         self.stock_name = stock_name
         self.dual_reverse = dual_reverse
 
-        # 子策略实例（技术面 6 + 基本面 3 + 消息面 1 + 资金面 1 + 情绪面 1 + 业绩增速 1）
+        # 子策略实例（技术面 6 + 基本面 3 + 消息面 1 + 资金面 1 + 情绪面 1 + 业绩增速 1 + 行业趋势 1）
         self.sub_strategies: Dict[str, Strategy] = {
             'MA':           MACrossStrategy(),
             'MACD':         MACDStrategy(),
@@ -147,6 +154,7 @@ class EnsembleStrategy(Strategy):
             'MONEY_FLOW':   MoneyFlowStrategy(symbol=symbol),
             'SENTIMENT':    SentimentStrategy(),
             'EARNINGS_GROWTH': EarningsGrowthStrategy(symbol=symbol, stock_name=stock_name),
+            'INDUSTRY_TREND': IndustryTrendStrategy(symbol=symbol, stock_name=stock_name),
         }
 
         # 默认权重（基于历史多策略全量回测优化，836只×300只验证；含业绩增速后需重新校准）
@@ -169,10 +177,11 @@ class EnsembleStrategy(Strategy):
             'NEWS':       0.32,  # 消息面：个股新闻LLM
             'MONEY_FLOW': 0.30,  # 资金面：龙虎榜+大宗
             'EARNINGS_GROWTH': 1.50,  # 业绩预告增速（东方财富 yjyg）—— 核心基本面因子，高权重
+            'INDUSTRY_TREND': 0.80,  # 行业趋势前瞻：赛道景气度+个股切入深度（事件驱动型机会）
         }
 
         # min_bars 只取技术策略的最大值；其他策略有数据时参与，无数据时被剔除逻辑过滤
-        non_tech_keys = {'PE', 'PB', 'PEPB', 'NEWS', 'MONEY_FLOW', 'SENTIMENT', 'EARNINGS_GROWTH'}
+        non_tech_keys = {'PE', 'PB', 'PEPB', 'NEWS', 'MONEY_FLOW', 'SENTIMENT', 'EARNINGS_GROWTH', 'INDUSTRY_TREND'}
         tech_strategies = {k: v for k, v in self.sub_strategies.items() if k not in non_tech_keys}
         self.min_bars = max(s.min_bars for s in tech_strategies.values())
 
@@ -218,6 +227,11 @@ class EnsembleStrategy(Strategy):
                 eg_strat.stock_name = stock_name
             if sector_codes is not None:
                 eg_strat.sector_codes = sector_codes
+        it_strat = self.sub_strategies.get('INDUSTRY_TREND')
+        if it_strat is not None:
+            it_strat.symbol = symbol
+            if stock_name:
+                it_strat.stock_name = stock_name
 
         if sector:
             self._apply_sector_thresholds(sector)
@@ -370,6 +384,19 @@ class EnsembleStrategy(Strategy):
         self._weight_cooldown_until = self._weight_adjustment_date + pd.Timedelta(days=7)
         logger.info('动态权重已更新: 市场状态=%s，冷却至%s', state, self._weight_cooldown_until.date())
 
+    def _detect_market_state(self) -> str:
+        """
+        检测当前市场状态: 'trend' 或 'range'。
+        复用 v33_weights 的 ADX+HV20 判定逻辑，获取沪深300指数数据。
+        """
+        if fetch_index_for_state is None or get_market_state is None:
+            return 'range'
+        try:
+            index_df = fetch_index_for_state('000300')
+            return get_market_state(index_df)
+        except Exception:
+            return 'range'
+
     def _compute_volatility_adjusted_weights(self, df: pd.DataFrame) -> Optional[Dict[str, float]]:
         """
         L2: 基于个股波动率的即时权重调整。
@@ -406,23 +433,43 @@ class EnsembleStrategy(Strategy):
         elif vol_ratio < 0.7:
             tech_mult, fund_mult = 1.1, 0.9
         else:
+            tech_mult, fund_mult = 1.0, 1.0
+
+        # 弱动态权重（默认关闭：当前大多策略输出HOLD，调整无实际效果；
+        # 等策略活跃度提升后通过 ENABLE_WEAK_DYNAMIC_WEIGHT 启用）
+        REVERSAL = {'RSI', 'BOLL'}
+        TREND_STRATS = {'MA', 'MACD'}
+        reversal_mult = 1.0
+        trend_mult = 1.0
+        if ENABLE_WEAK_DYNAMIC_WEIGHT:
+            market_state = self._detect_market_state()
+            if market_state == 'trend':
+                reversal_mult = 0.90
+            elif market_state == 'range':
+                trend_mult = 0.90
+
+        if tech_mult == 1.0 and fund_mult == 1.0 and reversal_mult == 1.0 and trend_mult == 1.0:
             return None
 
         adjusted = {}
         for name, w in self.weights.items():
+            m = 1.0
             if name in TECH:
-                adjusted[name] = w * tech_mult
+                m *= tech_mult
             elif name in FUND:
-                adjusted[name] = w * fund_mult
-            else:
-                adjusted[name] = w
+                m *= fund_mult
+            if name in REVERSAL:
+                m *= reversal_mult
+            elif name in TREND_STRATS:
+                m *= trend_mult
+            adjusted[name] = w * m
         return adjusted
 
     def analyze(self, df: pd.DataFrame) -> StrategySignal:
         """
-        13策略加权投票决策
+        14策略加权投票决策
 
-        架构：L0(PolicyEvent过滤) + L2(波动率自适应权重) + L3(13策略加权投票)
+        架构：L0(PolicyEvent过滤) + L2(波动率自适应权重) + L3(14策略加权投票)
         L2 基于个股即时波动率，无滞后；默认不调整，仅在波动率偏离时启用。
         """
 
@@ -625,11 +672,50 @@ class EnsembleStrategy(Strategy):
             return 'BUY', best[1].confidence, f"{best[0]}发出买入: {best[1].reason}"
         return 'HOLD', 0.5, "所有策略均持观望"
 
-    # NEWS 和 MONEY_FLOW 同方向时对 MONEY_FLOW 打折，避免双重计分
-    # 新闻事件与龙虎榜/大宗交易往往共生（同一事件引发资金异动+新闻报道）
+    # 高相关策略对：同方向投票时，权重较低者打折，防止"一件事被多个因子重复计票"
+    # 超跌反转组：RSI/KDJ/BOLL 都在捕捉短期超跌反弹
+    # 趋势组：MA/MACD 都在捕捉趋势启动（DUAL反向使用，与趋势组负相关不打折）
+    # 估值组：PE/PB/PEPB 都在捕捉估值压缩
+    # 事件组：NEWS/MONEY_FLOW/INDUSTRY_TREND 往往由同一事件驱动
     _CORRELATED_PAIRS = {
-        ('NEWS', 'MONEY_FLOW'): 0.5,
+        ('RSI', 'KDJ'):   0.5,
+        ('RSI', 'BOLL'):  0.5,
+        ('KDJ', 'BOLL'):  0.5,
+        ('MA', 'MACD'):   0.5,
+        ('PE', 'PEPB'):   0.5,
+        ('PB', 'PEPB'):   0.5,
+        ('NEWS', 'MONEY_FLOW'):     0.5,
+        ('NEWS', 'INDUSTRY_TREND'): 0.6,
     }
+
+    # 5个原始因子组（用于共振判断，派生模型不计入）
+    _SIGNAL_GROUPS = {
+        'trend':       {'MA', 'MACD', 'DUAL'},
+        'reversal':    {'RSI', 'KDJ', 'BOLL', 'SENTIMENT'},
+        'valuation':   {'PE', 'PB', 'PEPB'},
+        'fundamental': {'EARNINGS_GROWTH', 'PROFIT_QUALITY'},
+        'event':       {'NEWS', 'MONEY_FLOW', 'INDUSTRY_TREND'},
+    }
+
+    def _resonance_info(self, votes: list, weights: dict) -> tuple:
+        """
+        统计BUY/SELL信号的共振结构。
+
+        返回 (覆盖组数, 最大组权重占比, 覆盖组名列表)。
+        最大组占比>60% 说明信号高度集中在单一逻辑，即使覆盖3组也不算真正共振。
+        """
+        vote_names = {n for n, _ in votes}
+        hit_groups = []
+        group_weights = {}
+        for gname, members in self._SIGNAL_GROUPS.items():
+            overlap = vote_names & members
+            if overlap:
+                hit_groups.append(gname)
+                gw = sum(weights.get(s, 1.0) for s in overlap)
+                group_weights[gname] = gw
+        total_w = sum(group_weights.values()) or 1.0
+        max_ratio = max(group_weights.values()) / total_w if group_weights else 1.0
+        return len(hit_groups), max_ratio, hit_groups
 
     def _apply_correlation_discount(self, votes: list, weights: dict) -> dict:
         """
@@ -672,8 +758,8 @@ class EnsembleStrategy(Strategy):
             adjusted_weights: L2层调整后的权重（如果为None，使用self.weights）
         """
         MIN_ACTIVE_VOTES = 1
-        buy_th = self.net_buy_threshold
-        sell_th = self.net_sell_threshold
+        base_buy_th = self.net_buy_threshold   # 0.07
+        base_sell_th = self.net_sell_threshold  # -0.15
 
         if not buy_votes and not sell_votes:
             return 'HOLD', 0.5, "无有效方向性信号"
@@ -695,12 +781,33 @@ class EnsembleStrategy(Strategy):
 
         net_score = (buy_score - sell_score) / active_weight_sum
 
+        # 共振结构（监控指标始终计算，阈值调整受开关控制）
+        buy_groups, buy_max_ratio, buy_gnames = self._resonance_info(buy_votes, buy_w)
+        sell_groups, sell_max_ratio, _ = self._resonance_info(sell_votes, sell_w)
+
+        active_count = len(buy_votes) + len(sell_votes)
+        logger.debug(
+            '[Ensemble] buy_groups=%d max_ratio=%.2f sell_groups=%d active=%d',
+            buy_groups, buy_max_ratio, sell_groups, active_count
+        )
+
+        buy_th = base_buy_th
+        sell_th = base_sell_th
+        resonance_tag = ''
+        if ENABLE_RESONANCE_THRESHOLD:
+            if buy_groups >= 3 and buy_max_ratio < 0.60:
+                buy_th = base_buy_th - 0.02
+                resonance_tag = f', {buy_groups}组共振'
+            elif buy_groups <= 1:
+                buy_th = base_buy_th + 0.04
+                resonance_tag = ', 单组信号'
+
         if net_score > buy_th and len(buy_votes) >= MIN_ACTIVE_VOTES:
             names = [n for n, _ in buy_votes]
             conf = min(0.99, buy_score / active_weight_sum)
             return (
                 'BUY', round(conf, 2),
-                f"加权看多(净分={net_score:.2f}, {len(buy_votes)}票): {', '.join(names)}"
+                f"加权看多(净分={net_score:.2f}, {len(buy_votes)}票{resonance_tag}): {', '.join(names)}"
             )
 
         if net_score < sell_th and len(sell_votes) >= MIN_ACTIVE_VOTES:

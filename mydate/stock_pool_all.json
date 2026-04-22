@@ -8,9 +8,9 @@
     "chinext_expansion": "非ST；总市值>50亿元；创业板30/301/302；名称关键词分类；市值数据源 Eastmoney 或 Baidu"
   },
   "stats": {
-    "total_stocks": 1481,
+    "total_stocks": 1482,
     "total_etf": 56,
-    "total": 1537
+    "total": 1538
   },
   "stocks": {
     "半导体": [
@@ -6099,6 +6099,12 @@
       {
         "code": "300161",
         "name": "华中数控"
+      }
+    ],
+    "新型储能": [
+      {
+        "code": "001283",
+        "name": "豪鹏科技"
       }
     ]
   },

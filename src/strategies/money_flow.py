@@ -1,8 +1,9 @@
 """
-龙虎榜/大宗交易策略（MoneyFlow）V3.3
+龙虎榜/大宗交易/实时资金流向策略（MoneyFlow）V3.4
 
 - 龙虎榜：连续 2 日同席位净买/卖、占比>0.1%、机构权重>1.2；置信度 = min(占比/0.2%,1)×席位权重均值；有效期 3 日。
 - 大宗：折价<3%、买方长线机构、额>1 亿→买入(0.5)；折价>5%、卖方控股股东/董监高、额>0.5 亿→卖出(0.8)；有效期 5 日。
+- 实时资金流：主力净流入>5000万+超大单>0→BUY；主力净流出>5000万+超大单<0→SELL。作为龙虎榜/大宗的补充信号源。
 - 信号时点：T 日交易 T+1 披露，信号 T+2 开盘执行（见 config/signal_timing.yaml）。
 - 接口异常时尝试备用数据源，并可使用近 7 日本地缓存。
 """
@@ -23,12 +24,12 @@ _MONEY_FLOW_CACHE_DAYS = 7
 
 
 def _get_money_flow_signal(symbol: str) -> Tuple[Optional[str], Optional[float], Optional[float]]:
-    """(action, confidence, position) 或 (None, None, None)。龙虎榜优先，其次大宗；成功时写入缓存。"""
+    """(action, confidence, position) 或 (None, None, None)。龙虎榜优先，其次大宗，最后实时资金流；成功时写入缓存。"""
     try:
-        from src.data.money_flow import get_lhb_signal, get_dzjy_signal
+        from src.data.money_flow import get_lhb_signal, get_dzjy_signal, get_realtime_flow_signal
     except ImportError:
         try:
-            from data.money_flow import get_lhb_signal, get_dzjy_signal
+            from data.money_flow import get_lhb_signal, get_dzjy_signal, get_realtime_flow_signal
         except ImportError:
             return None, None, None
     try:
@@ -42,6 +43,11 @@ def _get_money_flow_signal(symbol: str) -> Tuple[Optional[str], Optional[float],
             return s[0], s[1], s[2]
         s = _get_lhb_weak_signal(symbol)
         if s is not None:
+            _MONEY_FLOW_CACHE[symbol] = (s[0], s[1], s[2], time.time())
+            return s[0], s[1], s[2]
+        s = get_realtime_flow_signal(symbol)
+        if s is not None:
+            logger.info("[MoneyFlow] 标的=%s 龙虎榜/大宗无数据，使用实时资金流向", symbol)
             _MONEY_FLOW_CACHE[symbol] = (s[0], s[1], s[2], time.time())
             return s[0], s[1], s[2]
     except Exception as e:
@@ -171,6 +177,6 @@ class MoneyFlowStrategy(Strategy):
             action="HOLD",
             confidence=0.0,
             position=0.5,
-            reason="龙虎榜/大宗接口异常且无有效缓存，暂观望",
+            reason="龙虎榜/大宗/实时资金流均无有效数据，暂观望",
             indicators={"money_flow": None},
         )

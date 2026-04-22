@@ -4,7 +4,7 @@
 - 情绪指数 S 为多指标 Z-score 合成（见 sentiment_index.py），S_low/S_high 为 60 日 20/80 分位。
 - 买入：当日 S < S_low 且次日 S 回升；卖出：当日 S > S_high 且次日 S 回落。
 - 趋势过滤（个股）：仅当【情绪极端+次日确认】与【趋势加速度衰竭】同时满足才输出买卖；
-  买入端：MACD 柱 3 日斜率<0、股价创 5 日新低、ADX>25；卖出端：MACD 柱 3 日斜率<0、股价创 5 日新高、ADX>25。
+  买入端：MACD 柱 3 日斜率<0、股价创 5 日新低、ADX>20；卖出端：MACD 柱 3 日斜率<0、股价创 5 日新高、ADX>20。
 - 无 V3.3 数据时回退为旧版单指标 0~100 情绪逻辑（无趋势过滤）。
 """
 
@@ -289,7 +289,26 @@ class SentimentStrategy(Strategy):
                         reason=f"情绪贪婪且次日回落(S={s_curr:.2f})，但趋势过滤未过",
                         indicators={"S": round(s_curr, 3)},
                     )
-                # 未触发买卖
+                # 弱信号层：情绪偏低（接近S_low）且持续改善 → 弱BUY
+                s_high_curr = curr.get("S_high", s_high_prev)
+                s_low_curr = curr.get("S_low", s_low_prev)
+                if s_curr < s_low_curr * 1.3 and s_curr > s_prev:
+                    return StrategySignal(
+                        action="BUY",
+                        confidence=0.52,
+                        position=0.45,
+                        reason=f"情绪偏悲观改善中(S={s_curr:.2f}↑, 接近S_low={s_low_curr:.2f})",
+                        indicators={"S": round(s_curr, 3), "S_low": round(s_low_curr, 3)},
+                    )
+                # 弱SELL：情绪偏高（接近S_high）且开始回落
+                if s_curr > s_high_curr * 0.7 and s_curr < s_prev:
+                    return StrategySignal(
+                        action="SELL",
+                        confidence=0.52,
+                        position=0.35,
+                        reason=f"情绪偏乐观回落中(S={s_curr:.2f}↓, 接近S_high={s_high_curr:.2f})",
+                        indicators={"S": round(s_curr, 3), "S_high": round(s_high_curr, 3)},
+                    )
                 return StrategySignal(
                     action="HOLD",
                     confidence=0.5,

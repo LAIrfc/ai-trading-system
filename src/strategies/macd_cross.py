@@ -282,15 +282,30 @@ class MACDStrategy(Strategy):
             )
 
         # ---- 多头动能: DIF > DEA，无交叉 ----
-        #  仓位随 DIF-DEA 间距动态调整（自适应归一化）
-        #  间距越大（动能越强） → 仓位越高
-        #  上限 0.65 < 金叉最低 0.70，保证层级：BUY > HOLD_bull
         if cur_dif > cur_dea:
             cur_gap = abs(cur_dif - cur_dea)
             gap_threshold = max(gap_std * 2, 1e-6)
             norm_gap = min(cur_gap / gap_threshold, 1.0)
-            position = self._BULL_POS_MIN + norm_gap * (self._BULL_POS_MAX - self._BULL_POS_MIN)
 
+            # 弱BUY: 柱体连续放大（DIF-DEA 差值在扩大）表示趋势增强
+            hist_vals = macd_hist.iloc[-4:].values
+            expanding = len(hist_vals) == 4 and all(
+                hist_vals[i] > hist_vals[i - 1] for i in range(1, len(hist_vals))
+            )
+            if expanding and cur_hist > 0:
+                factor = self._combined_factor(dif_slope, slope_std, vol_ratio)
+                conf = 0.52 + factor * 0.10  # conf ∈ [0.52, 0.62]
+                position = self._BULL_POS_MIN + norm_gap * (self._BULL_POS_MAX - self._BULL_POS_MIN)
+                return StrategySignal(
+                    action='BUY', confidence=round(conf, 2),
+                    position=round(position, 2),
+                    reason=f'MACD多头增强(柱体连续3日放大): '
+                           f'DIF={cur_dif:.4f}, DEA={cur_dea:.4f}, '
+                           f'柱={cur_hist:.4f}',
+                    indicators=indicators,
+                )
+
+            position = self._BULL_POS_MIN + norm_gap * (self._BULL_POS_MAX - self._BULL_POS_MIN)
             return StrategySignal(
                 action='HOLD', confidence=0.5,
                 position=round(position, 2),
@@ -301,13 +316,29 @@ class MACDStrategy(Strategy):
             )
 
         # ---- 空头动能: DIF < DEA ----
-        #  间距越大（空头越强） → 仓位越低
-        #  范围 [BEAR_MIN=0.05, BEAR_MAX=0.25]
         cur_gap = abs(cur_dif - cur_dea)
         gap_threshold = max(gap_std * 2, 1e-6)
         norm_gap = min(cur_gap / gap_threshold, 1.0)
-        position = self._BEAR_POS_MAX - norm_gap * (self._BEAR_POS_MAX - self._BEAR_POS_MIN)
 
+        # 弱SELL: 柱体连续缩小（更负），空头增强
+        hist_vals = macd_hist.iloc[-4:].values
+        contracting = len(hist_vals) == 4 and all(
+            hist_vals[i] < hist_vals[i - 1] for i in range(1, len(hist_vals))
+        )
+        if contracting and cur_hist < 0:
+            factor = self._combined_factor(dif_slope, slope_std, vol_ratio)
+            conf = 0.52 + factor * 0.10
+            position = self._BEAR_POS_MAX - norm_gap * (self._BEAR_POS_MAX - self._BEAR_POS_MIN)
+            return StrategySignal(
+                action='SELL', confidence=round(conf, 2),
+                position=round(position, 2),
+                reason=f'MACD空头增强(柱体连续3日扩大): '
+                       f'DIF={cur_dif:.4f}, DEA={cur_dea:.4f}, '
+                       f'柱={cur_hist:.4f}',
+                indicators=indicators,
+            )
+
+        position = self._BEAR_POS_MAX - norm_gap * (self._BEAR_POS_MAX - self._BEAR_POS_MIN)
         return StrategySignal(
             action='HOLD', confidence=0.5,
             position=round(position, 2),

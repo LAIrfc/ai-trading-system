@@ -359,7 +359,33 @@ class RSIStrategy(Strategy):
                     indicators=indicators,
                 )
 
-        # ---- 中性区间 ----
+        # ---- 中性区间：增加弱信号层 ----
+        # RSI连续3日上升且处于30-55区间 → 弱BUY
+        # （实际分布：20%股票在35-50，放宽到30-55增加覆盖）
+        rsi_vals = rsi.iloc[-4:].values if len(rsi) >= 4 else None
+        if rsi_vals is not None and len(rsi_vals) == 4:
+            rising_3d = all(rsi_vals[i] > rsi_vals[i - 1] for i in range(1, 4))
+            if rising_3d and 30 <= cur_rsi <= 55:
+                factor = self._combined_factor(rsi_slope, rsi_slope_std, vol_ratio)
+                conf = 0.52 + factor * 0.08  # conf ∈ [0.52, 0.60]
+                return StrategySignal(
+                    action='BUY', confidence=round(conf, 2),
+                    position=0.45,
+                    reason=f'RSI低位连续3日回升({rsi_vals[0]:.0f}→{cur_rsi:.0f})',
+                    indicators=indicators,
+                )
+            # RSI连续3日下降且处于45-70区间 → 弱SELL
+            falling_3d = all(rsi_vals[i] < rsi_vals[i - 1] for i in range(1, 4))
+            if falling_3d and 45 <= cur_rsi <= 70:
+                factor = self._combined_factor(rsi_slope, rsi_slope_std, vol_ratio)
+                conf = 0.52 + factor * 0.08
+                return StrategySignal(
+                    action='SELL', confidence=round(conf, 2),
+                    position=0.35,
+                    reason=f'RSI中位连续3日回落({rsi_vals[0]:.0f}→{cur_rsi:.0f})',
+                    indicators=indicators,
+                )
+
         return StrategySignal(
             action='HOLD', confidence=0.5, position=0.50,
             reason=f'RSI中性区间 ({cur_rsi:.1f})',

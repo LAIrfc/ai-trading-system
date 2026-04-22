@@ -666,6 +666,19 @@ class FundamentalFetcher:
         if not end_date:
             end_date = datetime.now().strftime('%Y-%m-%d')
         
+        # 先检查 parquet 缓存（7天有效，避免重复网络请求）
+        _cache_pq = os.path.join(self._CACHE_DIR, f'daily_basic_{code}.parquet')
+        if os.path.exists(_cache_pq):
+            try:
+                _age = time.time() - os.path.getmtime(_cache_pq)
+                if _age < 7 * 86400:
+                    _cached = pd.read_parquet(_cache_pq)
+                    if len(_cached) > 50:
+                        logger.debug(f"[{code}] 日频基本面缓存命中 {len(_cached)}条")
+                        return _cached
+            except Exception:
+                pass
+
         # 方案1: Baostock（主力）
         try:
             self._ensure_bs_login()
@@ -694,11 +707,28 @@ class FundamentalFetcher:
                 df['turnover_rate'] = pd.to_numeric(df['turnover_rate'], errors='coerce')
                 df = df.sort_values('date').reset_index(drop=True)
                 logger.info(f"✅ Baostock获取 {code} 日频基本面: {len(df)}条")
+                try:
+                    df.to_parquet(_cache_pq, index=False)
+                except Exception:
+                    pass
                 return df
         except Exception as e:
             logger.warning(f"⚠️ Baostock获取 {code} 日频基本面失败: {e}")
         
-        # 方案2: 从预加载的全市场 DataFrame 查表（零网络开销）
+        # 方案2: 百度股市通 PE/PB 历史（akshare，非东财源，不被封）
+        try:
+            baidu_df = self.get_pe_pb_baidu(code, period="近三年")
+            if not baidu_df.empty and len(baidu_df) > 50:
+                logger.info(f"✅ 百度获取 {code} PE/PB历史: {len(baidu_df)}条")
+                try:
+                    baidu_df.to_parquet(_cache_pq, index=False)
+                except Exception:
+                    pass
+                return baidu_df
+        except Exception as e:
+            logger.debug(f"⚠️ 百度获取 {code} PE/PB失败: {e}")
+
+        # 方案3: 从预加载的全市场 DataFrame 查表（零网络开销）
         _spot = spot_df if spot_df is not None else getattr(self, '_spot_df_cache', None)
         if _spot is not None and not _spot.empty:
             try:

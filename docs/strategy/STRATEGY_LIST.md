@@ -1,11 +1,11 @@
 # 策略清单（完整）
 
 > 项目内所有策略与组合的索引，便于查阅和工具对接。  
-> 更新：2026-03-24
+> 更新：2026-04-22
 
 ---
 
-## 一、单策略（共 14 个，其中 12 个入 EnsembleStrategy）
+## 一、单策略（共 17 个，其中 12+ 个入 EnsembleStrategy）
 
 ### 技术面策略（6 个）
 
@@ -20,24 +20,32 @@
 
 > DUAL 策略 IC 为 -0.39，反向使用后 IC 变为 +0.39，Sharpe 0.24（所有策略中第三高）。
 
-### 基本面策略（3 个）
+### 基本面策略（4 个）
 
 | 注册名 | 类名 | 文件 | 权重 | 独立Sharpe |
 |--------|------|------|------|-----------|
 | PB | PBStrategy | `fundamental_pb.py` | 2.00 | 0.38 |
 | PE | PEStrategy | `fundamental_pe.py` | 1.68 | 0.25 |
 | PEPB | PE_PB_CombinedStrategy | `fundamental_pe_pb.py` | 1.61 | 0.22 |
+| PROFIT_QUALITY | — | `data/fundamental/profit_quality.py` | 1.40 | — |
 
 > 2026-03-24 已用 baostock 批量补全 839 只股票的日频 PE(TTM)/PB(MRQ) 数据到 parquet 文件中。
 > 基本面策略在 836 只股票独立回测中表现最优（PB Sharpe 0.38 为全策略第一）。
+> **PROFIT_QUALITY**（2026-04 新增）：利润质量5维评分 — 扣非增速、经营现金流/净利润比、毛利率稳定性、ROE趋势、一次性收益占比。区分"真实业绩拐点"与"财技利润"。
 
 ### 消息面 + 情绪面 + 资金面策略（3 个）
 
 | 注册名 | 类名 | 文件 | 权重 | 说明 |
 |--------|------|------|------|------|
-| NEWS | NewsSentimentStrategy | `news_sentiment.py` | 0.32 | 新闻情感（关键词+LLM 融合） |
+| NEWS | NewsSentimentStrategy | `news_sentiment.py` | 0.32 | 新闻情感（关键词+LLM 融合），磁盘缓存2h TTL |
 | SENTIMENT | SentimentStrategy | `sentiment.py` | 0.32 | 市场情绪Z-score + 个股趋势过滤 |
 | MONEY_FLOW | MoneyFlowStrategy | `money_flow.py` | 0.30 | 龙虎榜+大宗（回测中无历史数据，权重最低） |
+
+### 行业趋势策略（1 个，2026-04 新增）
+
+| 注册名 | 类名 | 文件 | 权重 | 说明 |
+|--------|------|------|------|------|
+| INDUSTRY_TREND | — | `news_sentiment.py` | 0.35 | LLM分析行业景气度、政策催化、产业链传导 |
 
 ### 市场级策略（1 个，不入 Ensemble L3投票层）
 
@@ -46,6 +54,28 @@
 | PolicyEvent | PolicyEventStrategy | `policy_event.py` | 政策事件过滤，L0层 | ✅ 启用 |
 
 > **PolicyEvent** 在 `recommend_today.py` 中作为 L0 大盘过滤层，政策极度利空时暂停选股。
+
+### 十倍股模型（独立评分系统，2026-04 新增，基于"7条铁律"框架）
+
+| 模块 | 文件 | 说明 |
+|------|------|------|
+| TenbaggerModel | `tenbagger_model.py` | 长周期(3-5年)十倍股评分：赛道(100) + 小市值(100) + 高壁垒(100) + 业绩拐点(100) + 国产替代(100) + 连续催化(100) + 合理估值(100) = /700 |
+
+> 来自十五五规划分析的"7条铁律"框架，已实战验证选出豪鹏科技(610/S级)。  
+> 特性：赛道惩罚（非核心赛道×0.75）、国产替代双轨（硬性+海外大客户绑定）、关注列表机制（WATCHLIST每日必评）。
+
+### 翻倍股模型（独立评分系统，2026-04 新增）
+
+| 模块 | 文件 | 说明 |
+|------|------|------|
+| DoublerModel | `doubler_model.py` | 短周期(3-6月)翻倍股评分：行业热度×25% + 资金强度×25% + 催化密度×20% + 预期差×15% + 筹码集中度×15% |
+
+> 重资金与催化。市值30-500亿正常评分，500-1000亿软惩罚(×0.75，龙头可恢复至×0.90)，1000-2000亿×0.60，>2000亿×0.50。  
+> 赛道热度动态化：关注"变化率"（刚开始热>已经很热），NEWS过热时置信度打折。
+
+### 黄金交叉模型
+
+> 同时满足十倍股评分≥40 和 翻倍股评分≥40 的个股，兼具长期成长性和短期爆发力。最佳机会 = 长期十倍逻辑 + 短期资金启动。
 
 ### 其他（1 个，接口不兼容）
 
@@ -57,26 +87,41 @@
 
 ## 二、组合策略
 
-### EnsembleStrategy（主力组合，12 子策略）
+### EnsembleStrategy（主力组合，16 子策略）
 
 ```
 技术面 6 个：MA / MACD / RSI / BOLL / KDJ / DUAL（反向）
-基本面 3 个：PE / PB / PEPB
-消息面 1 个：NEWS（关键词+LLM 融合）
+基本面 4 个：PE / PB / PEPB / PROFIT_QUALITY（利润质量）
+消息面 1 个：NEWS（关键词+LLM 融合，磁盘缓存2h TTL，高位过热打折）
 情绪面 1 个：SENTIMENT（市场情绪+个股过滤）
 资金面 1 个：MONEY_FLOW（龙虎榜+大宗）
+行业趋势 1 个：INDUSTRY_TREND（LLM行业景气分析）
+业绩增长 1 个：EARNINGS_GROWTH（季报+预告+行业外推）
+翻倍股模型 1 个：DoublerModel（独立评分，3-6月短周期）
 ```
 
 | 参数 | 默认值 | 说明 |
 |------|--------|------|
 | `mode` | `weighted` | 加权净得分投票 |
-| `net_buy_threshold` | `0.07` | 净得分买入阈值（正在优化中） |
-| `net_sell_threshold` | `-0.07` | 净得分卖出阈值 |
+| `net_buy_threshold` | `0.07` | 基准买入阈值（共振≥3组降至0.05，单组升至0.11） |
+| `net_sell_threshold` | `-0.15` | 净得分卖出阈值 |
 | `MIN_ACTIVE_VOTES` | `1` | 至少1个策略同向才触发 |
 | `dual_reverse` | `True` | DUAL 信号反向使用 |
 | `holding_cost` | `None` | 传入持仓成本后启用止损感知 |
 | `stop_loss_pct` | `-8%` | 硬止损线 |
 | `warn_loss_pct` | `-5%` | 预警线 |
+
+**2026-04-22 新增机制**：
+
+| 机制 | 说明 | 状态 |
+|------|------|------|
+| 共振结构 | 5组信号（趋势/超跌反转/估值/基本面/事件），≥3组且最大组权重<60%→降阈值，单组→升阈值 | 默认关闭，监控中 |
+| 弱动态权重 | 趋势市RSI/BOLL权重×0.9，震荡市MA/MACD权重×0.9（±10%微调，防过拟合） | 默认关闭，监控中 |
+| 相关性折扣 | RSI/KDJ/BOLL组内、MA/MACD组内、PE/PB/PEPB组内权重折扣，防重复计票 | ✅启用 |
+| 三级推荐 | STRONG(20只)/NORMAL(15只)/WEAK(8只)/EMPTY(0只空仓)，基于纯信号指标 | ✅启用 |
+| 退出区标签 | 6级进场标签（核心买点→不建议新开仓），需3+条件才标⛔，区分高位与高位衰竭 | ✅启用 |
+| 技术策略弱信号 | MACD/RSI/BOLL/MA增加趋势延续弱BUY/SELL，KDJ弱信号因胜率33%已移除 | ✅启用 |
+| PE/PB多源降级 | baostock→百度股市通→全市场spot查表，历史PE/PB自动缓存7天 | ✅启用 |
 
 **权重配置**（2026-03-24 基于 836 只股票全量回测校准，composite 方法）：
 
@@ -122,6 +167,9 @@
 | 换手率辅助 | `turnover_helper.py` | 换手率过滤/约束，供策略或回测使用 |
 | 策略基类 | `base.py` | `Strategy`、`StrategySignal` 定义 |
 | 动态权重 | `v33_weights.py` | ADX/HV20 市场状态、乘数表、7 日冷却 |
+| 利润质量因子 | `data/fundamental/profit_quality.py` | 5维利润质量评分（扣非增速/现金流/毛利率/ROE/一次性收益） |
+| AI分析师 | `data/ai_analyst.py` | LLM API 封装（DeepSeek，timeout=15s） |
+| 新闻磁盘缓存 | `mydate/news_cache/` | 按日JSON缓存，2h TTL自动刷新 |
 
 ---
 
@@ -139,11 +187,14 @@
 
 | 工具 | 路径 | 使用的策略 |
 |------|------|------------|
-| 每日选股推荐 | `tools/analysis/recommend_today.py` | 政策面大盘过滤（PolicyEvent）+ 单 MACD 或 11 策略 EnsembleStrategy |
-| 单股多策略分析 | `tools/analysis/analyze_single_stock.py` | 11 单策略 + PE/PB + 5 组合（含 Ensemble/V33） |
-| 持仓多策略分析 | `tools/analysis/portfolio_strategy_analysis.py` | 11 大策略（技术6+消息面+资金面+基本面） |
+| 每日选股推荐 | `tools/analysis/recommend_today.py` | PolicyEvent(L0) + 16策略 Ensemble + DoublerModel + 利润质量评分 |
+| 单股多策略分析 | `tools/analysis/analyze_single_stock.py` | 全部单策略 + PE/PB + 组合（含 Ensemble/V33） |
+| 板块专项分析 | `tools/analysis/sector_analyze.py` | 按股票代码/板块名定向多策略分析 |
+| 持仓多策略分析 | `tools/analysis/portfolio_strategy_analysis.py` | 技术6+消息面+资金面+基本面 |
 | 交易报告生成 | `tools/analysis/generate_trade_report.py` | 双核动量轮动（ETF 轮动），非单股策略库 |
 | 批量回测 | `tools/backtest/batch_backtest.py` | 可配置策略；支持 `--check-future` 未来函数校验 |
+| 策略剔除实验 | `tools/optimization/strategy_ablation.py` | 三层剔除（单策略/整组/核心组），验证因子边际贡献 |
+| 策略活跃度诊断 | `tools/optimization/strategy_activation_rate.py` | 诊断各策略BUY/SELL/HOLD占比和活跃率 |
 
 ---
 

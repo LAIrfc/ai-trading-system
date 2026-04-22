@@ -44,6 +44,7 @@ from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor, as_completed, TimeoutError
 
 import pandas as pd
+pd.set_option('future.no_silent_downcasting', True)
 import numpy as np
 
 logger = logging.getLogger(__name__)
@@ -798,16 +799,118 @@ def _select_elite_top5(top_list: list) -> list:
     return result
 
 
+def _assess_market_opportunity(top_list: list) -> tuple:
+    """
+    评估当前市场机会质量，返回 (级别, 描述, 建议推荐数).
+
+    级别: STRONG / NORMAL / WEAK / EMPTY
+    纯信号指标：buy_ratio / avg_buy_count / positive_ratio，
+    不使用 score（score 混了赛道分/十倍股分等静态信息）。
+
+    阈值校准依据（2026-04-22 真实日报，20只股票）：
+      真实分布: buy_count 2-3, sell_count 0-2, 有效策略≈10
+      正常市场: avg_buy≈2, buy_ratio≈0.71, positive_ratio≈0.80
+      强市场:   avg_buy≈3, buy_ratio≈1.0
+      弱市场:   avg_buy≈1, buy_ratio≈0.33, positive_ratio≈0
+      空仓:     avg_buy≈0, buy_ratio=0
+    """
+    if not top_list or len(top_list) < 3:
+        return 'EMPTY', '有效股票不足，建议空仓观望', 0
+
+    head = top_list[:min(10, len(top_list))]
+    top5 = top_list[:min(5, len(top_list))]
+
+    buy_counts = [r.get('buy_count', 0) for r in head]
+    sell_counts = [r.get('sell_count', 0) for r in head]
+    avg_buy = np.mean(buy_counts)
+    avg_sell = np.mean(sell_counts)
+    buy_ratio = avg_buy / max(1, avg_buy + avg_sell)
+    avg_buy_count = avg_buy
+
+    top5_positive_ratio = np.mean([
+        1.0 if r.get('buy_count', 0) > r.get('sell_count', 0) else 0.0
+        for r in top5
+    ])
+
+    # STRONG: 多策略一致看好（真实中 avg_buy≥2.5 + sell极少已算强）
+    if (buy_ratio >= 0.75 and top5_positive_ratio >= 0.80
+            and avg_buy_count >= 2.5):
+        return 'STRONG', '强机会：多策略共振，信号密集', 20
+    # NORMAL: 正常偏积极（buy > sell 是主流）
+    elif buy_ratio >= 0.55 and top5_positive_ratio >= 0.60:
+        return 'NORMAL', '普通机会：部分策略看好', min(15, len(top_list))
+    # WEAK: 买卖分歧大或BUY偏少
+    elif buy_ratio >= 0.35 or top5_positive_ratio >= 0.40:
+        return 'WEAK', '弱机会：信号质量一般，建议轻仓或观望', min(8, len(top_list))
+    # EMPTY: 全面偏空
+    else:
+        return 'EMPTY', '极弱：当前无明确买入机会，建议空仓观望', 0
+
+
+def _tag_entry_zone(r: dict) -> str:
+    """
+    根据股价位置给每只推荐股打「进场区域」标签。
+
+    用4个核心维度计分（不含5d涨速，5天波动在强趋势中很正常）：
+    60d涨幅、20d涨幅、距离前高、量比。
+    满足≥3个才标⛔，=2个标⚠，防止强趋势票被过早打死。
+    """
+    c60 = r.get('change_60d', 0)
+    c20 = r.get('change_20d', 0)
+    dh = r.get('dist_high', -999)
+    vr = r.get('volume_ratio', 1.0)
+
+    danger_count = 0
+    if c60 > 80:
+        danger_count += 1
+    if c20 > 35:
+        danger_count += 1
+    if dh > -3:
+        danger_count += 1
+    if vr > 2.0:
+        danger_count += 1
+
+    if danger_count >= 3:
+        return '⛔不建议新开仓'
+    if danger_count == 2:
+        return '⚠追高谨慎'
+    if c60 > 50 or (c20 > 20 and dh > -5):
+        return '🔶可持有,新仓谨慎'
+    if c20 < 0 and c60 < 20:
+        return '🟢可低吸'
+    if c60 < 10:
+        return '🟢核心买点'
+    return '🔵正常区间'
+
+
 def _render_daily_section(today: str, top_list: list, strategy_name: str,
                           pool_size: int, valid_count: int, 
                           dual_advantage_stocks: list = None,
                           mr_list: list = None, 
                           trend_list: list = None,
                           hybrid_decision: dict = None,
-                          earnings_top: list = None) -> str:
+                          earnings_top: list = None,
+                          all_results: list = None) -> str:
     """渲染单日推荐区块（每只推荐股附带详细分析理由）"""
     lines = [f"## {today} 每日推荐\n"]
-    
+
+    # ====== 市场机会评估（三级推荐 + 空仓能力）======
+    opp_level, opp_desc, recommend_count = _assess_market_opportunity(top_list)
+
+    level_emoji = {'STRONG': '🟢', 'NORMAL': '🔵', 'WEAK': '🟡', 'EMPTY': '🔴'}
+    lines.append(f"### {level_emoji.get(opp_level, '')} 市场机会: {opp_level} — {opp_desc}\n")
+
+    if opp_level == 'EMPTY':
+        lines.append("> **⚠️ 当前市场缺乏有效买入信号，系统建议空仓观望，不推荐任何标的。**\n")
+        lines.append(f"**策略**: {strategy_name} | **股票池**: {pool_size}只 | **有效**: {valid_count}只\n")
+        return "\n".join(lines)
+
+    if opp_level == 'WEAK':
+        lines.append("> **⚠️ 信号质量偏低，以下仅为观察池，建议极轻仓或等待更好机会。**\n")
+
+    if recommend_count < len(top_list):
+        top_list = top_list[:recommend_count]
+
     # 混合策略信息
     if hybrid_decision:
         lines.append(f"**版本**: {hybrid_decision['version']} | **原因**: {hybrid_decision['reason']}\n")
@@ -815,7 +918,7 @@ def _render_daily_section(today: str, top_list: list, strategy_name: str,
             ic = hybrid_decision['ic_status']
             lines.append(f"**IC状态**: Base Trend={ic['base_trend_ic']:.3f}, RS={ic['relative_strength_ic']:.3f}\n")
     
-    lines.append(f"**策略**: {strategy_name} | **股票池**: {pool_size}只 | **有效**: {valid_count}只\n")
+    lines.append(f"**策略**: {strategy_name} | **股票池**: {pool_size}只 | **有效**: {valid_count}只 | **推荐级别**: {opp_level}({recommend_count}只)\n")
     
     # 双优股票特别说明
     if dual_advantage_stocks:
@@ -835,10 +938,10 @@ def _render_daily_section(today: str, top_list: list, strategy_name: str,
                            f"第{mr_rank} | 第{trend_rank} | 低估值+强趋势 |")
         lines.append("")
 
-    # 总览表
+    # 总览表（含进场区域标签）
     lines.append("### 📊 完整推荐列表\n")
-    lines.append("| 类型 | 排名 | 代码 | 名称 | 价格 | MR得分 | 趋势 | 买/卖/观 | 5日% | 20日% | 板块 |")
-    lines.append("|------|------|------|------|------|--------|------|----------|------|-------|------|")
+    lines.append("| 类型 | 排名 | 代码 | 名称 | 价格 | MR得分 | 趋势 | 买/卖/观 | 5日% | 20日% | 进场区域 |")
+    lines.append("|------|------|------|------|------|--------|------|----------|------|-------|----------|")
     for rank, r in enumerate(top_list, 1):
         code = r['code']
         if dual_advantage_stocks and code in dual_advantage_stocks:
@@ -854,10 +957,11 @@ def _render_daily_section(today: str, top_list: list, strategy_name: str,
         bsh = f"{r.get('buy_count',0)}/{r.get('sell_count',0)}/{r.get('hold_count',0)}"
         mr_score_val = r.get('mr_score', r.get('score', 0))
         trend_val = r.get('trend_score', 0)
+        zone = _tag_entry_zone(r)
         
         lines.append(f"| {stock_type} | {rank} | {r['code']} | {r['name']} | {r.get('price',0):.2f} | "
                       f"{mr_score_val:.1f} | {trend_val:+.2f} | {bsh} | "
-                      f"{r.get('change_5d',0):+.2f} | {r.get('change_20d',0):+.2f} | {str(r.get('sector',''))[:15]} |")
+                      f"{r.get('change_5d',0):+.2f} | {r.get('change_20d',0):+.2f} | {zone} |")
     lines.append("")
 
     # ====== 业绩增速TOP10（Q报预期差） ======
@@ -897,6 +1001,47 @@ def _render_daily_section(today: str, top_list: list, strategy_name: str,
                           f"{r.get('score',0):.1f} | {elite_score:.0f} | {r.get('trend','')} | "
                           f"{vol_str} | {r.get('change_5d',0):+.2f} | {elite_reason} |")
         lines.append("")
+
+    # ====== 长周期十倍股模型 (3-5年) ======
+    tenbagger_results = []
+    try:
+        from src.strategies.tenbagger_model import (
+            batch_evaluate_tenbagger, render_tenbagger_section, TENBAGGER_WATCHLIST
+        )
+        top_codes = {r['code'] for r in top_list}
+        watchlist_in_pool = []
+        if all_results:
+            watchlist_codes = {w['code'] for w in TENBAGGER_WATCHLIST}
+            watchlist_in_pool = [
+                r for r in all_results
+                if r['code'] in watchlist_codes and r['code'] not in top_codes
+            ]
+        eval_list = top_list + watchlist_in_pool
+        tenbagger_results = batch_evaluate_tenbagger(eval_list, top_n=15)
+        if tenbagger_results:
+            lines.append(render_tenbagger_section(tenbagger_results))
+    except Exception as e:
+        lines.append(f"\n> ⚠️ 十倍股模型运行异常: {e}\n")
+
+    # ====== 短周期翻倍股模型 (3-6个月) ======
+    doubler_results = []
+    try:
+        from src.strategies.doubler_model import batch_evaluate_doubler, render_doubler_section
+        doubler_results = batch_evaluate_doubler(top_list, top_n=10)
+        if doubler_results:
+            lines.append(render_doubler_section(doubler_results))
+    except Exception as e:
+        lines.append(f"\n> ⚠️ 翻倍股模型运行异常: {e}\n")
+
+    # ====== 黄金交叉：长期十倍逻辑 + 短期资金启动 ======
+    if tenbagger_results and doubler_results:
+        try:
+            from src.strategies.tenbagger_model import find_golden_cross_enhanced
+            golden_section = find_golden_cross_enhanced(tenbagger_results, doubler_results)
+            if golden_section:
+                lines.append(golden_section)
+        except Exception as e:
+            lines.append(f"\n> ⚠️ 黄金交叉分析异常: {e}\n")
 
     # 每只推荐股的深度分析（复用持仓同款分析引擎）
     for rank, r in enumerate(top_list, 1):
@@ -1239,11 +1384,11 @@ def save_incremental_report(
         else:
             report_parts.append(_render_daily_section(today, [], strategy_name, pool_size, valid_count,
                                                       dual_advantage_stocks, mr_list, trend_list, hybrid_decision,
-                                                      earnings_top))
+                                                      earnings_top, all_results=all_results))
     else:
         report_parts.append(_render_daily_section(today, top_list, strategy_name, pool_size, valid_count,
                                                   dual_advantage_stocks, mr_list, trend_list, hybrid_decision,
-                                                  earnings_top))
+                                                  earnings_top, all_results=all_results))
 
     # 4. 健康上涨组推荐（趋势跟随型）
     if not holdings_only and all_results:
@@ -1276,7 +1421,7 @@ def save_incremental_report(
             f.write(f"# 📈 每日选股推荐 — {today}\n\n")
             f.write(_render_daily_section(today, top_list, strategy_name, pool_size, valid_count,
                                          dual_advantage_stocks, mr_list, trend_list, hybrid_decision,
-                                         earnings_top))
+                                         earnings_top, all_results=all_results))
 
     return REPORT_FILE, archive_path
 
@@ -2872,7 +3017,6 @@ def main():
                 data_fail += 1
                 continue
             
-            # 过滤ST股票（风险高、涨跌幅限制不同）
             if is_st_stock(name):
                 data_fail += 1
                 continue
@@ -2900,21 +3044,42 @@ def main():
                 if fund_data is not None:
                     all_fund_data[code] = fund_data
             
+            # 注入 PE/PB/市值：优先尝试历史数据（PE策略需要>100条），
+            # 降级到只注入最新值（用于展示）
+            _pe_pb_merged = False
+            if not args.cache_only:
+                try:
+                    hist_df = fetcher.get_daily_basic(code)
+                    if hist_df is not None and not hist_df.empty and len(hist_df) > 50:
+                        hist_df['date'] = pd.to_datetime(hist_df['date'])
+                        df['date'] = pd.to_datetime(df['date'])
+                        for col in ['pe_ttm', 'pb', 'turnover_rate']:
+                            if col in hist_df.columns and col not in df.columns:
+                                merged = pd.merge(df[['date']], hist_df[['date', col]],
+                                                  on='date', how='left')
+                                df[col] = merged[col].values
+                                df[col] = df[col].ffill().bfill()
+                        if 'pe_ttm' in df.columns and df['pe_ttm'].notna().sum() > 50:
+                            _pe_pb_merged = True
+                except Exception:
+                    pass
+
             if fund_data:
-                if 'pe_ttm' not in df.columns:
-                    df['pe_ttm'] = None
-                if 'pb' not in df.columns:
-                    df['pb'] = None
                 if 'market_cap' not in df.columns:
                     df['market_cap'] = None
-                
-                df.loc[df.index[-1], 'pe_ttm'] = fund_data.get('pe_ttm')
-                df.loc[df.index[-1], 'pb'] = fund_data.get('pb')
                 df.loc[df.index[-1], 'market_cap'] = fund_data.get('market_cap_yi', 0) * 100000000 if fund_data.get('market_cap_yi') else None
-                df['pe_ttm'] = df['pe_ttm'].ffill()
-                df['pb'] = df['pb'].ffill()
-                df['market_cap'] = df['market_cap'].ffill()
-            
+                df['market_cap'] = df['market_cap'].ffill().bfill()
+
+                if not _pe_pb_merged:
+                    if 'pe_ttm' not in df.columns:
+                        df['pe_ttm'] = None
+                    if 'pb' not in df.columns:
+                        df['pb'] = None
+                    df.loc[df.index[-1], 'pe_ttm'] = fund_data.get('pe_ttm')
+                    df.loc[df.index[-1], 'pb'] = fund_data.get('pb')
+                    df['pe_ttm'] = df['pe_ttm'].ffill().bfill()
+                    df['pb'] = df['pb'].ffill().bfill()
+
             prepared_stocks.append((code, name, sector, df))
             
             if (i + 1) % 100 == 0:
@@ -2998,6 +3163,16 @@ def main():
                 print(f"\n⏱️  策略分析总超时({analysis_timeout}s)，{not_done}只未完成")
         if fail_count:
             print(f"\n⚠️  {fail_count} 只数据不足或失败，已跳过")
+        
+        # 保存新闻磁盘缓存（避免下次重复调API）
+        try:
+            from src.strategies.news_sentiment import _DISK_NEWS_CACHE, _DISK_CACHE_DIRTY, _save_disk_news_cache
+            if _DISK_CACHE_DIRTY and _DISK_NEWS_CACHE:
+                _save_disk_news_cache(_DISK_NEWS_CACHE)
+                print(f"💾 新闻缓存已保存: {len(_DISK_NEWS_CACHE)} 只")
+        except Exception:
+            pass
+        
         if not full_results:
             print("\n⚠️ 无有效分析结果")
             return
@@ -3810,20 +3985,20 @@ def main():
                     all_data = fundamental_cache.get('all_data', {})
                     fund_data = all_data.get(code)
                     if fund_data:
+                        if 'market_cap' not in df.columns:
+                            df['market_cap'] = None
+                        df.loc[df.index[-1], 'market_cap'] = fund_data.get('market_cap_yi', 0) * 100000000 if fund_data.get('market_cap_yi') else None
+                        df['market_cap'] = df['market_cap'].ffill().bfill()
+
                         if 'pe_ttm' not in df.columns:
                             df['pe_ttm'] = None
                         if 'pb' not in df.columns:
                             df['pb'] = None
-                        if 'market_cap' not in df.columns:
-                            df['market_cap'] = None
-                        
                         df.loc[df.index[-1], 'pe_ttm'] = fund_data.get('pe_ttm')
                         df.loc[df.index[-1], 'pb'] = fund_data.get('pb')
-                        df.loc[df.index[-1], 'market_cap'] = fund_data.get('market_cap_yi', 0) * 100000000 if fund_data.get('market_cap_yi') else None
-                        df['pe_ttm'] = df['pe_ttm'].ffill()
-                        df['pb'] = df['pb'].ffill()
-                        df['market_cap'] = df['market_cap'].ffill()
-                    
+                        df['pe_ttm'] = df['pe_ttm'].ffill().bfill()
+                        df['pb'] = df['pb'].ffill().bfill()
+
                     theme_prepared.append((code, name, sector, df))
                 
                 if not theme_prepared:

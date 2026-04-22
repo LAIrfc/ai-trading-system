@@ -289,13 +289,31 @@ def _pick_quarterly_row(report_df: pd.DataFrame, code: str) -> Optional[pd.Serie
         return None
 
 
+def _extract_profit_quality_from_row(row: pd.Series) -> dict:
+    """从业绩报表行中提取利润质量因子所需字段。"""
+    def _num(col: str) -> Optional[float]:
+        if col not in row.index:
+            return None
+        v = pd.to_numeric(row.get(col), errors="coerce")
+        return None if pd.isna(v) else float(v)
+
+    return {
+        "net_profit": _num("净利润"),
+        "deducted_profit": _num("扣非净利润") or _num("扣除非经常性损益后的净利润"),
+        "revenue": _num("营业收入"),
+        "operating_cashflow": _num("经营现金流量净额") or _num("经营活动产生的现金流量净额"),
+        "gross_margin": _num("毛利率") or _num("销售毛利率"),
+        "roe": _num("加权净资产收益率") or _num("净资产收益率"),
+    }
+
+
 def _signal_from_quarterly(
     row: pd.Series,
     code: str,
     stock_name: str,
     report_date: str,
 ) -> Optional[StrategySignal]:
-    """从业绩报表实际数据生成信号。净利润同比增速为核心指标。"""
+    """从业绩报表实际数据生成信号。净利润同比增速为核心，利润质量因子修正。"""
     growth_col = "净利润同比增长"
     if growth_col not in row.index:
         return None
@@ -307,6 +325,22 @@ def _signal_from_quarterly(
     short_name = str(row.get("股票简称", "") or "").strip()
     display_name = stock_name or short_name
 
+    # ── 利润质量修正 ──
+    pq_result = None
+    pq_warnings = []
+    pq_grade = "?"
+    try:
+        from src.data.fundamental.profit_quality import compute_profit_quality
+        pq_data = _extract_profit_quality_from_row(row)
+        if pq_data.get("net_profit") is not None:
+            pq_result = compute_profit_quality(**{
+                k: v for k, v in pq_data.items() if v is not None
+            })
+            pq_grade = pq_result.grade
+            pq_warnings = pq_result.warnings
+    except Exception as e:
+        logger.debug("[业绩增速] 利润质量因子计算失败 code=%s: %s", code, e)
+
     def _mk(action: str, conf: float, pos: float, label: str) -> StrategySignal:
         reason_parts = [label]
         if display_name:
@@ -314,28 +348,52 @@ def _signal_from_quarterly(
         else:
             reason_parts.append(code)
         reason_parts.append(f"净利润同比:{growth_pct:+.1f}%")
+        if pq_grade != "?":
+            reason_parts.append(f"利润质量:{pq_grade}")
+        if pq_warnings:
+            reason_parts.append(pq_warnings[0][:40])
         reason_parts.append(f"报告期:{report_date}(季报实际)")
+
+        indicators = {
+            "earnings_data_source": "quarterly_report",
+            "earnings_net_profit_yoy": round(growth_pct, 2),
+            "earnings_report_date": report_date,
+            "symbol": code,
+        }
+        if pq_result is not None:
+            indicators["profit_quality_score"] = pq_result.score
+            indicators["profit_quality_grade"] = pq_result.grade
+            indicators["profit_quality_deducted_growth"] = pq_result.deducted_growth
+            indicators["profit_quality_warnings"] = len(pq_result.warnings)
+
         return StrategySignal(
             action=action,
             confidence=round(conf, 2),
             reason="；".join(reason_parts),
             position=round(pos, 2),
-            indicators={
-                "earnings_data_source": "quarterly_report",
-                "earnings_net_profit_yoy": round(growth_pct, 2),
-                "earnings_report_date": report_date,
-                "symbol": code,
-            },
+            indicators=indicators,
         )
 
+    # 利润质量惩罚：D级降一档信号、C级降置信度
+    quality_discount = 1.0
+    if pq_result is not None:
+        if pq_grade == "D":
+            quality_discount = 0.5
+        elif pq_grade == "C":
+            quality_discount = 0.7
+
     if growth_pct > 100:
-        return _mk("BUY", 0.92, 0.80, "季报高增速")
+        conf = 0.92 * quality_discount
+        if pq_grade == "D":
+            return _mk("HOLD", round(conf, 2), 0.50, "季报高增速(利润质量差)")
+        return _mk("BUY", round(conf, 2), 0.80, "季报高增速")
     if growth_pct > 50:
-        return _mk("BUY", 0.78, 0.68, "季报中等增速")
+        conf = 0.78 * quality_discount
+        return _mk("BUY", round(conf, 2), 0.68, "季报中等增速")
     if growth_pct > 20:
-        return _mk("BUY", 0.60, 0.58, "季报稳健增长")
+        return _mk("BUY", round(0.60 * quality_discount, 2), 0.58, "季报稳健增长")
     if growth_pct > 0:
-        return _mk("BUY", 0.45, 0.52, "季报正增长")
+        return _mk("BUY", round(0.45 * quality_discount, 2), 0.52, "季报正增长")
     if growth_pct > -20:
         return _mk("HOLD", 0.35, 0.48, "季报小幅下滑")
     if growth_pct > -50:

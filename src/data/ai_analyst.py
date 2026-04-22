@@ -125,7 +125,7 @@ def call_llm(
     base_url: Optional[str] = None,
     model: Optional[str] = None,
     provider: Optional[str] = None,
-    timeout: int = 60,
+    timeout: int = 15,
 ) -> Optional[str]:
     """
     调用 LLM（OpenAI 兼容接口）。

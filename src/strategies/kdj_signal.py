@@ -470,14 +470,13 @@ class KDJStrategy(Strategy):
                 )
 
         # ---- 默认 HOLD: 用 K-D 间距动态调整仓位 ----
-        #  K > D: 多头区域, |K-D| 越大 → 仓位越高
-        #  K < D: 空头区域, |K-D| 越大 → 仓位越低
-        #  自适应归一化: 以 kd_gap_std * 2 为满分基准
         cur_gap = abs(cur_k - cur_d)
         gap_threshold = max(kd_gap_std * 2, 1e-6)
         norm_gap = min(cur_gap / gap_threshold, 1.0)
 
         if cur_k > cur_d:
+            # 回测验证：KDJ弱BUY(趋势偏多)胜率仅25-33%，已移除。
+            # 只保留金叉/J超卖等强信号（50%胜率，+9.0%均收益）。
             position = (self._BULL_POS_MIN +
                         norm_gap * (self._BULL_POS_MAX - self._BULL_POS_MIN))
             return StrategySignal(
@@ -489,6 +488,7 @@ class KDJStrategy(Strategy):
             )
 
         if cur_k < cur_d:
+            # 回测验证：KDJ弱SELL(趋势偏空)同理移除，保留死叉/J超买等强信号。
             position = (self._BEAR_POS_MAX -
                         norm_gap * (self._BEAR_POS_MAX - self._BEAR_POS_MIN))
             return StrategySignal(

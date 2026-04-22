@@ -291,6 +291,23 @@ class MACrossStrategy(Strategy):
             norm_bias = min(abs(bias) / bias_threshold, 1.0)
             position = self._BULL_POS_MIN + norm_bias * (self._BULL_POS_MAX - self._BULL_POS_MIN)
 
+            # 弱BUY：多头排列 + 乖离率扩大（短均线加速远离长均线）
+            ma_short_series = df['close'].rolling(self.short_window).mean()
+            ma_long_series = df['close'].rolling(self.long_window).mean()
+            if len(ma_short_series) >= 4 and len(ma_long_series) >= 4:
+                gaps = (ma_short_series - ma_long_series).iloc[-4:].values
+                gap_expanding = all(gaps[i] > gaps[i - 1] for i in range(1, len(gaps)))
+                if gap_expanding and bias > 0 and norm_bias > 0.3:
+                    factor = min(norm_bias, 1.0)
+                    conf = 0.52 + factor * 0.08
+                    return StrategySignal(
+                        action='BUY', confidence=round(conf, 2),
+                        position=round(position, 2),
+                        reason=f'均线多头加速(乖离扩大3日), MA{self.short_window}={cur_short:.2f} '
+                               f'> MA{self.long_window}={cur_long:.2f}, 乖离{bias*100:.1f}%',
+                        indicators=indicators,
+                    )
+
             return StrategySignal(
                 action='HOLD', confidence=0.5,
                 position=round(position, 2),
@@ -301,14 +318,26 @@ class MACrossStrategy(Strategy):
             )
 
         # ---- 空头排列: MA_short < MA_long ----
-        #  乖离越大(空头越强) → 仓位越低
-        #  乖离率归一化（自适应）: 与多头排列对称，以 2σ 为满分基准
-        #  范围 [BEAR_MIN=0.05, BEAR_MAX=0.25]
-        #  死叉后第一天(乖离接近0) position≈0.25, 与死叉的 0.0 有差距,
-        #  但 HOLD 不触发交易, 仅供组合策略参考趋势强度
         bias_threshold = max(bias_std * 2, 1e-6)
         norm_bias = min(abs(bias) / bias_threshold, 1.0)
         position = self._BEAR_POS_MAX - norm_bias * (self._BEAR_POS_MAX - self._BEAR_POS_MIN)
+
+        # 弱SELL：空头排列 + 乖离率扩大（短均线加速远离长均线向下）
+        ma_short_series = df['close'].rolling(self.short_window).mean()
+        ma_long_series = df['close'].rolling(self.long_window).mean()
+        if len(ma_short_series) >= 4 and len(ma_long_series) >= 4:
+            gaps = (ma_short_series - ma_long_series).iloc[-4:].values
+            gap_expanding_down = all(gaps[i] < gaps[i - 1] for i in range(1, len(gaps)))
+            if gap_expanding_down and bias < 0 and norm_bias > 0.3:
+                factor = min(norm_bias, 1.0)
+                conf = 0.52 + factor * 0.08
+                return StrategySignal(
+                    action='SELL', confidence=round(conf, 2),
+                    position=round(position, 2),
+                    reason=f'均线空头加速(乖离扩大3日), MA{self.short_window}={cur_short:.2f} '
+                           f'< MA{self.long_window}={cur_long:.2f}, 乖离{bias*100:.1f}%',
+                    indicators=indicators,
+                )
 
         return StrategySignal(
             action='HOLD', confidence=0.5,

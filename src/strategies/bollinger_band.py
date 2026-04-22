@@ -323,7 +323,44 @@ class BollingerBandStrategy(Strategy):
                     indicators=indicators,
                 )
 
-        # ---- 5. 价格在布林带内 ----
+        # ---- 5. 价格在布林带内：弱信号层 ----
+        # 从中轨反弹（中轨向上 + 价格在中轨附近站稳）→ 弱BUY
+        prev_mid = float(mid.iloc[-2])
+        mid_rising = cur_mid > prev_mid
+        near_mid_above = cur_close > cur_mid and (cur_close - cur_mid) / band_width < 0.20 if band_width > 0 else False
+        bounced_from_mid = prev_close <= prev_mid * 1.005 and cur_close > cur_mid
+
+        if mid_rising and (near_mid_above or bounced_from_mid):
+            rising_2d = cur_close > prev_close > prev2_close
+            if rising_2d:
+                price_change = (cur_close - prev2_close) / prev2_close
+                factor = self._combined_factor(price_change, price_std, vol_ratio)
+                conf = 0.52 + factor * 0.08  # conf ∈ [0.52, 0.60]
+                return StrategySignal(
+                    action='BUY', confidence=round(conf, 2),
+                    position=0.45,
+                    reason=f'中轨上方反弹(中轨↑, %B={pct_b:.2f})',
+                    indicators=indicators,
+                )
+
+        # 中轨向下 + 价格跌破中轨 + 连续2天下跌 → 弱SELL
+        mid_falling = cur_mid < prev_mid
+        near_mid_below = cur_close < cur_mid and (cur_mid - cur_close) / band_width < 0.20 if band_width > 0 else False
+        broke_mid = prev_close >= prev_mid * 0.995 and cur_close < cur_mid
+
+        if mid_falling and (near_mid_below or broke_mid):
+            falling_2d = cur_close < prev_close < prev2_close
+            if falling_2d:
+                price_change = (prev2_close - cur_close) / prev2_close
+                factor = self._combined_factor(price_change, price_std, vol_ratio)
+                conf = 0.52 + factor * 0.08
+                return StrategySignal(
+                    action='SELL', confidence=round(conf, 2),
+                    position=0.35,
+                    reason=f'跌破中轨(中轨↓, %B={pct_b:.2f})',
+                    indicators=indicators,
+                )
+
         return StrategySignal(
             action='HOLD', confidence=0.5, position=0.5,
             reason=f'价格在布林带内, %B={pct_b:.2f}, 带宽={bandwidth_pct:.1f}%',
