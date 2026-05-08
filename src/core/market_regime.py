@@ -76,11 +76,15 @@ class MarketRegimeEngine:
                 return cached_df
         
         try:
+            from ..data.bs_fuse import is_fused, record_fail, record_success
+            if is_fused():
+                logger.debug("[MarketRegime] Baostock已全局熔断，跳过")
+                return None
             import baostock as bs
             
-            # 登录baostock
             lg = bs.login()
             if lg.error_code != '0':
+                record_fail(f"market_regime login: {lg.error_msg}")
                 logger.error(f"[MarketRegime] baostock登录失败: {lg.error_msg}")
                 return None
             
@@ -117,6 +121,7 @@ class MarketRegimeEngine:
                 data_list.append(rs.get_row_data())
             
             bs.logout()
+            record_success()
             
             if not data_list:
                 logger.warning(f"[MarketRegime] 指数数据为空")
@@ -225,7 +230,7 @@ class MarketRegimeEngine:
         """获取当前最新的市场状态"""
         return self.get_regime(None)
     
-    def get_regime_stats(self) -> Dict[str, any]:
+    def get_regime_stats(self) -> Dict:
         """
         获取市场状态统计信息
         

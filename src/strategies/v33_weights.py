@@ -1,15 +1,17 @@
 """
-V3.3 组合动态权重（Phase 5.2–5.4，已同步至 11 策略 Ensemble）
+V3.3 组合动态权重（Phase 5.2–5.4，已同步至 14 策略 Ensemble）
 
 - 基准权重 1/N；市场状态（沪深300 ADX(14)、HV20）判定震荡/趋势，乘数表调节。
 - 归一化两步法：先乘乘数再归一化，截断 [0.5%, 30%]，多出/不足按比例再分配。
 - 调整触发与冷却：状态变化或 ADX/HV20 日环比连续 3 日超阈值则调整，调整后 7 日冷却。
 
-策略名与 EnsembleStrategy 保持一致（11 策略）：
+策略名与 EnsembleStrategy 保持一致（14 策略）：
   技术面: MA MACD RSI BOLL KDJ DUAL
   基本面: PE PB PEPB
-  消息面: NEWS
+  消息/情绪: NEWS SENTIMENT
   资金面: MONEY_FLOW
+  成长: EARNINGS_GROWTH
+  行业趋势: INDUSTRY_TREND
 """
 
 import logging
@@ -32,15 +34,16 @@ DAY_CHANGE_ADX = 1.0
 DAY_CHANGE_HV20 = 0.02  # 2%
 COOLDOWN_DAYS = 7
 
-# 策略名列表（与 EnsembleStrategy 保持一致，11 策略）
+# 策略名列表（与 EnsembleStrategy 保持一致，14 策略）
 V33_STRATEGY_NAMES = [
     "MA", "MACD", "RSI", "BOLL", "KDJ", "DUAL",  # 技术面
     "PE", "PB", "PEPB",                            # 基本面
-    "NEWS", "MONEY_FLOW",                          # 消息面 + 资金面
+    "NEWS", "SENTIMENT", "MONEY_FLOW",             # 消息/情绪/资金
+    "EARNINGS_GROWTH", "INDUSTRY_TREND",           # 成长 + 行业趋势
 ]
 TECH_NAMES = {"MA", "MACD", "RSI", "BOLL", "KDJ", "DUAL"}
 FUNDAMENTAL_NAMES = {"PE", "PB", "PEPB"}
-ALT_DATA_NAMES = {"NEWS", "MONEY_FLOW"}
+ALT_DATA_NAMES = {"NEWS", "SENTIMENT", "MONEY_FLOW", "EARNINGS_GROWTH", "INDUSTRY_TREND"}
 
 # 乘数表
 # 震荡市（range）：技术指标噪音大，降权 0.8；消息/资金面更有效，升权 1.2；基本面中性
@@ -54,12 +57,15 @@ for _s in V33_STRATEGY_NAMES:
     elif _s in FUNDAMENTAL_NAMES:
         MULTIPLIER_RANGE[_s] = 1.1   # 震荡市基本面略升（价值回归）
         MULTIPLIER_TREND[_s] = 0.9   # 趋势市基本面略降（动量主导）
-    elif _s == "NEWS":
-        MULTIPLIER_RANGE[_s] = 1.2   # 震荡市消息面更有效
+    elif _s in ("NEWS", "SENTIMENT"):
+        MULTIPLIER_RANGE[_s] = 1.2   # 震荡市消息/情绪更有效
         MULTIPLIER_TREND[_s] = 1.2   # 趋势市消息面顺势加分
     elif _s == "MONEY_FLOW":
         MULTIPLIER_RANGE[_s] = 1.0   # 震荡市资金面中性
         MULTIPLIER_TREND[_s] = 1.2   # 趋势市龙虎榜更活跃
+    elif _s in ("EARNINGS_GROWTH", "INDUSTRY_TREND"):
+        MULTIPLIER_RANGE[_s] = 1.1   # 震荡市成长/行业略升
+        MULTIPLIER_TREND[_s] = 1.0   # 趋势市中性
     else:
         MULTIPLIER_RANGE[_s] = 1.0
         MULTIPLIER_TREND[_s] = 1.0
@@ -187,17 +193,20 @@ def base_weights() -> Dict[str, float]:
     动态权重模块在此基础上乘以市场状态乘数，再归一化。
     """
     raw = {
-        "BOLL":       1.5,
-        "MACD":       1.3,
-        "KDJ":        1.1,
-        "MA":         1.0,
-        "DUAL":       0.9,
-        "RSI":        0.8,
-        "PEPB":       0.8,
-        "PE":         0.6,
-        "PB":         0.6,
-        "NEWS":       0.5,
-        "MONEY_FLOW": 0.4,
+        "BOLL":             1.5,
+        "MACD":             1.3,
+        "KDJ":              1.1,
+        "MA":               1.0,
+        "DUAL":             0.9,
+        "RSI":              0.8,
+        "PEPB":             0.8,
+        "PE":               0.6,
+        "PB":               0.6,
+        "NEWS":             0.5,
+        "SENTIMENT":        0.5,
+        "MONEY_FLOW":       0.4,
+        "EARNINGS_GROWTH":  0.8,
+        "INDUSTRY_TREND":   0.8,
     }
     total = sum(raw.values())
     return {s: raw[s] / total for s in V33_STRATEGY_NAMES}

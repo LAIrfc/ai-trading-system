@@ -15,6 +15,7 @@
 
 import json
 import os
+import random
 
 
 def load_pool(pool_file: str,
@@ -112,8 +113,12 @@ def _balanced_select(stocks: list, max_count: int) -> list:
     per_sector = max(1, max_count // num_sectors)
     remainder = max_count - per_sector * num_sectors
 
+    # 先在板块内做可复现打散，避免长期固定命中“每个板块前几只”的顺序偏置
+    rng = random.Random(20260423)
     selected = []
     for sector_name, sector_stocks in sector_groups.items():
+        sector_stocks = list(sector_stocks)
+        rng.shuffle(sector_stocks)
         quota = per_sector + (1 if remainder > 0 else 0)
         if remainder > 0:
             remainder -= 1

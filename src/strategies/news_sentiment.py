@@ -216,6 +216,40 @@ def _get_news_sentiment_backup(
                           position=0.5, indicators={"news_sentiment": round(agg, 3)})
 
 
+def _news_proxy_from_price_volume(df) -> StrategySignal:
+    """
+    新闻代理信号：当新闻API完全不可用时，通过量价异动推断是否有催化事件。
+    量比>3 + 涨>3% → 可能有利好消息
+    量比>3 + 跌>3% → 可能有利空消息
+    其他情况 → 中性HOLD
+    置信度很低(0.3)，仅作为兜底信号。
+    """
+    if df is None or df.empty or len(df) < 5:
+        return StrategySignal(action="HOLD", confidence=0.0, position=0.5,
+                              reason="新闻接口不可用，数据不足", indicators={"news_sentiment": None})
+    try:
+        close = df['close'].astype(float)
+        volume = df['volume'].astype(float)
+        daily_change = (close.iloc[-1] / close.iloc[-2] - 1) * 100
+        avg_vol_5 = float(volume.iloc[-6:-1].mean())
+        vol_ratio = float(volume.iloc[-1]) / avg_vol_5 if avg_vol_5 > 0 else 1.0
+
+        if vol_ratio > 3.0 and daily_change > 3.0:
+            return StrategySignal(action="BUY", confidence=0.30,
+                                  reason=f"量价异动推测利好(量比{vol_ratio:.1f},涨{daily_change:+.1f}%)",
+                                  position=0.55, indicators={"proxy_vol_ratio": round(vol_ratio, 1),
+                                                              "proxy_change": round(daily_change, 1)})
+        if vol_ratio > 3.0 and daily_change < -3.0:
+            return StrategySignal(action="SELL", confidence=0.30,
+                                  reason=f"量价异动推测利空(量比{vol_ratio:.1f},跌{daily_change:+.1f}%)",
+                                  position=0.40, indicators={"proxy_vol_ratio": round(vol_ratio, 1),
+                                                              "proxy_change": round(daily_change, 1)})
+    except Exception:
+        pass
+    return StrategySignal(action="HOLD", confidence=0.0, position=0.5,
+                          reason="新闻接口不可用，量价无异动", indicators={"news_sentiment": None})
+
+
 class NewsSentimentStrategy(Strategy):
     """新闻情感分析策略 V3.3+：24h 同向 N、S_news、预期差日频近似、新闻源权重置信度、LLM 语义融合。"""
 
@@ -276,13 +310,7 @@ class NewsSentimentStrategy(Strategy):
                     return out
             except Exception as e2:
                 logger.debug("[NewsSentiment] 备用接口(同花顺)异常: %s", e2)
-            return StrategySignal(
-                action="HOLD",
-                confidence=0.0,
-                position=0.5,
-                reason="新闻接口异常及备用均失败，暂观望",
-                indicators={"news_sentiment": None},
-            )
+            return _news_proxy_from_price_volume(df)
 
     def _analyze_impl(self, df: pd.DataFrame, symbol: str) -> StrategySignal:
         # 1) 优先 V3.3+：24h 同向 N、S_news、新闻源权重（实盘启用 LLM 融合）

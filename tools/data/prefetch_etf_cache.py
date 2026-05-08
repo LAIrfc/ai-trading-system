@@ -24,8 +24,13 @@ import random
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../..'))
 
-from src.data.fetchers.market_data import MarketData
 import akshare as ak
+
+try:
+    from src.data.fetchers.data_prefetch import get_default_kline_provider
+    _HAS_PROVIDER = True
+except ImportError:
+    _HAS_PROVIDER = False
 
 CACHE_DIR = os.path.join(os.path.dirname(__file__), '..', '..', 'mycache', 'etf_kline')
 
@@ -58,17 +63,18 @@ def fetch_etf_multi_source(code, max_retries_per_source=2):
     start_date = "20180101"
     common_kw = dict(period="daily", start_date=start_date, end_date=end_date, adjust="")
 
-    # 源1：MarketData (push2his) - 最稳定
-    print(f"  尝试 MarketData(push2his)...")
-    try:
-        md = MarketData(use_cache=False)
-        df = md.get_history(code, days=800)
-        out = _normalize_etf_df(df, min_bars=60)
-        if out is not None:
-            print(f"  ✅ MarketData 获取成功: {len(out)} 条")
-            return out
-    except Exception as e:
-        print(f"  ⚠️ MarketData 失败: {str(e)[:60]}")
+    # 源1：UnifiedDataProvider (push2his) - 最稳定
+    if _HAS_PROVIDER:
+        print(f"  尝试 UnifiedDataProvider...")
+        try:
+            provider = get_default_kline_provider()
+            df = provider.get_kline(code, days=800)
+            out = _normalize_etf_df(df, min_bars=60)
+            if out is not None:
+                print(f"  ✅ UnifiedDataProvider 获取成功: {len(out)} 条")
+                return out
+        except Exception as e:
+            print(f"  ⚠️ UnifiedDataProvider 失败: {str(e)[:60]}")
 
     # 源2-4：akshare 多源
     sources = [

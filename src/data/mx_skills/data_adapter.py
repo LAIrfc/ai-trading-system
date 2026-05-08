@@ -142,6 +142,8 @@ class MXDataAdapter:
             if df.empty:
                 return None
             return df.iloc[0].to_dict()
+        except MXQuotaExhausted:
+            raise
         except Exception:
             logger.warning("MX 资金流向查询失败: %s", symbol)
             return None

@@ -17,7 +17,7 @@ from datetime import datetime
 base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 TRACKING_DOC = os.path.join(base_dir, 'docs', 'DAILY_TRACKING.md')
 PORTFOLIO_FILE = os.path.join(base_dir, 'mydate', 'my_portfolio.json')
-RECOMMENDATION_DIR = os.path.join(base_dir, 'tools', 'output')
+RECOMMENDATION_DIR = os.path.join(base_dir, 'mydate', 'daily_reports')
 
 
 def load_today_recommendation():
@@ -149,7 +149,7 @@ def generate_today_section(data, portfolio):
     
     lines.extend([
         "",
-        f"**完整报告**: `tools\\output\\daily_recommendation_{date}.md`",
+        f"**完整报告**: `mydate/daily_reports/daily_recommendation_{date}.md`",
         "",
         "---",
         "",

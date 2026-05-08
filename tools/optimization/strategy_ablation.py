@@ -59,10 +59,11 @@ def _run_ensemble_on_stock(stock: dict, excluded: List[str] = None) -> Optional[
     """
     对单只股票跑 Ensemble 策略（排除指定策略），返回决策结果。
     """
-    from src.data.market_data import get_stock_data
+    from src.data.fetchers.data_prefetch import get_default_kline_provider
     code = stock.get('code', '')
     try:
-        df = get_stock_data(code, days=120)
+        provider = get_default_kline_provider()
+        df = provider.get_kline(code, days=120)
         if df is None or len(df) < 30:
             return None
     except Exception:

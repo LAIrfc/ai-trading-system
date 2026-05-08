@@ -1,7 +1,7 @@
 """
 个股新闻获取
 
-主 curl_cffi/akshare.stock_news_em；备1 妙想资讯搜索（稳定官方API，需 MX_APIKEY）；备2 requests东方财富；备3 push2；备4 财联社；备5 同花顺。
+优先 妙想资讯搜索（稳定官方API，需 MX_APIKEY）；备1 curl_cffi/akshare.stock_news_em；备2 requests东方财富；备3 push2；备4 财联社；备5 同花顺。
 与 docs/data/API_INTERFACES_AND_FETCHERS.md 1.3.1 一致。
 """
 
@@ -346,12 +346,12 @@ def fetch_stock_news(symbol: str, max_items: int = 20) -> pd.DataFrame:
                 return pd.read_parquet(path).head(max_items)
             except Exception as e:
                 logger.debug("回测预取新闻 %s 读本地失败: %s", symbol, e)
-    # 降级顺序: curl_cffi → akshare → 妙想(稳定官方API) → requests → push2 → 财联社 → 同花顺
-    df = _fetch_via_curl_cffi(symbol, max_items)
+    # 降级顺序: 妙想(稳定官方API) → curl_cffi → akshare → requests → push2 → 财联社 → 同花顺
+    df = _fetch_via_mx_skills(symbol, max_items)
+    if df is None or df.empty:
+        df = _fetch_via_curl_cffi(symbol, max_items)
     if df is None or df.empty:
         df = _fetch_via_akshare(symbol, max_items)
-    if df is None or df.empty:
-        df = _fetch_via_mx_skills(symbol, max_items)
     if df is None or df.empty:
         df = _fetch_via_requests(symbol, max_items)
         if df is None or df.empty:

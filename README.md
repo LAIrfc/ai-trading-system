@@ -8,7 +8,7 @@
 
 ## 核心亮点
 
-- **16大策略 x 7大维度**：技术+基本面+消息+政策+情绪+资金+业绩增长+利润质量，全方位覆盖
+- **14大策略 x 7大维度**：技术+基本面+消息+政策+情绪+资金+业绩增长，全方位覆盖（生产主路径口径）
 - **双引擎并行选股**：均值回归（超跌反弹）+ 趋势跟随（强势突破），互补降低单策略风险
 - **双模型体系**（2026-04 新增）：长周期十倍股模型(3-5年) + 短周期翻倍股模型(3-6月)，最佳机会 = 长期十倍逻辑 + 短期资金启动
 - **利润质量因子**（2026-04 新增）：区分"真实业绩拐点"和"一次性财技利润"，5维度评分(扣非增速/现金流/毛利率/ROE/一次性收益)
@@ -46,13 +46,13 @@
 ## 系统架构总览
 
 ```
-全市场股票池（863只：沪深300 + 中证500 成分股）
+全市场股票池（~1500只：沪深300 + 中证500 + 创业板优选 + 赛道龙头 + ETF）
     |
 [L0: PolicyEvent 大盘过滤]
 |   极度利空（央行/财政/监管重大政策）时暂停选股
     |
-[L1: 13策略并行分析]
-|   技术面 6 个 + 基本面 3 个 + 业绩增长 1 个 + 消息/情绪/资金各 1 个
+[L1: 14策略并行分析]
+|   技术面 6 个 + 基本面 3 个 + 业绩增长 1 个 + 行业趋势 1 个 + 消息/情绪/资金各 1 个
     |
 [L2: 弱动态权重 + 相关性折扣 + 共振结构]
 |   基于个股波动率自动调整策略权重
@@ -60,7 +60,7 @@
     |
 [L3: 双引擎调度]
 |-- 均值回归引擎 --> 超跌榜（TOP 15）
-|   |   13策略加权打分，重 PB/BOLL/RSI 超卖信号
+|   |   14策略加权打分，重 PB/BOLL/RSI 超卖信号
 |   |   回测表现：2198笔，平均+0.80%，胜率52.55%
 |
 |-- 趋势引擎     --> 趋势榜（TOP 5）
@@ -93,7 +93,7 @@
 
 **目标**：捕捉短期超跌后的反弹机会，寻找被市场过度惩罚的股票。
 
-**13策略加权打分**（基于808只 x 3.3年回测优化的固定权重 + L2动态调整）：
+**14策略加权打分**（生产主路径口径，固定权重 + L2动态调整）：
 
 | 策略 | 基础权重 | 核心逻辑 |
 |------|---------|---------|
@@ -271,7 +271,7 @@
 
 ---
 
-## 策略体系（16大策略 x 7大维度）
+## 策略体系（14大策略 x 7大维度）
 
 ### 技术面策略（6个）
 
@@ -385,7 +385,7 @@ Windows 用户：双击 `scripts\start_windows.bat`，选择 `6` 安装依赖。
 ### 每日选股（最常用）
 
 ```bash
-# 标准模式：12策略 x 863只股票 -> TOP 20 推荐（自动选择 v5.2/v6.1/v6.4）
+# 标准模式：14策略 x 863只股票 -> TOP 20 推荐（自动选择 v5.2/v6.1/v6.4）
 python3 tools/analysis/recommend_today.py --strategy full_12 --top 20
 
 # 强制使用 v6.4（生产级引擎）
@@ -442,7 +442,7 @@ python3 tools/data/refresh_stock_pool.py
 ### 板块/个股专项分析
 
 ```bash
-# 指定股票代码分析（13策略全分析）
+# 指定股票代码分析（14策略全分析）
 python3 tools/analysis/sector_analyze.py --codes "688122,603019,600584" --names "西部超导,中科曙光,长电科技" --top 5
 
 # 按板块名搜索分析
@@ -455,7 +455,7 @@ python3 tools/analysis/sector_analyze.py --sector "算力" --top 10
 # 快速分析（技术面+估值+量价）
 python3 tools/analysis/analyze_single_stock.py 688122 西部超导
 
-# 完整分析（含13策略+新闻）
+# 完整分析（含14策略+新闻）
 python3 tools/analysis/analyze_single_stock.py 688122 西部超导 --full
 ```
 
@@ -483,7 +483,7 @@ Akshare（首选）-> Sina -> Eastmoney -> Tencent -> Tushare -> Baostock
 |---------|------|------|---------|---------|
 | K线数据 | `mydate/backtest_kline/` | 863只 | 2022-11 至 2026-04（~805条/股） | 每周 |
 | PE/PB数据 | `mydate/pe_cache/` | 815只 | 2022-11 至 2026-04（~528条/股） | 每周 |
-| 基本面数据 | `mydate/fundamental_cache.json` | - | 最新季报 | 每次运行增量 |
+| 基本面数据 | `mydate/market_fundamental_cache.json` | - | 最新季报 | 每次运行增量 |
 | 新闻情感 | `mydate/news_cache/` | 按日JSON | 近24h | 2小时TTL自动刷新 |
 | 新闻/政策 | 实时获取 | - | 近24h | 实时(缓存未命中时) |
 | 龙虎榜/大宗交易 | 实时获取 | - | 近3日 | 实时 |
@@ -531,7 +531,7 @@ ai-trading-system/
 |   |   |-- money_flow.py               # MONEY_FLOW 资金流向
 |   |   |-- tenbagger_model.py           # 长周期十倍股模型（3-5年，5维度评分）
 |   |   |-- doubler_model.py            # 短周期翻倍股模型（3-6月，5维度评分）
-|   |   |-- ensemble.py                 # 组合策略（16策略加权+L2动态权重+相关性管理）
+|   |   |-- ensemble.py                 # 组合策略（14策略加权+L2动态权重+相关性管理）
 |   |   |-- trend_strategies.py         # 趋势引擎（4层因子）
 |   |   |-- market_regime_v6.py         # Soft Regime Score（连续市场状态）
 |   |   `-- hybrid_selector.py          # IC 驱动版本切换（v5.2/v6.1/v6.4）
@@ -568,20 +568,28 @@ ai-trading-system/
 |   |-- analysis/
 |   |   |-- recommend_today.py          # 每日推荐主脚本（全流程入口）
 |   |   |-- backtest_v64.py             # v5.2/v6.1/v6.4 三版本对比回测
+|   |   |-- track_recommendations.py    # 推荐回测追踪（T+5/T+20 胜率）
+|   |   |-- analyze_single_stock.py     # 单股深度分析
 |   |   |-- ab_test_changes.py          # A/B 策略变更对比回测
-|   |   |-- sector_analyze.py           # 板块/个股定向13策略分析
+|   |   |-- sector_analyze.py           # 板块/个股定向14策略分析
+|   |   |-- breakout_pullback_scanner.py # 突破回踩扫描器
 |   |   |-- monitor_factor_ic.py        # 因子 IC 监控
 |   |   `-- generate_sector_themes.py   # 专题板块推荐生成器
-|   `-- data/                       # 数据预取与维护
-|       |-- backtest_prefetch.py        # K线数据批量预取（增量更新）
-|       |-- prefetch_pe_cache.py        # PE/PB 基本面数据预取
-|       |-- refresh_stock_pool.py       # 股票池刷新（季度）
-|       `-- quarterly_update.py         # 季度综合更新
+|   |-- data/                       # 数据预取与维护
+|   |   |-- backtest_prefetch.py        # K线数据批量预取（增量更新）
+|   |   |-- prefetch_pe_cache.py        # PE/PB 基本面数据预取
+|   |   |-- refresh_stock_pool.py       # 股票池刷新（季度）
+|   |   `-- quarterly_update.py         # 季度综合更新
+|   |-- portfolio/                  # 持仓管理
+|   |   |-- sync_portfolio.py           # 买卖同步到持仓文件
+|   |   `-- daily_check.py              # 每日持仓盈亏检查
+|   `-- optimization/               # 策略优化
+|       `-- strategy_ablation.py        # 策略剔除实验
 |
 |-- mydate/                         # 数据文件
 |   |-- stock_pool_all.json             # 综合股票池（808只）
 |   |-- my_portfolio.json               # 当前持仓
-|   |-- fundamental_cache.json          # 基本面数据缓存（增量更新）
+|   |-- market_fundamental_cache.json    # 基本面数据缓存（增量更新）
 |   |-- backtest_kline/                 # K线缓存（863只 parquet）
 |   |-- pe_cache/                       # PE/PB缓存（815只 parquet）
 |   |-- news_cache/                     # 新闻情感缓存（按日JSON，2h TTL）

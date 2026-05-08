@@ -4,7 +4,7 @@
 
 用法：
   python tools/analysis/analyze_single_stock.py 301008 宏昌科技
-  python tools/analysis/analyze_single_stock.py 301008 宏昌科技 --full  # 含12策略+新闻
+  python tools/analysis/analyze_single_stock.py 301008 宏昌科技 --full  # 含14策略+新闻
 """
 import sys
 import argparse
@@ -30,7 +30,7 @@ def _format_pct(pct):
 
 
 def analyze_stock(code: str, name: str, full: bool = False):
-    """分析单只股票，full=True 时包含12策略详情"""
+    """分析单只股票，full=True 时包含14策略详情"""
     print('=' * 80)
     print(f'{name}（{code}）{"完整" if full else "快速"}分析')
     print('=' * 80)
@@ -120,11 +120,11 @@ def analyze_stock(code: str, name: str, full: bool = False):
         print(f'| {date} | {row["open"]:.2f} | {row["high"]:.2f} | {row["low"]:.2f} | {row["close"]:.2f} | {arrow}{chg:+.1f}% | {vol_str} |')
 
     if full:
-        print(f'\n## 🎲 12策略分析')
+        print(f'\n## 🎲 14策略分析')
         try:
             fetcher = FundamentalFetcher()
             sector = "未知"
-            result = run_full_12_analysis(code, name, sector, df, fetcher, skip_industry=True)
+            result = run_full_12_analysis(code, name, sector, df, fetcher, skip_industry=False)
 
             votes = result.get('strategy_votes', {})
             if votes:
@@ -200,6 +200,6 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='个股分析工具')
     parser.add_argument('code', help='股票代码，例如 301008')
     parser.add_argument('name', help='股票名称，例如 宏昌科技')
-    parser.add_argument('--full', action='store_true', help='包含12策略+新闻的完整分析')
+    parser.add_argument('--full', action='store_true', help='包含14策略+新闻的完整分析')
     args = parser.parse_args()
     analyze_stock(args.code, args.name, full=args.full)

@@ -68,6 +68,40 @@ _LLM_TREND_PROMPT = """请分析以下行业/赛道的当前景气度和趋势�
 }}"""
 
 
+_POSITIVE_KW = {"爆发", "增长", "加速", "突破", "新高", "放量", "景气", "订单", "扩产",
+                 "国产替代", "政策支持", "补贴", "渗透率提升", "出海", "量产"}
+_NEGATIVE_KW = {"下滑", "下降", "亏损", "萎缩", "过剩", "淘汰", "退出", "暴雷", "下行",
+                 "补贴退坡", "竞争加剧", "产能过剩", "库存积压"}
+
+
+def _keyword_trend_fallback(sector: str, news_summary: str) -> Optional[dict]:
+    """当LLM不可用时，用关键词匹配粗略推断行业趋势。"""
+    if not news_summary or len(news_summary.strip()) < 10:
+        return None
+
+    pos_count = sum(1 for kw in _POSITIVE_KW if kw in news_summary)
+    neg_count = sum(1 for kw in _NEGATIVE_KW if kw in news_summary)
+    net = pos_count - neg_count
+
+    if net >= 2:
+        prosperity = min(0.85, 0.55 + net * 0.05)
+    elif net <= -2:
+        prosperity = max(0.15, 0.45 + net * 0.05)
+    else:
+        prosperity = 0.5
+
+    return {
+        "prosperity": prosperity,
+        "growth_stage": "成长期" if net >= 2 else ("衰退期" if net <= -2 else "成熟期"),
+        "stock_depth": "布局",
+        "policy_support": 0.5,
+        "domestic_substitute": "国产替代" in news_summary,
+        "key_drivers": [],
+        "risks": [],
+        "reason": f"关键词兜底(正{pos_count}/负{neg_count})",
+    }
+
+
 def _detect_sector_from_news(symbol: str, stock_name: str) -> Optional[str]:
     """从 NEWS 策略缓存的 event_driven 或关键词匹配推断行业赛道。"""
     from .news_sentiment import _SESSION_NEWS_CACHE
@@ -78,6 +112,23 @@ def _detect_sector_from_news(symbol: str, stock_name: str) -> Optional[str]:
         if sector_trend:
             return sector_trend
 
+    # 优先妙想搜索（稳定官方API）
+    if stock_name:
+        try:
+            import os
+            if os.environ.get("MX_APIKEY"):
+                from src.data.mx_skills.client import get_mx_client
+                client = get_mx_client()
+                items = client.search_news_items(f"{stock_name} 行业 赛道")
+                if items:
+                    mx_text = " ".join(r.get("title", "") for r in items[:5])
+                    for sector, keywords in _SECTOR_KEYWORDS.items():
+                        for kw in keywords:
+                            if kw in mx_text:
+                                return sector
+        except Exception as e:
+            logger.debug("MX搜索行业赛道失败 %s: %s", stock_name, e)
+
     try:
         from src.data.news import fetch_stock_news
     except ImportError:
@@ -86,7 +137,6 @@ def _detect_sector_from_news(symbol: str, stock_name: str) -> Optional[str]:
         except ImportError:
             return None
 
-    # 尝试用股票代码和名称搜索新闻
     all_text = ""
     try:
         df = fetch_stock_news(symbol, max_items=15)
@@ -95,7 +145,6 @@ def _detect_sector_from_news(symbol: str, stock_name: str) -> Optional[str]:
     except Exception as e:
         logger.debug("行业赛道检测 (代码搜索) 失败 %s: %s", symbol, e)
 
-    # 如果股票名称搜索能获得更多结果，合并
     if stock_name:
         try:
             df2 = fetch_stock_news(stock_name, max_items=10)
@@ -109,23 +158,6 @@ def _detect_sector_from_news(symbol: str, stock_name: str) -> Optional[str]:
             for kw in keywords:
                 if kw in all_text:
                     return sector
-
-    # 最后尝试 MX 搜索（消耗配额，但覆盖更广）
-    if stock_name:
-        try:
-            import os
-            if os.environ.get("MX_APIKEY"):
-                from src.data.mx_skills.client import MXSkillsClient
-                client = MXSkillsClient()
-                result = client.search_news(f"{stock_name} 行业 赛道", max_results=5)
-                if result and isinstance(result, list):
-                    mx_text = " ".join(r.get("title", "") for r in result[:5])
-                    for sector, keywords in _SECTOR_KEYWORDS.items():
-                        for kw in keywords:
-                            if kw in mx_text:
-                                return sector
-        except Exception as e:
-            logger.debug("MX搜索行业赛道失败 %s: %s", stock_name, e)
 
     return None
 
@@ -141,23 +173,14 @@ def _fetch_sector_news(sector: str, max_items: int = 10) -> str:
             return ""
 
     try:
-        from src.data.mx_skills.news_adapter import MXNewsFetcher
-        fetcher = MXNewsFetcher()
-        df = fetcher.search_news(sector, max_items=max_items)
-        if df is not None and not df.empty:
-            titles = df["title"].dropna().tolist()[:max_items]
-            return "\n".join(f"{i+1}. {t}" for i, t in enumerate(titles))
-    except Exception:
-        pass
-
-    try:
         import os
         if os.environ.get("MX_APIKEY"):
-            from src.data.mx_skills.client import MXSkillsClient
-            client = MXSkillsClient()
-            result = client.search_news(sector, max_results=max_items)
-            if result and isinstance(result, list):
-                return "\n".join(f"{i+1}. {r.get('title', '')}" for i, r in enumerate(result[:max_items]))
+            from src.data.mx_skills.news_adapter import MXNewsFetcher
+            fetcher = MXNewsFetcher()
+            df = fetcher.fetch_sector_news(sector, max_items=max_items)
+            if df is not None and not df.empty:
+                titles = df["title"].dropna().tolist()[:max_items]
+                return "\n".join(f"{i+1}. {t}" for i, t in enumerate(titles))
     except Exception:
         pass
 
@@ -256,8 +279,10 @@ class IndustryTrendStrategy(Strategy):
 
         trend = _llm_analyze_trend(sector, symbol, self.stock_name, relation, news_summary)
         if not trend:
+            trend = _keyword_trend_fallback(sector, news_summary)
+        if not trend:
             return StrategySignal(
-                "HOLD", 0.0, f"赛道{sector}的LLM趋势分析不可用",
+                "HOLD", 0.0, f"行业{sector}：趋势数据不足",
                 0.5, {"sector": sector},
             )
 

@@ -62,6 +62,8 @@ class MXNewsFetcher:
             return pd.DataFrame(items[:max_items])[
                 ["title", "content", "date", "source"]
             ]
+        except MXQuotaExhausted:
+            return pd.DataFrame(columns=["title", "content", "date", "source"])
         except Exception:
             logger.warning("MX 板块新闻查询失败: %s", sector_name)
             return pd.DataFrame(columns=["title", "content", "date", "source"])
@@ -73,6 +75,8 @@ class MXNewsFetcher:
             if not items:
                 return pd.DataFrame(columns=["title", "content", "date", "source"])
             return pd.DataFrame(items)[["title", "content", "date", "source"]]
+        except MXQuotaExhausted:
+            return pd.DataFrame(columns=["title", "content", "date", "source"])
         except Exception:
             logger.warning("MX 市场分析查询失败: %s", query)
             return pd.DataFrame(columns=["title", "content", "date", "source"])

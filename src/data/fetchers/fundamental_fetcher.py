@@ -32,6 +32,7 @@ import logging
 import time
 import json
 import os
+import threading
 
 logger = logging.getLogger(__name__)
 
@@ -50,6 +51,9 @@ class FundamentalFetcher:
         self.source = source
         self._bs_logged_in = False
         self._akshare_available = None  # None=未检测
+        self._bs_consecutive_fails = 0
+        self._BS_FUSE_THRESHOLD = 3  # 连续失败N次后熔断Baostock
+        self._bs_lock = threading.Lock()
         # 行业分类缓存（内存 + 磁盘）
         self._industry_cache: Dict[str, Optional[str]] = {}
         # 全市场行业缓存（code -> industry）
@@ -68,29 +72,36 @@ class FundamentalFetcher:
         return self._akshare_available
     
     def _ensure_bs_login(self):
-        """确保baostock已登录，并设置 socket 超时防止无限等待"""
-        if not self._bs_logged_in:
-            import baostock as bs
-            lg = bs.login()
-            if lg.error_code == '0':
-                self._bs_logged_in = True
-                try:
-                    from baostock.data import resultset
-                    ctx_sock = resultset.sock.context.default_socket
-                    if ctx_sock and ctx_sock.gettimeout() is None:
-                        ctx_sock.settimeout(10)
-                except Exception:
-                    pass
-            else:
-                logger.error(f"baostock登录失败: {lg.error_msg}")
-                raise RuntimeError(f"baostock登录失败: {lg.error_msg}")
+        """确保baostock已登录，并设置 socket 超时防止无限等待（线程安全）"""
+        from ..bs_fuse import is_fused, record_fail, record_success
+        if is_fused() or self._bs_consecutive_fails >= self._BS_FUSE_THRESHOLD:
+            raise RuntimeError("Baostock已熔断")
+        with self._bs_lock:
+            if not self._bs_logged_in:
+                import baostock as bs
+                lg = bs.login()
+                if lg.error_code == '0':
+                    self._bs_logged_in = True
+                    record_success()
+                    try:
+                        from baostock.data import resultset
+                        ctx_sock = resultset.sock.context.default_socket
+                        if ctx_sock and ctx_sock.gettimeout() is None:
+                            ctx_sock.settimeout(10)
+                    except Exception:
+                        pass
+                else:
+                    record_fail(f"fundamental_fetcher login: {lg.error_msg}")
+                    logger.error(f"baostock登录失败: {lg.error_msg}")
+                    raise RuntimeError(f"baostock登录失败: {lg.error_msg}")
     
     def _bs_logout(self):
-        """登出baostock"""
-        if self._bs_logged_in:
-            import baostock as bs
-            bs.logout()
-            self._bs_logged_in = False
+        """登出baostock（线程安全）"""
+        with self._bs_lock:
+            if self._bs_logged_in:
+                import baostock as bs
+                bs.logout()
+                self._bs_logged_in = False
     
     def _code_to_bs(self, code: str) -> str:
         """股票代码转baostock格式: '600030' -> 'sh.600030'"""
@@ -223,30 +234,32 @@ class FundamentalFetcher:
             return pd.DataFrame()
     
     def _get_fina_baostock(self, code: str, start_year: int, end_year: int) -> pd.DataFrame:
-        """使用baostock获取财务指标（备用）"""
-        self._ensure_bs_login()
-        import baostock as bs
-        
+        """使用baostock获取财务指标（备用，线程安全）"""
         records = []
         bs_code = self._code_to_bs(code)
         
         for year in range(start_year, end_year + 1):
             for quarter in range(1, 5):
                 try:
-                    rs = bs.query_profit_data(code=bs_code, year=year, quarter=quarter)
-                    if rs.error_code == '0' and rs.next():
-                        row = rs.get_row_data()
-                        if len(row) >= 8 and row[1]:
-                            record = {
-                                'pub_date': row[1],
-                                'stat_date': row[2],
-                                'roe': self._safe_float(row[3]),
-                                'np_margin': self._safe_float(row[4]),
-                                'gp_margin': self._safe_float(row[5]),
-                                'net_profit': self._safe_float(row[6]),
-                                'eps_ttm': self._safe_float(row[7]),
-                            }
-                            records.append(record)
+                    with self._bs_lock:
+                        self._ensure_bs_login()
+                        import baostock as bs
+                        rs = bs.query_profit_data(code=bs_code, year=year, quarter=quarter)
+                        if rs.error_code == '0' and rs.next():
+                            row = rs.get_row_data()
+                        else:
+                            continue
+                    if len(row) >= 8 and row[1]:
+                        record = {
+                            'pub_date': row[1],
+                            'stat_date': row[2],
+                            'roe': self._safe_float(row[3]),
+                            'np_margin': self._safe_float(row[4]),
+                            'gp_margin': self._safe_float(row[5]),
+                            'net_profit': self._safe_float(row[6]),
+                            'eps_ttm': self._safe_float(row[7]),
+                        }
+                        records.append(record)
                 except Exception as e:
                     logger.debug(f"[{code}] {year}Q{quarter} 获取失败: {e}")
         
@@ -387,7 +400,7 @@ class FundamentalFetcher:
         if use_cache and not self._all_industry_cache and os.path.exists(cache_file):
             try:
                 cache_mtime = os.path.getmtime(cache_file)
-                if time.time() - cache_mtime < 30 * 86400:  # 30天有效
+                if time.time() - cache_mtime < 180 * 86400:  # 180天有效（行业分类极少变动）
                     with open(cache_file, 'r') as f:
                         self._all_industry_cache = json.load(f)
                     logger.debug(f"行业缓存加载: {len(self._all_industry_cache)}只")
@@ -399,21 +412,22 @@ class FundamentalFetcher:
             self._industry_cache[code] = industry
             return industry
         
-        # 实时查询
-        self._ensure_bs_login()
-        import baostock as bs
-        
-        bs_code = self._code_to_bs(code)
+        # 实时查询（baostock 单 TCP 连接，需串行化）
         try:
-            rs = bs.query_stock_industry(code=bs_code)
-            if rs.error_code == '0' and rs.next():
-                row = rs.get_row_data()
-                # fields: updateDate, code, code_name, industry, industryClassification
-                if len(row) >= 4 and row[3]:
-                    industry = row[3]
-                    self._industry_cache[code] = industry
-                    self._all_industry_cache[code] = industry
-                    return industry
+            with self._bs_lock:
+                self._ensure_bs_login()
+                import baostock as bs
+                
+                bs_code = self._code_to_bs(code)
+                rs = bs.query_stock_industry(code=bs_code)
+                if rs.error_code == '0' and rs.next():
+                    row = rs.get_row_data()
+                    # fields: updateDate, code, code_name, industry, industryClassification
+                    if len(row) >= 4 and row[3]:
+                        industry = row[3]
+                        self._industry_cache[code] = industry
+                        self._all_industry_cache[code] = industry
+                        return industry
         except Exception as e:
             logger.error(f"[{code}] 行业分类获取失败: {e}")
         
@@ -450,26 +464,38 @@ class FundamentalFetcher:
         
         if missing:
             logger.info(f"批量获取行业分类: {len(missing)}只未缓存")
-            self._ensure_bs_login()
-            import baostock as bs
             
+            _consecutive_fails = 0
+            _MAX_CONSECUTIVE_FAILS = 10
+            _fetched = 0
             for i, code in enumerate(missing):
-                bs_code = self._code_to_bs(code)
+                if _consecutive_fails >= _MAX_CONSECUTIVE_FAILS:
+                    logger.warning(f"行业分类连续{_consecutive_fails}次失败，跳过剩余{len(missing)-i}只")
+                    break
                 try:
-                    rs = bs.query_stock_industry(code=bs_code)
-                    if rs.error_code == '0' and rs.next():
-                        row = rs.get_row_data()
-                        if len(row) >= 4 and row[3]:
-                            result[code] = row[3]
-                            self._all_industry_cache[code] = row[3]
+                    with self._bs_lock:
+                        self._ensure_bs_login()
+                        import baostock as bs
+                        bs_code = self._code_to_bs(code)
+                        rs = bs.query_stock_industry(code=bs_code)
+                        if rs.error_code == '0' and rs.next():
+                            row = rs.get_row_data()
+                            if len(row) >= 4 and row[3]:
+                                result[code] = row[3]
+                                self._all_industry_cache[code] = row[3]
+                                _consecutive_fails = 0
+                                _fetched += 1
+                            else:
+                                _consecutive_fails += 1
+                        else:
+                            _consecutive_fails += 1
                 except Exception:
-                    pass
+                    _consecutive_fails += 1
                 
-                # 每50只暂停一下
-                if (i + 1) % 50 == 0:
-                    time.sleep(0.5)
+                if (i + 1) % 100 == 0:
+                    logger.info(f"行业分类进度: {i+1}/{len(missing)} (成功{_fetched})")
+                    time.sleep(0.3)
             
-            # 保存缓存
             try:
                 with open(cache_file, 'w') as f:
                     json.dump(self._all_industry_cache, f, ensure_ascii=False)
@@ -571,32 +597,31 @@ class FundamentalFetcher:
                     pass
         
         # 4. 从baostock批量获取日频数据（PE/PB需要从行情计算或外部获取）
-        # baostock的 query_history_k_data_plus 可以获取 peTTM, pbMRQ
-        self._ensure_bs_login()
-        import baostock as bs
-        
         end_date = datetime.now().strftime('%Y-%m-%d')
         start_date = (datetime.now() - timedelta(days=datalen * 1.5)).strftime('%Y-%m-%d')
         
         fetched = 0
-        _deadline = time.time() + 20  # 整个行业PE/PB聚合最多20s（原60s太慢）
-        for i, s_code in enumerate(same_industry[:15]):  # 最多15只，避免太慢
+        _deadline = time.time() + 20
+        for i, s_code in enumerate(same_industry[:15]):
             if time.time() > _deadline:
                 logger.warning(f"行业'{industry}' PE/PB聚合超时(20s)，已获取{fetched}只")
                 break
             bs_code = self._code_to_bs(s_code)
             try:
-                rs = bs.query_history_k_data_plus(
-                    bs_code,
-                    "date,peTTM,pbMRQ",
-                    start_date=start_date,
-                    end_date=end_date,
-                    frequency="d",
-                    adjustflag="3"
-                )
-                rows = []
-                while rs.error_code == '0' and rs.next():
-                    rows.append(rs.get_row_data())
+                with self._bs_lock:
+                    self._ensure_bs_login()
+                    import baostock as bs
+                    rs = bs.query_history_k_data_plus(
+                        bs_code,
+                        "date,peTTM,pbMRQ",
+                        start_date=start_date,
+                        end_date=end_date,
+                        frequency="d",
+                        adjustflag="3"
+                    )
+                    rows = []
+                    while rs.error_code == '0' and rs.next():
+                        rows.append(rs.get_row_data())
                 
                 if rows:
                     for r in rows:
@@ -679,41 +704,53 @@ class FundamentalFetcher:
             except Exception:
                 pass
 
-        # 方案1: Baostock（主力）
-        try:
-            self._ensure_bs_login()
-            import baostock as bs
-            
-            bs_code = self._code_to_bs(code)
-            
-            rs = bs.query_history_k_data_plus(
-                bs_code,
-                "date,peTTM,pbMRQ,turn",
-                start_date=start_date,
-                end_date=end_date,
-                frequency="d",
-                adjustflag="3"
-            )
-            
-            rows = []
-            while rs.error_code == '0' and rs.next():
-                rows.append(rs.get_row_data())
-            
-            if rows:
-                df = pd.DataFrame(rows, columns=['date', 'pe_ttm', 'pb', 'turnover_rate'])
-                df['date'] = pd.to_datetime(df['date'])
-                df['pe_ttm'] = pd.to_numeric(df['pe_ttm'], errors='coerce')
-                df['pb'] = pd.to_numeric(df['pb'], errors='coerce')
-                df['turnover_rate'] = pd.to_numeric(df['turnover_rate'], errors='coerce')
-                df = df.sort_values('date').reset_index(drop=True)
-                logger.info(f"✅ Baostock获取 {code} 日频基本面: {len(df)}条")
-                try:
-                    df.to_parquet(_cache_pq, index=False)
-                except Exception:
-                    pass
-                return df
-        except Exception as e:
-            logger.warning(f"⚠️ Baostock获取 {code} 日频基本面失败: {e}")
+        # 方案1: Baostock（主力），连续失败N次后自动熔断跳过
+        # baostock 使用单 TCP 连接，需要串行化所有查询
+        if self._bs_consecutive_fails < self._BS_FUSE_THRESHOLD:
+            try:
+                with self._bs_lock:
+                    self._ensure_bs_login()
+                    import baostock as bs
+
+                    bs_code = self._code_to_bs(code)
+
+                    rs = bs.query_history_k_data_plus(
+                        bs_code,
+                        "date,peTTM,pbMRQ,turn",
+                        start_date=start_date,
+                        end_date=end_date,
+                        frequency="d",
+                        adjustflag="3"
+                    )
+
+                    rows = []
+                    while rs.error_code == '0' and rs.next():
+                        rows.append(rs.get_row_data())
+
+                if rows:
+                    df = pd.DataFrame(rows, columns=['date', 'pe_ttm', 'pb', 'turnover_rate'])
+                    df['date'] = pd.to_datetime(df['date'])
+                    df['pe_ttm'] = pd.to_numeric(df['pe_ttm'], errors='coerce')
+                    df['pb'] = pd.to_numeric(df['pb'], errors='coerce')
+                    df['turnover_rate'] = pd.to_numeric(df['turnover_rate'], errors='coerce')
+                    df = df.sort_values('date').reset_index(drop=True)
+                    logger.info(f"✅ Baostock获取 {code} 日频基本面: {len(df)}条")
+                    self._bs_consecutive_fails = 0
+                    try:
+                        df.to_parquet(_cache_pq, index=False)
+                    except Exception:
+                        pass
+                    return df
+            except Exception as e:
+                from ..bs_fuse import record_fail
+                self._bs_consecutive_fails += 1
+                record_fail(f"fundamental {code}: {e}")
+                if self._bs_consecutive_fails >= self._BS_FUSE_THRESHOLD:
+                    logger.warning(f"⚠️ Baostock连续{self._bs_consecutive_fails}次失败，已熔断，后续直接跳过: {e}")
+                else:
+                    logger.warning(f"⚠️ Baostock获取 {code} 日频基本面失败({self._bs_consecutive_fails}/{self._BS_FUSE_THRESHOLD}): {e}")
+        else:
+            logger.debug(f"[{code}] Baostock已熔断，直接跳过")
         
         # 方案2: 百度股市通 PE/PB 历史（akshare，非东财源，不被封）
         try:

@@ -41,10 +41,14 @@ import logging
 import re
 from datetime import datetime, timedelta
 from collections import defaultdict
+import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed, TimeoutError
 
 import pandas as pd
-pd.set_option('future.no_silent_downcasting', True)
+try:
+    pd.set_option('future.no_silent_downcasting', True)
+except (pd.errors.OptionError, Exception):
+    pass
 import numpy as np
 
 logger = logging.getLogger(__name__)
@@ -839,8 +843,8 @@ def _assess_market_opportunity(top_list: list) -> tuple:
     # NORMAL: 正常偏积极（buy > sell 是主流）
     elif buy_ratio >= 0.55 and top5_positive_ratio >= 0.60:
         return 'NORMAL', '普通机会：部分策略看好', min(15, len(top_list))
-    # WEAK: 买卖分歧大或BUY偏少
-    elif buy_ratio >= 0.35 or top5_positive_ratio >= 0.40:
+    # WEAK: 有一定买入信号但不够强
+    elif buy_ratio >= 0.35 and top5_positive_ratio >= 0.30:
         return 'WEAK', '弱机会：信号质量一般，建议轻仓或观望', min(8, len(top_list))
     # EMPTY: 全面偏空
     else:
@@ -851,14 +855,20 @@ def _tag_entry_zone(r: dict) -> str:
     """
     根据股价位置给每只推荐股打「进场区域」标签。
 
-    用4个核心维度计分（不含5d涨速，5天波动在强趋势中很正常）：
-    60d涨幅、20d涨幅、距离前高、量比。
-    满足≥3个才标⛔，=2个标⚠，防止强趋势票被过早打死。
+    既然进了TOP20就是策略推荐买入的，这里只做安全分级：
+    - ⛔ 极端过热(60日>100%或danger>=3) → 会在上游被剔除
+    - 🟢核心买点: 涨幅温和、位置安全，放心买
+    - 🔵正常买入: 有一定涨幅但策略依然看好，可以买
+    - 🟡轻仓试探: 短期涨幅较大，建议分批或轻仓进入
+
+    用5个核心维度计分：60d涨幅、20d涨幅、距离前高、量比、RSI超买。
     """
     c60 = r.get('change_60d', 0)
     c20 = r.get('change_20d', 0)
     dh = r.get('dist_high', -999)
     vr = r.get('volume_ratio', 1.0)
+
+    rsi = r.get('rsi14', 50)
 
     danger_count = 0
     if c60 > 80:
@@ -869,18 +879,24 @@ def _tag_entry_zone(r: dict) -> str:
         danger_count += 1
     if vr > 2.0:
         danger_count += 1
+    if rsi > 80:
+        danger_count += 1
 
-    if danger_count >= 3:
+    if danger_count >= 3 or c60 > 100:
         return '⛔不建议新开仓'
     if danger_count == 2:
-        return '⚠追高谨慎'
+        return '🟡轻仓试探'
     if c60 > 50 or (c20 > 20 and dh > -5):
-        return '🔶可持有,新仓谨慎'
+        return '🟡轻仓试探'
+    if rsi > 75 and c20 > 15:
+        return '🟡轻仓试探'
+    if rsi < 30 and c20 < 0:
+        return '🟢核心买点'
     if c20 < 0 and c60 < 20:
-        return '🟢可低吸'
+        return '🟢核心买点'
     if c60 < 10:
         return '🟢核心买点'
-    return '🔵正常区间'
+    return '🔵正常买入'
 
 
 def _render_daily_section(today: str, top_list: list, strategy_name: str,
@@ -1314,6 +1330,15 @@ def _generate_recommendation_reason(r: dict) -> str:
     elif pe and pe > 80:
         parts.append(f"PE={pe:.1f}估值偏高")
 
+    # 矛盾信号提示：RSI超买+高位+策略推荐买入
+    rsi14 = r.get('rsi14', 50)
+    if rsi14 > 70:
+        change_60d = r.get('change_60d', 0)
+        if change_60d > 30:
+            parts.append(f"⚠️ RSI={rsi14:.0f}已进入超买区+60日涨{change_60d:.0f}%，短线追高风险较大，建议等回调")
+        else:
+            parts.append(f"⚠️ RSI={rsi14:.0f}接近超买，注意短线波动")
+
     if not parts:
         parts.append("多维度分析综合得分靠前")
 
@@ -1424,6 +1449,51 @@ def save_incremental_report(
                                          earnings_top, all_results=all_results))
 
     return REPORT_FILE, archive_path
+
+
+def _append_footer_to_report(archive_path: str, full_results: list, mx_summary: dict):
+    """将妙想联动记录和策略异常聚合统计追加到日报归档末尾。"""
+    footer_lines = []
+
+    # --- 妙想联动记录 ---
+    if mx_summary and any(v for v in mx_summary.values() if v is not None):
+        footer_lines.append("\n### 🔗 妙想联动记录\n")
+        xg = mx_summary.get('xuangu')
+        if xg:
+            overlap = xg.get('overlap', [])
+            footer_lines.append(f"- **mx-xuangu** 选股交叉验证: 妙想筛选{xg['total']}只, "
+                                f"交叉通过{len(overlap)}只"
+                                + (f" ({', '.join(overlap[:5])})" if overlap else ""))
+        zx = mx_summary.get('zixuan')
+        if zx:
+            footer_lines.append(f"- **mx-zixuan** 自选股同步: {zx['synced']}/{zx['total']}只 → 「{zx['group']}」")
+        mn = mx_summary.get('moni')
+        if mn:
+            bought = mn.get('bought', [])
+            footer_lines.append(f"- **mx-moni** 模拟建仓: {len(bought)}/{mn['total']}只"
+                                + (f" ({', '.join(bought[:5])})" if bought else ""))
+
+    # --- 策略异常聚合统计 ---
+    from collections import Counter
+    err_counter = Counter()
+    total_err = 0
+    for r in full_results:
+        errs = r.get('strategy_errors', [])
+        for strat_name, _msg in errs:
+            err_counter[strat_name] += 1
+            total_err += 1
+    if total_err > 0:
+        footer_lines.append(f"\n### ⚠️ 策略异常统计（共{total_err}次）\n")
+        footer_lines.append("| 策略 | 异常次数 | 占比 |")
+        footer_lines.append("|------|----------|------|")
+        for strat, cnt in err_counter.most_common():
+            pct = cnt / len(full_results) * 100
+            footer_lines.append(f"| {strat} | {cnt} | {pct:.1f}% |")
+        footer_lines.append("")
+
+    if footer_lines and os.path.exists(archive_path):
+        with open(archive_path, 'a', encoding='utf-8') as f:
+            f.write("\n".join(footer_lines))
 
 
 # ============================================================
@@ -1671,8 +1741,16 @@ def analyze_stock_extended(df: pd.DataFrame, strat,
     signal = strat.safe_analyze(df)
 
     # 涨跌幅
-    change_5d = (price / float(close.iloc[-6]) - 1) * 100 if len(df) > 5 else 0
-    change_20d = (price / float(close.iloc[-21]) - 1) * 100 if len(df) > 20 else 0
+    if len(df) > 1:
+        idx_5 = max(0, len(df) - 6)
+        idx_20 = max(0, len(df) - 21)
+        idx_60 = max(0, len(df) - 61)
+        change_5d = (price / float(close.iloc[idx_5]) - 1) * 100
+        change_20d = (price / float(close.iloc[idx_20]) - 1) * 100
+        change_60d = (price / float(close.iloc[idx_60]) - 1) * 100
+    else:
+        change_5d = change_20d = change_60d = 0.0
+    change_60d = (price / float(close.iloc[-61]) - 1) * 100 if len(df) > 60 else 0
 
     # 量比
     avg_vol_5 = float(volume.iloc[-6:-1].mean()) if len(df) > 5 else 1
@@ -1735,6 +1813,7 @@ def analyze_stock_extended(df: pd.DataFrame, strat,
         'price': price,
         'change_5d': round(change_5d, 2),
         'change_20d': round(change_20d, 2),
+        'change_60d': round(change_60d, 2),
         'volume_ratio': round(vol_ratio, 2),
         'ma5': round(ma5, 2),
         'ma10': round(ma10, 2),
@@ -1848,7 +1927,7 @@ def compute_score(info: dict) -> float:
 
 
 # ============================================================
-# 11 策略全量分析（与持仓分析一致）
+# 14 策略全量分析（与持仓分析一致）
 # ============================================================
 
 def load_cached_kline(code: str, cache_dir: str = None) -> pd.DataFrame:
@@ -1898,6 +1977,7 @@ def _get_last_trading_day(now_dt=None):
 
 _kline_consecutive_fails = 0
 _KLINE_CIRCUIT_THRESHOLD = 10
+_kline_fails_lock = threading.Lock()
 
 
 def update_kline_cache(code: str, cache_dir: str = None, days: int = 200) -> pd.DataFrame:
@@ -1942,16 +2022,18 @@ def update_kline_cache(code: str, cache_dir: str = None, days: int = 200) -> pd.
                 return cached_df
 
     # 熔断：连续失败超阈值，直接用缓存，不再浪费时间等网络
-    if _kline_consecutive_fails >= _KLINE_CIRCUIT_THRESHOLD:
-        if not cached_df.empty:
-            return cached_df
-        return pd.DataFrame()
+    with _kline_fails_lock:
+        if _kline_consecutive_fails >= _KLINE_CIRCUIT_THRESHOLD:
+            if not cached_df.empty:
+                return cached_df
+            return pd.DataFrame()
 
     # 需要更新：下载最新数据（缩短超时，快速失败）
     provider = get_default_kline_provider()
-    from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeout
+    from concurrent.futures import TimeoutError as FutureTimeout
     new_df = None
-    effective_timeout = 12 if _kline_consecutive_fails < 3 else 6
+    with _kline_fails_lock:
+        effective_timeout = 12 if _kline_consecutive_fails < 3 else 6
     try:
         with ThreadPoolExecutor(max_workers=1) as ex:
             fut = ex.submit(provider.get_kline, symbol=code, datalen=days, min_bars=1, retries=1, timeout=8)
@@ -1960,12 +2042,14 @@ def update_kline_cache(code: str, cache_dir: str = None, days: int = 200) -> pd.
         logger.warning(f"数据获取超时或失败({code}): {e}")
 
     if new_df is None or new_df.empty:
-        _kline_consecutive_fails += 1
-        if _kline_consecutive_fails == _KLINE_CIRCUIT_THRESHOLD:
-            print(f"⚡ 网络数据源连续{_KLINE_CIRCUIT_THRESHOLD}次失败，切换纯缓存模式（加速处理）")
+        with _kline_fails_lock:
+            _kline_consecutive_fails += 1
+            if _kline_consecutive_fails == _KLINE_CIRCUIT_THRESHOLD:
+                print(f"⚡ 网络数据源连续{_KLINE_CIRCUIT_THRESHOLD}次失败，切换纯缓存模式（加速处理）")
         return cached_df if not cached_df.empty else pd.DataFrame()
     
-    _kline_consecutive_fails = 0
+    with _kline_fails_lock:
+        _kline_consecutive_fails = 0
     
     if not cached_df.empty:
         combined = pd.concat([cached_df, new_df], ignore_index=True)
@@ -2007,40 +2091,110 @@ def save_fundamental_cache(cache_data: dict):
         pass
 
 
+def _normalize_spot_snapshot(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    统一全市场快照列名，产出标准字段：
+    代码 / 名称 / 市盈率-动态 / 市净率 / 总市值
+
+    仅当存在“逐股票”明细时返回非空表；若是市场聚合行（无代码列）返回空表。
+    """
+    if df is None or df.empty:
+        return pd.DataFrame()
+
+    aliases = {
+        "代码": ["代码", "股票代码", "证券代码", "symbol", "code"],
+        "名称": ["名称", "股票名称", "证券简称", "name"],
+        "市盈率-动态": ["市盈率-动态", "市盈率", "PE", "pe_ttm", "pe"],
+        "市净率": ["市净率", "市净率PB", "PB", "pb"],
+        "总市值": ["总市值", "市值", "market_cap", "market value"],
+    }
+
+    col_map = {}
+    cols = set(df.columns)
+    for std_col, cands in aliases.items():
+        for c in cands:
+            if c in cols:
+                col_map[std_col] = c
+                break
+
+    # 没有代码列，说明不是可逐股查表的快照（常见为市场聚合指标）
+    if "代码" not in col_map:
+        return pd.DataFrame()
+
+    out = pd.DataFrame()
+    out["代码"] = (
+        df[col_map["代码"]]
+        .astype(str)
+        .str.extract(r"(\d{6})", expand=False)
+        .fillna("")
+    )
+    out = out[out["代码"] != ""].copy()
+    if out.empty:
+        return pd.DataFrame()
+
+    out["名称"] = df[col_map["名称"]] if "名称" in col_map else ""
+    out["市盈率-动态"] = pd.to_numeric(
+        df[col_map["市盈率-动态"]], errors="coerce"
+    ) if "市盈率-动态" in col_map else np.nan
+    out["市净率"] = pd.to_numeric(
+        df[col_map["市净率"]], errors="coerce"
+    ) if "市净率" in col_map else np.nan
+    out["总市值"] = pd.to_numeric(
+        df[col_map["总市值"]], errors="coerce"
+    ) if "总市值" in col_map else np.nan
+
+    out = out.drop_duplicates(subset=["代码"], keep="first").reset_index(drop=True)
+    return out
+
+
 def _preload_akshare_spot() -> pd.DataFrame:
     """
     预加载全市场实时行情（只调一次），多源降级：
-    1. AKShare stock_zh_a_spot_em（最全，~5000只，但不稳定）
-    2. 妙想 mx-data 批量查询（配额有限，只查 A 股全市场快照，消耗 1 次）
+    1. 妙想 mx-data（稳定官方API，消耗 1 次配额）
+    2. AKShare stock_zh_a_spot_em（免费无限额，但不稳定）
     失败返回空 DataFrame，后续逻辑用缓存兜底。
     """
     from concurrent.futures import ThreadPoolExecutor as _TPE, TimeoutError as _FTE
 
-    # 源1: AKShare（主力，免费无限额）
-    try:
-        import akshare as ak
-        with _TPE(max_workers=1) as _ex:
-            df = _ex.submit(ak.stock_zh_a_spot_em).result(timeout=15)
-        if df is not None and not df.empty:
-            print(f"✅ AKShare全市场行情预加载成功: {len(df)} 只")
-            return df
-    except Exception as e:
-        print(f"⚠️ AKShare全市场行情预加载失败: {e}")
-
-    # 源2: 妙想实时行情（消耗 1 次配额，查全市场快照）
+    # 源1: 妙想实时行情（稳定官方API，消耗 1 次配额）
     if os.environ.get("MX_APIKEY"):
         try:
             from src.data.mx_skills.client import get_mx_client
             client = get_mx_client()
             if client._limiter.remaining_for("mx-data") >= 1:
                 df = client.query_data_df("A股全市场最新价 涨跌幅 市盈率 市净率 总市值 成交量")
-                if df is not None and not df.empty:
-                    print(f"✅ 妙想全市场行情预加载成功: {len(df)} 只（mx-data消耗1次）")
-                    return df
+                normalized = _normalize_spot_snapshot(df)
+                if not normalized.empty:
+                    print(f"✅ 妙想全市场行情预加载成功: {len(normalized)} 只（mx-data消耗1次）")
+                    return normalized
+                print("⚠️ 妙想全市场预加载返回聚合数据，无法逐股查表，自动降级AKShare")
             else:
                 print("⚠️ 妙想 mx-data 配额不足，跳过全市场预加载")
         except Exception as e:
             print(f"⚠️ 妙想全市场行情预加载失败: {e}")
+
+    # 源2: AKShare（免费无限额，但不稳定；push2接口非交易时段不返回数据）
+    from datetime import datetime as _akdt
+    _now = _akdt.now()
+    _h, _m = _now.hour, _now.minute
+    _in_trading = (
+        _now.weekday() < 5
+        and ((_h == 9 and _m >= 15) or (10 <= _h <= 11) or (13 <= _h <= 14) or (_h == 15 and _m <= 5))
+    )
+    if not _in_trading:
+        print(f"⚠️ 当前非交易时段({_now.strftime('%H:%M')})，跳过AKShare实时行情预加载（push2接口收盘后不返回数据）")
+    else:
+        try:
+            import akshare as ak
+            with _TPE(max_workers=1) as _ex:
+                df = _ex.submit(ak.stock_zh_a_spot_em).result(timeout=15)
+            normalized = _normalize_spot_snapshot(df)
+            if not normalized.empty:
+                print(f"✅ AKShare全市场行情预加载成功: {len(normalized)} 只")
+                return normalized
+            print("⚠️ AKShare全市场预加载返回结构异常，无法逐股查表")
+        except Exception as e:
+            print(f"⚠️ AKShare全市场行情预加载失败: {e}")
 
     print("⚠️ 全市场行情预加载全部失败，将使用缓存数据")
     return pd.DataFrame()
@@ -2051,9 +2205,10 @@ def update_fundamental_cache(code: str, fetcher: FundamentalFetcher, cache_data:
     增量更新单只股票的基本面数据（PE/PB/市值）
     
     多数据源降级逻辑：
-    1. Baostock daily_basic（主力）
-    2. 预加载的 AKShare 全市场行情 DataFrame 查表（备用，无网络请求）
-    3. 返回缓存（如果以上都失败）
+    1. 预加载的全市场 DataFrame 查表（零网络开销）
+    2. 妙想 mx-data（稳定官方API，消耗配额）
+    3. Baostock daily_basic（有熔断机制）
+    4. 返回缓存
     """
     today = datetime.now().strftime('%Y-%m-%d')
     cache_date = cache_data.get('date', '')
@@ -2062,25 +2217,10 @@ def update_fundamental_cache(code: str, fetcher: FundamentalFetcher, cache_data:
     if cache_date == today and code in all_data:
         return all_data[code]
     
-    # 方案1: Baostock get_daily_basic（传入 spot_df 作为备用）
-    try:
-        fund_df = fetcher.get_daily_basic(code, start_date=today, end_date=today, spot_df=spot_df)
-        if not fund_df.empty:
-            fund_info = {
-                'name': fund_df['name'].iloc[0] if 'name' in fund_df.columns else '',
-                'pe_ttm': float(fund_df['pe_ttm'].iloc[0]) if 'pe_ttm' in fund_df.columns and pd.notna(fund_df['pe_ttm'].iloc[0]) else None,
-                'pb': float(fund_df['pb'].iloc[0]) if 'pb' in fund_df.columns and pd.notna(fund_df['pb'].iloc[0]) else None,
-                'market_cap_yi': float(fund_df['market_cap'].iloc[0]) / 100000000 if 'market_cap' in fund_df.columns and pd.notna(fund_df['market_cap'].iloc[0]) else None,
-                'is_st': False
-            }
-            return fund_info
-    except Exception as e:
-        logger.debug(f"Baostock获取 {code} 基本面失败: {e}")
-    
-    # 方案2: 从预加载的全市场 DataFrame 查表（零网络开销）
-    if spot_df is not None and not spot_df.empty:
+    # 方案1: 从预加载的全市场 DataFrame 查表（零网络开销）
+    if spot_df is not None and not spot_df.empty and '代码' in spot_df.columns:
         try:
-            stock_row = spot_df[spot_df['代码'] == code]
+            stock_row = spot_df[spot_df['代码'].astype(str).str.zfill(6) == str(code).zfill(6)]
             if not stock_row.empty:
                 row = stock_row.iloc[0]
                 fund_info = {
@@ -2094,7 +2234,7 @@ def update_fundamental_cache(code: str, fetcher: FundamentalFetcher, cache_data:
         except Exception:
             pass
     
-    # 方案3: 妙想 mx-data 查询（消耗 1 次配额，仅在前两方案失败时触发）
+    # 方案2: 妙想 mx-data 查询（稳定官方API，消耗 1 次配额）
     if os.environ.get("MX_APIKEY"):
         try:
             from src.data.mx_skills.client import get_mx_client
@@ -2129,6 +2269,21 @@ def update_fundamental_cache(code: str, fetcher: FundamentalFetcher, cache_data:
         except Exception as e:
             logger.debug(f"妙想获取 {code} 基本面失败: {e}")
 
+    # 方案3: Baostock daily_basic（有熔断机制，网络不通时会自动跳过）
+    try:
+        fund_df = fetcher.get_daily_basic(code, start_date=today, end_date=today, spot_df=spot_df)
+        if not fund_df.empty:
+            fund_info = {
+                'name': fund_df['name'].iloc[0] if 'name' in fund_df.columns else '',
+                'pe_ttm': float(fund_df['pe_ttm'].iloc[0]) if 'pe_ttm' in fund_df.columns and pd.notna(fund_df['pe_ttm'].iloc[0]) else None,
+                'pb': float(fund_df['pb'].iloc[0]) if 'pb' in fund_df.columns and pd.notna(fund_df['pb'].iloc[0]) else None,
+                'market_cap_yi': float(fund_df['market_cap'].iloc[0]) / 100000000 if 'market_cap' in fund_df.columns and pd.notna(fund_df['market_cap'].iloc[0]) else None,
+                'is_st': False
+            }
+            return fund_info
+    except Exception as e:
+        logger.debug(f"Baostock获取 {code} 基本面失败: {e}")
+
     # 方案4: 返回缓存
     if code in all_data:
         return all_data[code]
@@ -2137,25 +2292,26 @@ def update_fundamental_cache(code: str, fetcher: FundamentalFetcher, cache_data:
     return None
 
 
-def _mx_post_actions(top_list: list, final_recommend: list):
+def _mx_post_actions(top_list: list) -> dict:
     """
-    推荐完成后执行妙想联动操作：
+    推荐完成后执行妙想联动操作，返回执行摘要 dict 供日报写入。
     1. mx-xuangu: 智能选股交叉验证（看 TOP 票是否出现在妙想筛选结果中）
     2. mx-zixuan: 推荐 TOP 票自动同步到东方财富自选股
     3. mx-moni:   推荐结果自动模拟下单
     """
+    summary = {'xuangu': None, 'zixuan': None, 'moni': None}
     if not os.environ.get("MX_APIKEY"):
-        return
+        return summary
 
     try:
         from src.data.mx_skills.rate_limiter import get_rate_limiter
         limiter = get_rate_limiter()
     except Exception:
-        return
+        return summary
 
     top_codes = [r.get('code', '') for r in top_list if r.get('code')]
     if not top_codes:
-        return
+        return summary
 
     print(f"\n{'='*50}")
     print("🔗 妙想 Skills 联动")
@@ -2192,10 +2348,13 @@ def _mx_post_actions(top_list: list, final_recommend: list):
                     name = next((r['name'] for r in top_list if r.get('code') == c), c)
                     overlap_names.append(f"{c}({name})")
                 print(f"   ⭐ 与 TOP 推荐交叉验证通过: {', '.join(overlap_names)}")
+                summary['xuangu'] = {'total': len(mx_picks), 'overlap': overlap_names}
             else:
                 print(f"   TOP 推荐未出现在妙想基本面筛选中（不影响推荐，仅供参考）")
+                summary['xuangu'] = {'total': len(mx_picks), 'overlap': []}
         else:
             print("   妙想选股返回为空")
+            summary['xuangu'] = {'total': 0, 'overlap': []}
     except StopIteration:
         pass
     except Exception as e:
@@ -2225,12 +2384,13 @@ def _mx_post_actions(top_list: list, final_recommend: list):
             except Exception:
                 pass
         print(f"   同步完成: {success_count}/{len(sync_codes)}只")
+        summary['zixuan'] = {'group': group_name, 'synced': success_count, 'total': len(sync_codes)}
     except StopIteration:
         pass
     except Exception as e:
         print(f"   ⚠️ 自选股同步失败: {e}")
 
-    # --- 3. mx-moni: 模拟建仓 TOP3（等权，每只1000股） ---
+    # --- 3. mx-moni: 模拟建仓 TOP3（等权，每只100股） ---
     try:
         from src.data.mx_skills.mock_trading import MXMockTrading
         moni_rem = limiter.remaining_for("mx-moni")
@@ -2248,6 +2408,7 @@ def _mx_post_actions(top_list: list, final_recommend: list):
         except Exception:
             pass
 
+        moni_bought = []
         for code in moni_codes:
             name = next((r['name'] for r in top_list if r.get('code') == code), code)
             try:
@@ -2255,11 +2416,13 @@ def _mx_post_actions(top_list: list, final_recommend: list):
                 status = result.get('status', result.get('code', -1))
                 if status == 0:
                     print(f"   ✅ 模拟买入 {code}({name}) 100股 市价单")
+                    moni_bought.append(f"{code}({name})")
                 else:
                     msg = result.get('message', result.get('error', '未知'))
                     print(f"   ⚠️ 模拟买入 {code}({name}): {msg}")
             except Exception as e:
                 print(f"   ⚠️ 模拟买入 {code}({name}) 失败: {e}")
+        summary['moni'] = {'bought': moni_bought, 'total': len(moni_codes)}
 
         try:
             positions = trader.positions()
@@ -2285,6 +2448,8 @@ def _mx_post_actions(top_list: list, final_recommend: list):
     except Exception:
         pass
 
+    return summary
+
 
 # ============================================================
 # 全局策略实例（避免重复创建，性能优化）
@@ -2299,6 +2464,7 @@ MR_WEIGHTS = {
     'BOLL': 1.95, 'RSI': 1.82, 'KDJ': 1.5, 'DUAL': 1.39,
     'NEWS': 0.32, 'SENTIMENT': 0.32, 'MONEY_FLOW': 0.3,
     'EARNINGS_GROWTH': 1.50,
+    'INDUSTRY_TREND': 0.80,
     
     # 诊断/辅助因子（降权：PE/PB 已由 PEPB 覆盖，仅保留微弱信号供参考）
     'PE': 0.3, 'PB': 0.3,
@@ -2350,13 +2516,14 @@ def _get_global_strategies():
     """
     获取全局策略实例（单例模式，避免重复创建）
     
-    策略集合与 ensemble.py 保持一致（13策略 L3投票层）：
+    策略集合与 ensemble.py 保持一致（14策略 L3投票层）：
     - 技术面6个: MA, MACD, RSI, BOLL, KDJ, DUAL
     - 基本面3个: PE, PB, PEPB
     - 消息面1个: NEWS
     - 情绪面1个: SENTIMENT（全市场情绪Z-score + 个股趋势过滤）
     - 资金面1个: MONEY_FLOW
     - 业绩增速1个: EARNINGS_GROWTH（业绩预告 yjyg）
+    - 行业趋势1个: INDUSTRY_TREND（LLM赛道景气+个股深度）
     
     注：
     - POLICY（政策事件）仅作L0大盘过滤器（_check_policy_filter），不参与投票
@@ -2364,6 +2531,7 @@ def _get_global_strategies():
     global _GLOBAL_STRATEGIES
     if _GLOBAL_STRATEGIES is None:
         from src.strategies.fundamental_pe_pb import PE_PB_CombinedStrategy
+        from src.strategies.industry_trend import IndustryTrendStrategy
         _GLOBAL_STRATEGIES = {
             'MA': MACrossStrategy(),
             'MACD': MACDStrategy(),
@@ -2378,13 +2546,14 @@ def _get_global_strategies():
             'SENTIMENT': SentimentStrategy(),
             'MONEY_FLOW': MoneyFlowStrategy(),
             'EARNINGS_GROWTH': EarningsGrowthStrategy(),
+            'INDUSTRY_TREND': IndustryTrendStrategy(),
         }
     return _GLOBAL_STRATEGIES
 
 
 def run_full_12_analysis(code: str, name: str, sector: str, df: pd.DataFrame, fetcher: FundamentalFetcher, skip_industry: bool = False, index_df: pd.DataFrame = None, sector_codes: set = None) -> dict:
     """
-    运行 13 大策略: MA, MACD, RSI, BOLL, KDJ, DUAL, PE, PB, PEPB, NEWS, SENTIMENT, MONEY_FLOW, EARNINGS_GROWTH。
+    运行 14 大策略: MA, MACD, RSI, BOLL, KDJ, DUAL, PE, PB, PEPB, NEWS, SENTIMENT, MONEY_FLOW, EARNINGS_GROWTH, INDUSTRY_TREND。
     返回 buy_count, sell_count, hold_count, score（归一化方向分 + 平均置信度）, signals 列表。
     
     Args:
@@ -2415,6 +2584,10 @@ def run_full_12_analysis(code: str, name: str, sector: str, df: pd.DataFrame, fe
         tech_strategies['EARNINGS_GROWTH'].stock_name = name or ''
         if sector_codes is not None:
             tech_strategies['EARNINGS_GROWTH'].sector_codes = sector_codes
+    if 'INDUSTRY_TREND' in tech_strategies:
+        tech_strategies['INDUSTRY_TREND'] = copy.copy(_globals['INDUSTRY_TREND'])
+        tech_strategies['INDUSTRY_TREND'].symbol = code
+        tech_strategies['INDUSTRY_TREND'].stock_name = name or ''
     
     buy_count = sell_count = hold_count = 0
     weighted_buy = weighted_sell = weighted_hold = 0.0
@@ -2425,16 +2598,20 @@ def run_full_12_analysis(code: str, name: str, sector: str, df: pd.DataFrame, fe
     mr_weighted_buy = mr_weighted_sell = 0.0
     mr_score_sum = 0.0
     
-    # Phase2: 拆分基本面/技术面得分（避免技术面权重隐性过高）
-    FUNDAMENTAL_STRATEGIES = {'PE', 'PB', 'PEPB', 'EARNINGS_GROWTH', 'NEWS', 'MONEY_FLOW'}
-    TECHNICAL_STRATEGIES = {'MA', 'MACD', 'RSI', 'BOLL', 'KDJ', 'DUAL', 'SENTIMENT'}
+    # Phase2: 拆分基本面/技术面/事件驱动得分
+    FUNDAMENTAL_STRATEGIES = {'PE', 'PB', 'PEPB', 'EARNINGS_GROWTH'}
+    TECHNICAL_STRATEGIES = {'MA', 'MACD', 'RSI', 'BOLL', 'KDJ', 'DUAL'}
+    EVENT_STRATEGIES = {'NEWS', 'SENTIMENT', 'MONEY_FLOW', 'INDUSTRY_TREND'}
     fund_score_sum = 0.0
     fund_weight_sum = 0.0
     tech_score_sum = 0.0
     tech_weight_sum = 0.0
+    event_score_sum = 0.0
+    event_weight_sum = 0.0
     
-    # 均值回归策略集合：仅包含真正的超跌反弹/估值因子
-    MR_STRATEGY_NAMES = {'PB', 'PE', 'PEPB', 'BOLL', 'RSI', 'KDJ', 'MONEY_FLOW'}
+    MR_STRATEGY_NAMES = {'PB', 'PE', 'PEPB', 'DUAL', 'BOLL', 'RSI', 'KDJ', 'MONEY_FLOW'}
+    strategy_errors = []
+    vote_records = {}
 
     # PE/PB/PEPB 跳过主循环，由下方行业感知版本单独计算（避免双重计分）
     SKIP_IN_MAIN_LOOP = {'PE', 'PB', 'PEPB'}
@@ -2459,6 +2636,7 @@ def run_full_12_analysis(code: str, name: str, sector: str, df: pd.DataFrame, fe
                     sig.reason = f'[DUAL反向] {sig.reason}'
             
             w = strat_weights.get(strat_name, 1.0)
+            vote_records[strat_name] = (sig.action, sig.confidence, w)
             
             if sig.action == 'BUY':
                 buy_count += 1
@@ -2480,7 +2658,7 @@ def run_full_12_analysis(code: str, name: str, sector: str, df: pd.DataFrame, fe
                     mr_weighted_sell += w
                     mr_score_sum -= w * sig.confidence
             
-            # Phase2: 拆分基本面/技术面得分
+            # Phase2: 拆分基本面/技术面/事件驱动得分
             signed = w * sig.confidence if sig.action == 'BUY' else (-w * sig.confidence if sig.action == 'SELL' else 0.0)
             if strat_name in FUNDAMENTAL_STRATEGIES:
                 fund_score_sum += signed
@@ -2488,11 +2666,14 @@ def run_full_12_analysis(code: str, name: str, sector: str, df: pd.DataFrame, fe
             elif strat_name in TECHNICAL_STRATEGIES:
                 tech_score_sum += signed
                 tech_weight_sum += w
+            elif strat_name in EVENT_STRATEGIES:
+                event_score_sum += signed
+                event_weight_sum += w
             
             action_label = f'{sig.action}(contrarian)' if is_contrarian and sig.action == 'BUY' else sig.action
             signals.append((strat_name, action_label, sig.confidence, sig.reason[:40]))
-        except Exception:
-            pass
+        except Exception as e:
+            strategy_errors.append((strat_name, str(e)[:120]))
 
     # 【修复3】基本面数据验证：数据不足时跳过PE/PB/PEPB策略
     has_pe_data = 'pe_ttm' in df.columns and df['pe_ttm'].notna().sum() > 100
@@ -2511,7 +2692,11 @@ def run_full_12_analysis(code: str, name: str, sector: str, df: pd.DataFrame, fe
                 if cninfo_data:
                     pe_val = cninfo_data.get('pe_weighted') or cninfo_data.get('pe_median')
                     if pe_val and pe_val > 0:
-                        industry_pe_data = pd.Series([pe_val] * 400)
+                        # 用行业PE均值构造对称分布（±30%范围），比常量序列更合理
+                        import numpy as np
+                        _rng = np.random.RandomState(hash(industry) & 0xFFFFFFFF)
+                        industry_pe_data = pd.Series(
+                            _rng.normal(pe_val, pe_val * 0.15, 400).clip(pe_val * 0.5, pe_val * 2.0))
         except Exception:
             pass
 
@@ -2525,6 +2710,7 @@ def run_full_12_analysis(code: str, name: str, sector: str, df: pd.DataFrame, fe
             if len(df) >= pe_strat.min_bars:
                 pe_sig = pe_strat.safe_analyze(df)
                 pe_w = strat_weights.get('PE', 1.68)
+                vote_records['PE'] = (pe_sig.action, pe_sig.confidence, pe_w)
                 if pe_sig.action == 'BUY':
                     buy_count += 1
                     weighted_buy += pe_w
@@ -2546,8 +2732,8 @@ def run_full_12_analysis(code: str, name: str, sector: str, df: pd.DataFrame, fe
                     weighted_hold += pe_w
                     fund_weight_sum += pe_w
                 signals.append(('PE', pe_sig.action, pe_sig.confidence, pe_sig.reason[:40]))
-        except Exception:
-            pass
+        except Exception as e:
+            strategy_errors.append(('PE', str(e)[:120]))
 
     # PB策略
     if has_pb_data:
@@ -2566,6 +2752,7 @@ def run_full_12_analysis(code: str, name: str, sector: str, df: pd.DataFrame, fe
             if len(df) >= pb_strat.min_bars:
                 pb_sig = pb_strat.safe_analyze(df)
                 pb_w = strat_weights.get('PB', 2.0)
+                vote_records['PB'] = (pb_sig.action, pb_sig.confidence, pb_w)
                 if pb_sig.action == 'BUY':
                     buy_count += 1
                     weighted_buy += pb_w
@@ -2587,8 +2774,8 @@ def run_full_12_analysis(code: str, name: str, sector: str, df: pd.DataFrame, fe
                     weighted_hold += pb_w
                     fund_weight_sum += pb_w
                 signals.append(('PB', pb_sig.action, pb_sig.confidence, pb_sig.reason[:40]))
-        except Exception:
-            pass
+        except Exception as e:
+            strategy_errors.append(('PB', str(e)[:120]))
     
     # 【修复4】PEPB双因子策略（与ensemble.py保持一致）
     if has_pepb_data:
@@ -2615,6 +2802,7 @@ def run_full_12_analysis(code: str, name: str, sector: str, df: pd.DataFrame, fe
             if len(df) >= pepb_strat.min_bars:
                 pepb_sig = pepb_strat.safe_analyze(df)
                 pepb_w = strat_weights.get('PEPB', 1.61)
+                vote_records['PEPB'] = (pepb_sig.action, pepb_sig.confidence, pepb_w)
                 if pepb_sig.action == 'BUY':
                     buy_count += 1
                     weighted_buy += pepb_w
@@ -2636,8 +2824,52 @@ def run_full_12_analysis(code: str, name: str, sector: str, df: pd.DataFrame, fe
                     weighted_hold += pepb_w
                     fund_weight_sum += pepb_w
                 signals.append(('PEPB', pepb_sig.action, pepb_sig.confidence, pepb_sig.reason[:40]))
-        except Exception:
-            pass
+        except Exception as e:
+            strategy_errors.append(('PEPB', str(e)[:120]))
+
+    # 动态相关性折扣：振荡器组(RSI/KDJ/BOLL)全部同向时折扣更重
+    _oscillator_group = {'RSI', 'KDJ', 'BOLL'}
+    _osc_actions = {n: act for n, (act, _, _) in vote_records.items() if n in _oscillator_group and act != 'HOLD'}
+    _osc_all_agree = len(set(_osc_actions.values())) == 1 and len(_osc_actions) == 3
+    _osc_discount = 0.35 if _osc_all_agree else 0.5
+
+    CORRELATED_PAIRS = {
+        ('RSI', 'KDJ'): _osc_discount,
+        ('RSI', 'BOLL'): _osc_discount,
+        ('KDJ', 'BOLL'): _osc_discount,
+        ('MA', 'MACD'): 0.5,
+        ('PE', 'PEPB'): 0.5,
+        ('PB', 'PEPB'): 0.5,
+        ('NEWS', 'MONEY_FLOW'): 0.5,
+        ('NEWS', 'INDUSTRY_TREND'): 0.6,
+    }
+
+    def _discounted_side(action: str):
+        side = {
+            n: (conf, w)
+            for n, (act, conf, w) in vote_records.items()
+            if act == action
+        }
+        if not side:
+            return 0.0, 0.0
+        adjusted_w = {n: w for n, (_, w) in side.items()}
+        for (s1, s2), discount in CORRELATED_PAIRS.items():
+            if s1 in adjusted_w and s2 in adjusted_w:
+                if adjusted_w[s1] >= adjusted_w[s2]:
+                    adjusted_w[s2] *= discount
+                else:
+                    adjusted_w[s1] *= discount
+        total_w = sum(adjusted_w.values())
+        total_score = sum(adjusted_w[n] * side[n][0] for n in side)
+        return total_w, total_score
+
+    discounted_buy_w, discounted_buy_score = _discounted_side('BUY')
+    discounted_sell_w, discounted_sell_score = _discounted_side('SELL')
+    if discounted_buy_w > 0:
+        weighted_buy = discounted_buy_w
+    if discounted_sell_w > 0:
+        weighted_sell = discounted_sell_w
+    score_sum = discounted_buy_score - discounted_sell_score
 
     # 综合得分：归一化净方向（买/卖/观望权重）与 BUY+SELL 上的平均带符号置信度分离后再组合，避免量纲混用。
     # 注：POLICY 不在本函数内（仅作 L0 大盘过滤）。SENTIMENT/NEWS 与其余策略一样在主循环中参与 score 加权投票；
@@ -2656,17 +2888,28 @@ def run_full_12_analysis(code: str, name: str, sector: str, df: pd.DataFrame, fe
 
     score = round(direction_score * 10 + avg_confidence, 2)
     
-    # 均值回归得分：仅PB/PE/PEPB/DUAL/BOLL/RSI/KDJ/MONEY_FLOW，不含MA/MACD/NEWS/SENTIMENT
+    # 均值回归得分：PB/PE/PEPB/DUAL/BOLL/RSI/KDJ/MONEY_FLOW，不含MA/MACD/NEWS/SENTIMENT/INDUSTRY_TREND
     mr_score = round(mr_weighted_buy * 2 - mr_weighted_sell * 2 + mr_score_sum, 2)
     
-    # Phase2: 归一化基本面/技术面得分到 [-1, 1]
+    # Phase2: 归一化基本面/技术面/事件驱动得分到 [-1, 1]
     fundamental_score = round(fund_score_sum / fund_weight_sum, 4) if fund_weight_sum > 0 else 0.0
     technical_score = round(tech_score_sum / tech_weight_sum, 4) if tech_weight_sum > 0 else 0.0
+    event_score = round(event_score_sum / event_weight_sum, 4) if event_weight_sum > 0 else 0.0
     close = df['close']
     volume = df['volume']
     price = float(close.iloc[-1])
-    change_5d = (price / float(close.iloc[-6]) - 1) * 100 if len(df) > 5 else 0
-    change_20d = (price / float(close.iloc[-21]) - 1) * 100 if len(df) > 20 else 0
+    if len(df) > 1:
+        idx_5 = max(0, len(df) - 6)
+        idx_20 = max(0, len(df) - 21)
+        idx_60 = max(0, len(df) - 61)
+        change_5d = (price / float(close.iloc[idx_5]) - 1) * 100
+        change_20d = (price / float(close.iloc[idx_20]) - 1) * 100
+        change_60d = (price / float(close.iloc[idx_60]) - 1) * 100
+    else:
+        change_5d = change_20d = change_60d = 0.0
+
+    # RSI(14) — 供进场区域标签和矛盾信号检测使用
+    rsi14 = _calc_rsi(close.values[-30:], 14) if len(df) >= 30 else 50.0
 
     # 均线与趋势
     ma5 = float(close.iloc[-5:].mean())
@@ -2769,6 +3012,7 @@ def run_full_12_analysis(code: str, name: str, sector: str, df: pd.DataFrame, fe
         'price': price,
         'change_5d': round(change_5d, 2),
         'change_20d': round(change_20d, 2),
+        'change_60d': round(change_60d, 2),
         'signals': signals,
         'trend': trend,
         'volume_ratio': round(vol_ratio, 2),
@@ -2788,9 +3032,13 @@ def run_full_12_analysis(code: str, name: str, sector: str, df: pd.DataFrame, fe
         'tech_confirm_score': round(tech_confirm_score, 3),
         'volume_confirm_score': round(volume_confirm_score, 3),
         'relative_strength_score': round(relative_strength_score, 3),
-        # Phase2: 拆分得分
+        # Phase2: 拆分得分（基本面 / 技术面 / 事件驱动）
         'fundamental_score': fundamental_score,
         'technical_score': technical_score,
+        'event_score': event_score,
+        'rsi14': round(rsi14, 1),
+        'strategy_error_count': len(strategy_errors),
+        'strategy_errors': strategy_errors[:5],
     }
 
 
@@ -2839,15 +3087,15 @@ def main():
     parser.add_argument('--max-pool', type=int, default=0, help='最多扫描池内前 N 只（0=全部）')
     parser.add_argument('--strategy', type=str, default='ensemble',
                         choices=['macd', 'ensemble', 'full_11', 'full_12'],
-                        help='策略: macd | ensemble(12策略固定权重，推荐) | full_11/full_12(同ensemble，兼容命令)')
+                        help='策略: macd | ensemble(14策略固定权重，推荐) | full_11/full_12(同ensemble，兼容命令)')
     parser.add_argument('--cache-only', action='store_true', default=False,
                         help='纯缓存模式：只使用本地缓存，不发起任何网络请求（适合API限流时）')
     parser.add_argument('--fast', type=int, default=12, help='MACD快线(仅macd模式)')
     parser.add_argument('--slow', type=int, default=30, help='MACD慢线(仅macd模式)')
     parser.add_argument('--signal', type=int, default=9, help='MACD信号线(仅macd模式)')
     parser.add_argument('--top', type=int, default=20, help='推荐TOP N只')
-    parser.add_argument('--fundamental', action='store_true', default=True,
-                        help='启用基本面分析(PE/PB)')
+    parser.add_argument('--no-fundamental', action='store_true', default=False,
+                        help='禁用基本面分析(PE/PB)')
     parser.add_argument('--no-policy-filter', action='store_true', default=False,
                         help='跳过政策面大盘过滤（强制执行选股）')
     parser.add_argument('--only-holdings', action='store_true', default=False,
@@ -2909,7 +3157,8 @@ def main():
                 if df is None or df.empty or len(df) < 60:
                     # ETF/个别标的可能无日K，持仓区仍可用 spot 价，但策略分析需要日K，失败则跳过分析
                     continue
-                r = run_full_12_analysis(code, name, "", df, fetcher, skip_industry=True, index_df=index_df)
+                _skip_industry_h = args.cache_only or args.no_fundamental
+                r = run_full_12_analysis(code, name, "", df, fetcher, skip_industry=_skip_industry_h, index_df=index_df)
                 if r:
                     full_results.append(r)
             except Exception:
@@ -2921,7 +3170,7 @@ def main():
                 today=today,
                 top_list=[],
                 all_results=full_results,
-                strategy_name="仅持仓分析(12策略)",
+                strategy_name="仅持仓分析(14策略)",
                 pool_size=0,
                 valid_count=len(full_results),
                 holdings_only=True,
@@ -2948,21 +3197,23 @@ def main():
         else:
             print(f"✅ 政策面: {policy_result['reason']}\n")
 
-    # ---------- 12 策略全量模式（ensemble 亦走此路径，享受缓存+并行优化） ----------
+    # ---------- 14 策略全量模式（ensemble 亦走此路径，享受缓存+并行优化） ----------
     if args.strategy in ['full_11', 'full_12', 'ensemble']:
-        strategy_name = '12大策略(MA|MACD|RSI|BOLL|KDJ|DUAL|PE|PB|PEPB|NEWS|SENTIMENT|MONEY_FLOW)'
+        strategy_name = '14大策略(MA|MACD|RSI|BOLL|KDJ|DUAL|PE|PB|PEPB|NEWS|SENTIMENT|MONEY_FLOW|EARNINGS_GROWTH|INDUSTRY_TREND)'
         print(f"{'='*70}")
         print(f"📈 每日选股推荐 — {today} [全策略+大池]")
         print(f"{'='*70}")
         print(f"📌 策略: {strategy_name}")
         print(f"📌 股票池: {len(stocks)} 只")
+        _use_fundamental = not args.no_fundamental
+        print(f"📌 基本面: {'✅ 启用(PE/PB)' if _use_fundamental else '❌ 关闭'}")
         print(f"📌 推荐TOP: {args.top} 只")
         print()
         
         # 检查缓存
         cache_dir = os.path.join(os.path.dirname(__file__), '..', '..', 'mydate', 'backtest_kline')
         use_kline_cache = os.path.exists(cache_dir)
-        fundamental_cache = load_fundamental_cache()
+        fundamental_cache = load_fundamental_cache() if _use_fundamental else {'date': '', 'all_data': {}}
         
         if use_kline_cache:
             cached_files = [f[:-8] for f in os.listdir(cache_dir) if f.endswith('.parquet')]
@@ -2972,7 +3223,9 @@ def main():
         all_fund_data = fundamental_cache.get('all_data', {})
         today = datetime.now().strftime('%Y-%m-%d')
         
-        if cache_date == today:
+        if not _use_fundamental:
+            print("⚠️  基本面缓存: 已禁用（--no-fundamental）")
+        elif cache_date == today:
             print(f"✅ 基本面缓存: {len(all_fund_data)}只（今日最新）")
         elif cache_date:
             print(f"✅ 基本面缓存: {len(all_fund_data)}只（{cache_date}，将增量更新）")
@@ -2983,16 +3236,20 @@ def main():
         full_results = []
         fail_count = 0
         
-        # ========== 阶段1: 串行获取数据（baostock 非线程安全） ==========
-        # 原则：有最新数据一定用最新数据，拉不到时才降级用缓存
+        # ========== 阶段1: 多线程并发获取数据 ==========
+        # K线数据源(sina/eastmoney/tencent等)和基本面缓存/spot_df查表均为HTTP或本地I/O，
+        # 天然线程安全；baostock降级路径已在FundamentalFetcher中加锁保护。
         spot_df = pd.DataFrame()
-        if not args.cache_only:
+        if _use_fundamental and not args.cache_only:
             print("📡 预加载全市场行情数据...")
             spot_df = _preload_akshare_spot()
+        elif not _use_fundamental:
+            print("📡 跳过全市场基本面预加载（--no-fundamental）")
         
         # 重置熔断计数器
         global _kline_consecutive_fails
-        _kline_consecutive_fails = 0
+        with _kline_fails_lock:
+            _kline_consecutive_fails = 0
 
         # 显示妙想配额状态
         if os.environ.get("MX_APIKEY"):
@@ -3006,22 +3263,25 @@ def main():
             except Exception:
                 pass
 
-        print(f"\n📊 阶段1: 串行获取数据 ({len(stocks)} 只)...")
+        _stage1_workers = 16
+        print(f"\n📊 阶段1: {_stage1_workers}线程并发获取数据 ({len(stocks)} 只)...")
         prepared_stocks = []
         data_fail = 0
-        for i, stock_info in enumerate(stocks):
+        _progress_lock = threading.Lock()
+        _progress_done = [0]
+        _all_fund_lock = threading.Lock()
+
+        _cache_only = args.cache_only
+
+        def _fetch_one_stock(stock_info):
+            """单只股票的数据获取（线程安全）"""
             code = stock_info.get('code') or stock_info.get('symbol', '')
             name = stock_info.get('name', '')
             sector = stock_info.get('sector', '')
-            if not code:
-                data_fail += 1
-                continue
-            
-            if is_st_stock(name):
-                data_fail += 1
-                continue
-            
-            if args.cache_only:
+            if not code or is_st_stock(name):
+                return None
+
+            if _cache_only:
                 df = load_cached_kline(code, cache_dir) if use_kline_cache else pd.DataFrame()
             else:
                 try:
@@ -3031,23 +3291,21 @@ def main():
             df = _sanitize_ohlcv(df)
 
             if df.empty or len(df) < 60:
-                data_fail += 1
-                if (i + 1) % 100 == 0:
-                    print(f"\r  数据获取: {i+1}/{len(stocks)}", end='', flush=True)
-                continue
-            
-            if args.cache_only:
-                all_data = fundamental_cache.get('all_data', {})
-                fund_data = all_data.get(code)
-            else:
-                fund_data = update_fundamental_cache(code, fetcher, fundamental_cache, spot_df)
-                if fund_data is not None:
-                    all_fund_data[code] = fund_data
-            
-            # 注入 PE/PB/市值：优先尝试历史数据（PE策略需要>100条），
-            # 降级到只注入最新值（用于展示）
+                return None
+
+            fund_data = None
+            if _use_fundamental:
+                if _cache_only:
+                    _all_data = fundamental_cache.get('all_data', {})
+                    fund_data = _all_data.get(code)
+                else:
+                    fund_data = update_fundamental_cache(code, fetcher, fundamental_cache, spot_df)
+                    if fund_data is not None:
+                        with _all_fund_lock:
+                            all_fund_data[code] = fund_data
+
             _pe_pb_merged = False
-            if not args.cache_only:
+            if _use_fundamental and not _cache_only:
                 try:
                     hist_df = fetcher.get_daily_basic(code)
                     if hist_df is not None and not hist_df.empty and len(hist_df) > 50:
@@ -3064,7 +3322,7 @@ def main():
                 except Exception:
                     pass
 
-            if fund_data:
+            if _use_fundamental and fund_data:
                 if 'market_cap' not in df.columns:
                     df['market_cap'] = None
                 df.loc[df.index[-1], 'market_cap'] = fund_data.get('market_cap_yi', 0) * 100000000 if fund_data.get('market_cap_yi') else None
@@ -3080,21 +3338,32 @@ def main():
                     df['pe_ttm'] = df['pe_ttm'].ffill().bfill()
                     df['pb'] = df['pb'].ffill().bfill()
 
-            prepared_stocks.append((code, name, sector, df))
-            
-            if (i + 1) % 100 == 0:
-                print(f"\r  数据获取: {i+1}/{len(stocks)} (有效{len(prepared_stocks)})", end='', flush=True)
+            return (code, name, sector, df)
+
+        with ThreadPoolExecutor(max_workers=_stage1_workers) as executor:
+            futures = {executor.submit(_fetch_one_stock, si): si for si in stocks}
+            for future in as_completed(futures):
+                with _progress_lock:
+                    _progress_done[0] += 1
+                    done = _progress_done[0]
+                try:
+                    result = future.result()
+                    if result is not None:
+                        prepared_stocks.append(result)
+                    else:
+                        data_fail += 1
+                except Exception:
+                    data_fail += 1
+                if done % 100 == 0:
+                    print(f"\r  数据获取: {done}/{len(stocks)} (有效{len(prepared_stocks)})", end='', flush=True)
         
-        try:
-            import baostock as bs
-            bs.logout()
-        except Exception:
-            pass
         fetcher._bs_logout()
         
-        circuit_msg = f", 熔断跳过" if _kline_consecutive_fails >= _KLINE_CIRCUIT_THRESHOLD else ""
-        print(f"\n✅ 数据获取完成: {len(prepared_stocks)}只有效, {data_fail}只跳过{circuit_msg}")
-        save_fundamental_cache({'date': today, 'all_data': all_fund_data})
+        with _kline_fails_lock:
+            circuit_msg = f", 熔断跳过" if _kline_consecutive_fails >= _KLINE_CIRCUIT_THRESHOLD else ""
+        print(f"\n✅ 数据获取完成: {len(prepared_stocks)}只有效, {data_fail}只跳过{circuit_msg}", flush=True)
+        if _use_fundamental:
+            save_fundamental_cache({'date': today, 'all_data': all_fund_data})
 
         if os.environ.get("MX_APIKEY"):
             try:
@@ -3126,20 +3395,93 @@ def main():
             if _ps_sector:
                 _sector_to_codes.setdefault(_ps_sector, set()).add(_ps_code)
         
-        # ========== 阶段2: 多线程并行策略分析（纯CPU计算） ==========
-        max_workers = 8
-        print(f"\n🚀 阶段2: {max_workers}线程并行策略分析...\n")
+        skip_industry_eval = args.cache_only or (not _use_fundamental)
         
+        # ========== 行业分类缓存预热（带线程超时） ==========
+        if not skip_industry_eval:
+            _all_codes = [item[0] for item in prepared_stocks]
+            print(f"\n📋 预热行业分类缓存 ({len(_all_codes)} 只)...", flush=True)
+            _industry_map = {}
+            _industry_timeout = 90
+            _ind_ok = False
+
+            def _warmup_industry():
+                return fetcher.get_industry_for_batch(_all_codes)
+
+            _ind_executor = ThreadPoolExecutor(max_workers=1)
+            _ind_future = _ind_executor.submit(_warmup_industry)
+            try:
+                _industry_map = _ind_future.result(timeout=_industry_timeout)
+                print(f"✅ 行业分类缓存就绪: {len(_industry_map)} 只已缓存", flush=True)
+                _ind_ok = True
+            except Exception as _ind_e:
+                print(f"⚠️ 行业分类预热超时/失败({_industry_timeout}s)，使用已有缓存继续", flush=True)
+                _ind_future.cancel()
+            finally:
+                _ind_executor.shutdown(wait=False)
+            if _ind_ok:
+                try:
+                    fetcher._bs_logout()
+                except Exception:
+                    pass
+
+        # ========== 阶段1.5: 低成本技术面快筛 Top300 ==========
+        _PRESCREEN_TOP_N = 300
+        if len(prepared_stocks) > _PRESCREEN_TOP_N:
+            print(f"\n⚡ 阶段1.5: 技术面快筛 (6指标, {len(prepared_stocks)}只 → Top{_PRESCREEN_TOP_N})...")
+            _prescreen_strategies = _get_global_strategies()
+            _TECH_NAMES = ['MA', 'MACD', 'RSI', 'BOLL', 'KDJ', 'DUAL']
+
+            def _quick_tech_score(item):
+                _code, _name, _sector, _df = item
+                if _df is None or len(_df) < 20:
+                    return (item, -999.0)
+                buy_w = sell_w = 0.0
+                for sn in _TECH_NAMES:
+                    strat = _prescreen_strategies.get(sn)
+                    if strat is None or len(_df) < strat.min_bars:
+                        continue
+                    try:
+                        sig = strat.safe_analyze(_df)
+                        w = MR_WEIGHTS.get(sn, 1.0)
+                        if sn == 'DUAL':
+                            sig_action = 'SELL' if sig.action == 'BUY' else ('BUY' if sig.action == 'SELL' else sig.action)
+                        else:
+                            sig_action = sig.action
+                        if sig_action == 'BUY':
+                            buy_w += w * sig.confidence
+                        elif sig_action == 'SELL':
+                            sell_w += w * sig.confidence
+                    except Exception:
+                        pass
+                return (item, buy_w - sell_w)
+
+            _prescreen_results = []
+            with ThreadPoolExecutor(max_workers=16) as _pre_exec:
+                for result in _pre_exec.map(_quick_tech_score, prepared_stocks):
+                    _prescreen_results.append(result)
+
+            _prescreen_results.sort(key=lambda x: x[1], reverse=True)
+            _cutoff_score = _prescreen_results[_PRESCREEN_TOP_N - 1][1] if len(_prescreen_results) >= _PRESCREEN_TOP_N else -999
+            prepared_stocks = [r[0] for r in _prescreen_results[:_PRESCREEN_TOP_N]]
+            print(f"  ✅ 快筛完成: 保留Top{_PRESCREEN_TOP_N} (最低得分={_cutoff_score:.2f})")
+        else:
+            print(f"\n📌 股票池≤{_PRESCREEN_TOP_N}只, 跳过快筛直接全量分析")
+
+        # ========== 阶段2: 多线程并行策略分析 ==========
+        max_workers = 16
+        print(f"\n🚀 阶段2: {max_workers}线程并行策略分析 ({len(prepared_stocks)}只)...\n")
+
         def analyze_stock(item):
             code, name, sector, df = item
             try:
                 sc = _sector_to_codes.get(sector)
-                return run_full_12_analysis(code, name, sector, df, fetcher, skip_industry=True, index_df=index_df, sector_codes=sc)
+                return run_full_12_analysis(code, name, sector, df, fetcher, skip_industry=skip_industry_eval, index_df=index_df, sector_codes=sc)
             except Exception:
                 return None
         
         completed = 0
-        analysis_timeout = 1200
+        analysis_timeout = 2400
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
             futures = {executor.submit(analyze_stock, item): item for item in prepared_stocks}
             try:
@@ -3256,6 +3598,14 @@ def main():
             qg_pe_max = 100
             qg_buy_count_min = 3
             qg_volume_ratio_min = 0.5
+
+        # 政策预警时自动收紧门槛（不再仅打印提示）
+        if policy_result.get('warn'):
+            qg_label = f"{qg_label}+政策预警"
+            qg_buy_count_min = min(qg_buy_count_min + 1, 4)
+            qg_volume_ratio_min = min(qg_volume_ratio_min + 0.1, 1.2)
+            qg_pe_max = min(qg_pe_max, 120)
+            print("⚠️  政策预警触发：已自动提高选股门槛")
 
         total_before = len(df_scores)
         quality_mask = pd.Series(True, index=df_scores.index)
@@ -3498,24 +3848,21 @@ def main():
         print(f"\n📈 业绩预增标的: {len(earnings_map)}只, TOP10: {earnings_codes[:5]}...")
 
         # ========== Phase2: 统一漏斗评分（替代并列分池） ==========
-        # 公式: unified_score = W_fund * fundamental_norm + W_tech * technical_norm
-        #                     + W_earnings * earnings_dim + W_prosperity * industry_prosperity
-        # 权重根据 regime_score 动态调整：
-        #   牛市(regime>0.3): 技术面主导（趋势确认重要）
-        #   震荡/熊市:       基本面主导（安全边际重要）
+        # 公式: unified_score = W_fund * fund_norm + W_tech * tech_norm
+        #                     + W_event * event_norm + W_earn * earnings_dim
+        #                     + W_prosp * industry_prosperity
+        # 权重根据 regime_score 动态调整
         print(f"\n{'='*60}")
-        print(f"🔀 Phase2: 统一漏斗评分（基本面+技术面+业绩+景气度）")
+        print(f"🔀 Phase2: 统一漏斗评分（基本面+技术面+事件驱动+业绩+景气度）")
         print(f"{'='*60}")
         
         # Step 1: 归一化各维度到 [0, 1]
-        # 基本面子分（来自 PE/PB/PEPB/EARNINGS_GROWTH/NEWS/MONEY_FLOW 策略）
         if 'fundamental_score' not in df_scores.columns:
             df_scores['fundamental_score'] = 0.0
         if 'technical_score' not in df_scores.columns:
             df_scores['technical_score'] = 0.0
-        
-        fund_raw = df_scores['fundamental_score']
-        tech_raw = df_scores['technical_score']
+        if 'event_score' not in df_scores.columns:
+            df_scores['event_score'] = 0.0
         
         def _rank_normalize_01(s):
             """Rank normalize to [0,1]; handles all-equal gracefully."""
@@ -3523,8 +3870,9 @@ def main():
                 return pd.Series(0.5, index=s.index)
             return s.rank(pct=True)
         
-        df_scores['fund_norm'] = _rank_normalize_01(fund_raw)
+        df_scores['fund_norm'] = _rank_normalize_01(df_scores['fundamental_score'])
         df_scores['tech_norm'] = _rank_normalize_01(df_scores['trend_rank_score'])
+        df_scores['event_norm'] = _rank_normalize_01(df_scores['event_score'])
         
         # 业绩维度: 有预增→按增速排名，无预增→0
         df_scores['earnings_dim'] = 0.0
@@ -3540,24 +3888,25 @@ def main():
         if 'industry_prosperity' not in df_scores.columns:
             df_scores['industry_prosperity'] = 0.0
         
-        # Step 2: 动态权重分配
+        # Step 2: 动态权重分配（5维度）
         if regime_score > 0.3:
-            W_FUND, W_TECH, W_EARN, W_PROSP = 0.25, 0.35, 0.25, 0.15
+            W_FUND, W_TECH, W_EVENT, W_EARN, W_PROSP = 0.20, 0.30, 0.15, 0.20, 0.15
             regime_label = "牛市偏技术"
         elif regime_score > -0.3:
-            W_FUND, W_TECH, W_EARN, W_PROSP = 0.30, 0.25, 0.25, 0.20
+            W_FUND, W_TECH, W_EVENT, W_EARN, W_PROSP = 0.25, 0.20, 0.15, 0.20, 0.20
             regime_label = "震荡偏基本面"
         else:
-            W_FUND, W_TECH, W_EARN, W_PROSP = 0.35, 0.15, 0.25, 0.25
+            W_FUND, W_TECH, W_EVENT, W_EARN, W_PROSP = 0.30, 0.10, 0.15, 0.20, 0.25
             regime_label = "熊市偏防御"
         
         print(f"   Regime={regime_score:.2f} → {regime_label}")
-        print(f"   权重: 基本面={W_FUND:.0%} 技术面={W_TECH:.0%} 业绩={W_EARN:.0%} 景气度={W_PROSP:.0%}")
+        print(f"   权重: 基本面={W_FUND:.0%} 技术面={W_TECH:.0%} 事件={W_EVENT:.0%} 业绩={W_EARN:.0%} 景气度={W_PROSP:.0%}")
         
         # Step 3: 计算统一得分
         df_scores['unified_score'] = (
             W_FUND * df_scores['fund_norm'] +
             W_TECH * df_scores['tech_norm'] +
+            W_EVENT * df_scores['event_norm'] +
             W_EARN * df_scores['earnings_dim'] +
             W_PROSP * df_scores['industry_prosperity']
         )
@@ -3588,13 +3937,15 @@ def main():
         top_df = df_scores.loc[final_recommend]
         contrib_fund = (W_FUND * top_df['fund_norm']).mean()
         contrib_tech = (W_TECH * top_df['tech_norm']).mean()
+        contrib_event = (W_EVENT * top_df['event_norm']).mean()
         contrib_earn = (W_EARN * top_df['earnings_dim']).mean()
         contrib_prosp = (W_PROSP * top_df['industry_prosperity']).mean()
-        total_contrib = contrib_fund + contrib_tech + contrib_earn + contrib_prosp
+        total_contrib = contrib_fund + contrib_tech + contrib_event + contrib_earn + contrib_prosp
         if total_contrib > 0:
             print(f"\n   TOP{args.top} 各维度实际贡献:")
             print(f"     基本面: {contrib_fund/total_contrib:.1%} (均值{top_df['fund_norm'].mean():.3f})")
             print(f"     技术面: {contrib_tech/total_contrib:.1%} (均值{top_df['tech_norm'].mean():.3f})")
+            print(f"     事件:   {contrib_event/total_contrib:.1%} (均值{top_df['event_norm'].mean():.3f})")
             print(f"     业绩:   {contrib_earn/total_contrib:.1%} (均值{top_df['earnings_dim'].mean():.3f})")
             print(f"     景气度: {contrib_prosp/total_contrib:.1%} (均值{top_df['industry_prosperity'].mean():.3f})")
         
@@ -3602,11 +3953,36 @@ def main():
         print(f"   行业分散度: {n_sectors}个行业")
         print(f"   unified_score范围: [{top_df['unified_score'].min():.4f}, {top_df['unified_score'].max():.4f}]")
         
-        # 兼容旧变量（mr_list/trend_list 用于报告展示和下游）
-        mr_list = final_recommend[:args.top]
-        trend_list = [c for c in final_recommend if df_scores.loc[c, 'trend_rank_score'] > 0]
-        dual_advantage_stocks = [c for c in final_recommend 
-                                 if df_scores.loc[c, 'fund_norm'] > 0.7 and df_scores.loc[c, 'tech_norm'] > 0.7]
+        # 分类标签：根据实际特征区分超跌/趋势/双优
+        mr_list = []
+        trend_list = []
+        dual_advantage_stocks = []
+        for c in final_recommend[:args.top]:
+            row = df_scores.loc[c]
+            chg_20d = row.get('change_20d', 0)
+            trend_s = row.get('trend_rank_score', 0)
+            mr_s = row.get('mr_score', row.get('adjusted_mr_score', 0))
+            is_trend = chg_20d > 15 or trend_s > 0.3
+            is_mr = mr_s > 0 or chg_20d < 5
+            if is_trend and is_mr:
+                dual_advantage_stocks.append(c)
+                mr_list.append(c)
+                trend_list.append(c)
+            elif is_trend:
+                trend_list.append(c)
+            elif is_mr:
+                mr_list.append(c)
+            else:
+                trend_list.append(c)
+        for c in final_recommend[:args.top]:
+            if c not in dual_advantage_stocks:
+                row = df_scores.loc[c]
+                if row.get('fund_norm', 0) > 0.7 and row.get('tech_norm', 0) > 0.7:
+                    dual_advantage_stocks.append(c)
+                    if c not in mr_list:
+                        mr_list.append(c)
+                    if c not in trend_list:
+                        trend_list.append(c)
         
         df_scores.drop(columns=['_sector'], inplace=True, errors='ignore')
         
@@ -3920,27 +4296,29 @@ def main():
                 r_row = df_scores.loc[code]
                 orig_data = next((x for x in full_results if x['code'] == code), None)
                 if orig_data:
-                    print(f"  {code} {orig_data['name']:>10} | 基本面={r_row['fund_norm']:.2f} | 技术面={r_row['tech_norm']:.2f} | 统一分={r_row['unified_score']:.4f} | 价格¥{orig_data['price']:.2f}")
+                    ev = r_row.get('event_norm', 0.5)
+                    print(f"  {code} {orig_data['name']:>10} | 基本面={r_row['fund_norm']:.2f} | 技术面={r_row['tech_norm']:.2f} | 事件={ev:.2f} | 统一分={r_row['unified_score']:.4f} | 价格¥{orig_data['price']:.2f}")
             print(f"{'='*90}\n")
         
-        print(f"\n{'='*110}")
-        print(f"🔥 统一漏斗推荐 TOP {len(top_list)}（基本面×技术面×业绩×景气度）")
-        print(f"{'='*110}")
-        print(f"{'排名':>4} {'代码':>8} {'名称':>10} {'统一分':>7} {'基本面':>6} {'技术面':>6} {'业绩':>5} {'景气':>5} {'价格':>8} {'5日%':>7} {'20日%':>7} {'板块'}")
-        print("-" * 110)
+        print(f"\n{'='*120}")
+        print(f"🔥 统一漏斗推荐 TOP {len(top_list)}（基本面×技术面×事件×业绩×景气度）")
+        print(f"{'='*120}")
+        print(f"{'排名':>4} {'代码':>8} {'名称':>10} {'统一分':>7} {'基本面':>6} {'技术面':>6} {'事件':>5} {'业绩':>5} {'景气':>5} {'价格':>8} {'5日%':>7} {'20日%':>7} {'板块'}")
+        print("-" * 120)
         
         for rank, r in enumerate(top_list, 1):
             code = r['code']
             u_score = df_scores.loc[code, 'unified_score'] if code in df_scores.index else 0
             f_norm = df_scores.loc[code, 'fund_norm'] if code in df_scores.index else 0
             t_norm = df_scores.loc[code, 'tech_norm'] if code in df_scores.index else 0
+            ev_norm = df_scores.loc[code, 'event_norm'] if code in df_scores.index else 0
             e_dim = df_scores.loc[code, 'earnings_dim'] if code in df_scores.index else 0
             ip = df_scores.loc[code, 'industry_prosperity'] if code in df_scores.index else 0
             
             print(f"{rank:>4} {r['code']:>8} {r['name']:>10} {u_score:>7.4f} {f_norm:>6.3f} {t_norm:>6.3f} "
-                  f"{e_dim:>5.2f} {ip:>5.2f} {r['price']:>8.2f} "
+                  f"{ev_norm:>5.2f} {e_dim:>5.2f} {ip:>5.2f} {r['price']:>8.2f} "
                   f"{r['change_5d']:>+7.2f} {r['change_20d']:>+7.2f} {str(r['sector'])[:12]}")
-        print("-" * 95)
+        print("-" * 120)
         print("\n📋 策略信号明细（TOP3）:")
         for rank, r in enumerate(top_list[:3], 1):
             print(f"\n  {rank}. {r['code']} {r['name']} (得分 {r['score']:.1f}, 买{r['buy_count']}/卖{r['sell_count']}/观{r['hold_count']})")
@@ -4009,7 +4387,7 @@ def main():
                 theme_results = []
                 for code, name, sector, df in theme_prepared:
                     try:
-                        result = run_full_12_analysis(code, name, sector, df, fetcher, skip_industry=True, index_df=index_df)
+                        result = run_full_12_analysis(code, name, sector, df, fetcher, skip_industry=skip_industry_eval, index_df=index_df)
                         if result:
                             theme_results.append(result)
                     except Exception:
@@ -4025,6 +4403,24 @@ def main():
                 else:
                     print(f"  ⚠️ 无有效分析结果")
         
+        # ========== 进场安全过滤：剔除不适合今日买入的标的 ==========
+        original_count = len(top_list)
+        filtered_top = []
+        removed = []
+        for r in top_list:
+            zone = _tag_entry_zone(r)
+            r['entry_zone'] = zone
+            if '⛔' in zone:
+                removed.append(f"{r['code']}({r['name']}): {zone}")
+            else:
+                filtered_top.append(r)
+        top_list = filtered_top
+        if removed:
+            print(f"\n🚫 进场安全过滤: 剔除{len(removed)}只不适合今日买入的标的")
+            for rm in removed:
+                print(f"   {rm}")
+            print(f"   最终推荐: {original_count} → {len(top_list)}只")
+
         report_path, archive_path = save_incremental_report(
             today=today,
             top_list=top_list,
@@ -4043,7 +4439,17 @@ def main():
         print(f"📝 当日归档已保存: {archive_path}")
 
         # ========== 妙想 Skills 联动（xuangu + zixuan + moni） ==========
-        _mx_post_actions(top_list, final_recommend)
+        # 与日报机会分级保持一致：EMPTY 不执行联动，WEAK 仅联动裁剪后的前 N 只。
+        act_level, _, act_count = _assess_market_opportunity(top_list)
+        mx_summary = {}
+        if act_count <= 0:
+            print("\n🔗 妙想联动已跳过：当前机会等级为 EMPTY")
+        else:
+            action_top_list = top_list[:act_count]
+            mx_summary = _mx_post_actions(action_top_list)
+
+        # ========== 日报追加：妙想联动记录 + 策略异常聚合 ==========
+        _append_footer_to_report(archive_path, full_results, mx_summary)
 
         print("\n✅ 分析完成!")
         return
@@ -4051,22 +4457,23 @@ def main():
     # ---------- 原有 ensemble / macd 模式 ----------
     if args.strategy == 'ensemble':
         strat = EnsembleStrategy()
-        strategy_name = '12策略Ensemble(技术6+基本面3+消息面+资金面+情绪面，加权投票)'
+        strategy_name = '14策略Ensemble(技术6+基本面3+消息/资金/情绪+业绩增速+行业趋势，加权投票)'
     else:
         strat = MACDStrategy(fast_period=args.fast, slow_period=args.slow,
                              signal_period=args.signal)
         strategy_name = f'MACD({args.fast},{args.slow},{args.signal})'
 
-    pe_strat = PEStrategy() if args.fundamental and args.strategy != 'ensemble' else None
-    pb_strat = PBStrategy() if args.fundamental else None
-    fund_fetcher = FundamentalFetcher() if args.fundamental else None
+    _use_fundamental = not args.no_fundamental
+    pe_strat = PEStrategy() if _use_fundamental and args.strategy != 'ensemble' else None
+    pb_strat = PBStrategy() if _use_fundamental else None
+    fund_fetcher = FundamentalFetcher() if _use_fundamental else None
 
     print(f"{'='*70}")
     print(f"📈 每日选股推荐 — {today}")
     print(f"{'='*70}")
     print(f"📌 策略: {strategy_name}")
     print(f"📌 股票池: {len(stocks)} 只")
-    print(f"📌 基本面: {'✅ 启用(PE/PB)' if args.fundamental else '❌ 关闭'}")
+    print(f"📌 基本面: {'✅ 启用(PE/PB)' if _use_fundamental else '❌ 关闭'}")
     print(f"📌 推荐TOP: {args.top} 只")
     print()
 
@@ -4129,6 +4536,7 @@ def main():
             'price': info['price'],
             'change_5d': info['change_5d'],
             'change_20d': info['change_20d'],
+            'change_60d': info.get('change_60d', 0),
             'volume_ratio': info['volume_ratio'],
             'trend': info['trend'],
             'ma5': info['ma5'],
@@ -4280,6 +4688,7 @@ def main():
             'hold_count': hold_count,
             'change_5d': row.get('change_5d', 0),
             'change_20d': row.get('change_20d', 0),
+            'change_60d': row.get('change_60d', 0),
             'sector': row.get('sector', ''),
             'signals': [],
             'trend': row.get('trend', ''),

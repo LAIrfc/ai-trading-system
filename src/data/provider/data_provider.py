@@ -27,7 +27,7 @@ except ImportError:
         pass
 
 # 默认主备顺序，与 docs/data/API_INTERFACES_AND_FETCHERS.md 一致
-DEFAULT_KLINE_SOURCES = ["sina", "eastmoney", "tencent", "tushare", "baostock", "mx_data"]
+DEFAULT_KLINE_SOURCES = ["sina", "mx_data", "eastmoney", "tencent", "tushare", "baostock"]
 
 
 DEFAULT_ETF_SOURCES = ["akshare_etf", "push2his_etf"]

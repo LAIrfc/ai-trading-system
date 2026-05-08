@@ -222,11 +222,16 @@ class BaostockSectorAdapter(SectorAdapter):
             limit: 返回数量限制
         """
         try:
+            from ..bs_fuse import is_fused, record_fail, record_success
+            if is_fused():
+                raise RuntimeError("Baostock 已全局熔断")
             import baostock as bs
             
-            bs.login()
+            lg = bs.login()
+            if lg.error_code != '0':
+                record_fail(f"sector_adapters login: {lg.error_msg}")
+                raise RuntimeError(f"baostock登录失败: {lg.error_msg}")
             
-            # 获取行业成分股
             rs = bs.query_stock_industry()
             stocks = []
             
@@ -247,6 +252,7 @@ class BaostockSectorAdapter(SectorAdapter):
                         })
             
             bs.logout()
+            record_success()
             
             if limit:
                 stocks = stocks[:limit]

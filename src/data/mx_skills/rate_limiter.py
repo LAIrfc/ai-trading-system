@@ -20,11 +20,11 @@ from typing import Dict, Optional
 
 
 SKILL_LIMITS: Dict[str, int] = {
-    "mx-search": 300,
-    "mx-data": 300,
-    "mx-xuangu": 300,
-    "mx-moni": 3000,
-    "mx-zixuan": 500,
+    "mx-search": 5000,
+    "mx-data": 5000,
+    "mx-xuangu": 5000,
+    "mx-moni": 10000,
+    "mx-zixuan": 5000,
 }
 
 DEFAULT_SKILL = "mx-data"

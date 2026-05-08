@@ -7,9 +7,13 @@
 ```
 tools/
 ├── analysis/              # 分析报告
-│   ├── recommend_today.py          # 每日选股（政策面过滤 + 12策略 Ensemble）
-│   ├── analyze_single_stock.py     # 单股分析（技术面+12策略，--full 启用完整分析）
+│   ├── recommend_today.py          # 每日选股（政策面过滤 + 14策略 Ensemble）
+│   ├── analyze_single_stock.py     # 单股分析（技术面+14策略，--full 启用完整分析）
+│   ├── track_recommendations.py    # 推荐回测追踪（T+5/T+20 胜率）
 │   ├── backtest_v64.py             # v6.4 回测
+│   ├── sector_analyze.py           # 板块/个股定向14策略分析
+│   ├── breakout_pullback_scanner.py # 突破回踩扫描器
+│   ├── ab_test_changes.py          # A/B 策略变更回测
 │   ├── monitor_factor_ic.py        # 因子 IC 监控
 │   └── generate_sector_themes.py   # 生成板块主题
 │
@@ -27,6 +31,10 @@ tools/
 │   ├── sync_portfolio.py           # 同步持仓
 │   └── update_daily_tracking.py    # 更新每日跟踪
 │
+├── optimization/          # 策略优化
+│   ├── strategy_ablation.py        # 策略剔除实验
+│   └── strategy_activation_rate.py # 策略活跃度诊断
+│
 └── validation/            # 验证与手工测试（与 tests/ 单元测试区分）
     ├── strategy_tester.py          # 策略测试器（交互式）
     ├── test_all_fundamental.py     # 全部基本面策略测试
@@ -41,21 +49,28 @@ tools/
 ### 分析报告
 
 ```bash
-# 每日选股推荐（政策面过滤 + 12策略 Ensemble）
+# 每日选股推荐（政策面过滤 + 14策略 Ensemble）
 python3 tools/analysis/recommend_today.py --pool mydate/stock_pool_all.json --strategy ensemble
 python3 tools/analysis/recommend_today.py --pool mydate/stock_pool.json --strategy macd --top 10
 
 # 单股分析（快速模式：技术面+估值+量价）
 python3 tools/analysis/analyze_single_stock.py 002015 协鑫能科
 
-# 单股完整分析（含12策略+新闻）
+# 单股完整分析（含14策略+新闻）
 python3 tools/analysis/analyze_single_stock.py 002015 协鑫能科 --full
 
 # v6.4 回测
 python3 tools/analysis/backtest_v64.py
 
+# 推荐回测追踪（T+5/T+20 胜率）
+python3 tools/analysis/track_recommendations.py
+python3 tools/analysis/track_recommendations.py --top 10 --since 2026-04-21
+
 # 因子 IC 监控
 python3 tools/analysis/monitor_factor_ic.py
+
+# 板块/个股定向分析
+python3 tools/analysis/sector_analyze.py --codes "688122,603019" --names "西部超导,中科曙光"
 ```
 
 ### 数据工具

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-板块专项分析：对指定板块/个股列表运行 13 策略评分，输出 TOP-N 推荐。
+板块专项分析：对指定板块/个股列表运行 14 策略评分，输出 TOP-N 推荐。
 
 用法:
     python3 tools/analysis/sector_analyze.py --codes 300442,688158,300383 --names 润泽科技,优刻得,光环新网
@@ -113,7 +113,7 @@ def main():
         print("\n❌ 无有效数据")
         return
 
-    print(f"\n📊 运行13策略分析 ({len(prepared)} 只)...")
+    print(f"\n📊 运行14策略分析 ({len(prepared)} 只)...")
 
     sector_codes = set(c for c, _, _ in prepared)
 

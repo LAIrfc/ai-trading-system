@@ -419,10 +419,16 @@ def fetch_index_daily(
         last_err = f"tencent: {e}"
         logger.debug("[fetch_index_daily] tencent %s 失败: %s", pure_code, e)
 
-    # 数据源4: baostock（需要登录）
+    # 数据源4: baostock（需要登录，受全局熔断保护）
     try:
+        from ..bs_fuse import is_fused, record_fail, record_success
+        if is_fused():
+            raise RuntimeError("Baostock 已全局熔断")
         import baostock as bs
         lg = bs.login()
+        if lg.error_code != '0':
+            record_fail(f"data_prefetch login: {lg.error_msg}")
+            raise RuntimeError(f"baostock登录失败: {lg.error_msg}")
         ts_code = f"{prefix}.{pure_code}"
         end_d = datetime.now()
         start_d = end_d - timedelta(days=min(datalen + 60, 1200))
@@ -436,6 +442,7 @@ def fetch_index_daily(
             rows.append(rs.get_row_data())
         bs.logout()
         if rows:
+            record_success()
             df = pd.DataFrame(rows, columns=["date", "open", "high", "low", "close", "volume"])
             df["date"] = pd.to_datetime(df["date"])
             for c in ["open", "high", "low", "close", "volume"]:

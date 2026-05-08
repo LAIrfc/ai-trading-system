@@ -164,8 +164,8 @@ def _rule1_track(name: str, sector: str, news_titles: List[str] = None) -> Tuple
     if not matched:
         for cyc in CYCLICAL_SECTORS:
             if cyc in text:
-                return 15.0, []
-        return 30.0, []
+                return 10.0, []
+        return 20.0, []
 
     max_score = 0.0
     for m in matched:
@@ -212,30 +212,58 @@ def _rule3_moat(
     sell_count: int,
     sector: str,
     market_cap_yi: Optional[float],
+    gross_margin: Optional[float] = None,
+    rd_ratio: Optional[float] = None,
 ) -> Tuple[float, List[str]]:
-    """铁律3: 高壁垒 — 利润最厚、壁垒最高、最缺货的环节"""
-    score = 50.0
+    """铁律3: 高壁垒 — 利润最厚、壁垒最高、最缺货的环节
+    
+    增强维度: 毛利率(高毛利=定价权)、研发占比(高研发=技术壁垒)
+    """
+    score = 45.0
     strengths = []
 
     if pb is not None:
         if pb > 5.0:
-            score += 15
+            score += 12
             strengths.append(f"高PB({pb:.1f})暗示技术/品牌溢价")
         elif pb > 3.0:
-            score += 10
+            score += 8
         elif pb > 2.0:
+            score += 4
+
+    # 毛利率：>50%定价权极强，>35%良好壁垒
+    if gross_margin is not None:
+        if gross_margin > 60:
+            score += 15
+            strengths.append(f"毛利率{gross_margin:.0f}%极高(强定价权)")
+        elif gross_margin > 45:
+            score += 10
+            strengths.append(f"毛利率{gross_margin:.0f}%(定价权好)")
+        elif gross_margin > 30:
             score += 5
+        elif gross_margin < 15:
+            score -= 5
+
+    # 研发投入比：>10%技术驱动型公司
+    if rd_ratio is not None:
+        if rd_ratio > 15:
+            score += 12
+            strengths.append(f"研发投入{rd_ratio:.0f}%(重研发)")
+        elif rd_ratio > 10:
+            score += 8
+        elif rd_ratio > 5:
+            score += 3
 
     total_signals = buy_count + sell_count
     if total_signals > 0:
         buy_ratio = buy_count / total_signals
         if buy_ratio >= 0.8:
-            score += 15
+            score += 10
             strengths.append("策略高度一致看多")
         elif buy_ratio >= 0.6:
-            score += 10
-        elif buy_ratio >= 0.4:
             score += 5
+        elif buy_ratio >= 0.4:
+            score += 2
         else:
             score -= 5
 
@@ -245,7 +273,7 @@ def _rule3_moat(
             break
 
     if market_cap_yi is not None and 50 <= market_cap_yi <= 200:
-        score += 5
+        score += 3
 
     return float(np.clip(score, 0, 100)), strengths
 
@@ -496,6 +524,8 @@ def evaluate_tenbagger(
     news_titles: List[str] = None,
     catalyst_keywords: List[str] = None,
     profit_quality_result=None,
+    gross_margin: Optional[float] = None,
+    rd_ratio: Optional[float] = None,
 ) -> TenbaggerResult:
     """
     基于7条铁律计算十倍股评分 (0-700)。
@@ -514,8 +544,9 @@ def evaluate_tenbagger(
     # 铁律2: 小市值×大赛道
     s2 = _rule2_mcap(cap_yi)
 
-    # 铁律3: 高壁垒
-    s3, moat_strengths = _rule3_moat(pb, buy_count, sell_count, sector, cap_yi)
+    # 铁律3: 高壁垒（含毛利率、研发投入比）
+    s3, moat_strengths = _rule3_moat(pb, buy_count, sell_count, sector, cap_yi,
+                                      gross_margin=gross_margin, rd_ratio=rd_ratio)
 
     # 铁律4: 业绩拐点 (扣非!)
     s4, profit_grade, earning_strengths = _rule4_earning(earnings_growth, signals, pe_ttm)

@@ -22,6 +22,9 @@ _bs_logged_in = False
 
 def _ensure_bs_login():
     """确保 baostock 已 login（进程级单例，线程安全）。"""
+    from ..bs_fuse import is_fused, record_fail, record_success
+    if is_fused():
+        raise RuntimeError("Baostock 已全局熔断")
     global _bs_logged_in
     if _bs_logged_in:
         return
@@ -33,8 +36,17 @@ def _ensure_bs_login():
             lg = bs.login()
             if lg.error_code == '0':
                 _bs_logged_in = True
-        except Exception:
-            pass
+                record_success()
+            else:
+                record_fail(f"adapters login: {lg.error_msg}")
+                raise RuntimeError(f"baostock登录失败: {lg.error_msg}")
+        except ImportError:
+            raise
+        except RuntimeError:
+            raise
+        except Exception as e:
+            record_fail(f"adapters login exception: {e}")
+            raise
 
 
 def _ensure_columns(df: pd.DataFrame) -> pd.DataFrame:
@@ -527,7 +539,7 @@ class BaostockETFAdapter(KlineAdapter):
 def fetch_realtime_bar(code: str) -> Optional[pd.DataFrame]:
     """
     获取单只股票/ETF的当日实时行情，返回一行标准 KLINE_COLUMNS 格式。
-    多源降级：东方财富push2 → 新浪hq → 返回None。
+    多源降级：妙想 → 东方财富push2 → 新浪hq → 返回None。
     仅在交易日盘中/盘后调用，用于拼接到历史日K线末尾。
     """
     import logging
@@ -536,7 +548,35 @@ def fetch_realtime_bar(code: str) -> Optional[pd.DataFrame]:
     logger = logging.getLogger(__name__)
     today_str = datetime.now().strftime('%Y-%m-%d')
 
-    # 源1: 东方财富 push2 实时
+    # 源1: 妙想实时行情（稳定官方API，优先使用）
+    if os.environ.get("MX_APIKEY"):
+        try:
+            from src.data.mx_skills.data_adapter import MXDataAdapter
+            adapter = MXDataAdapter()
+            quote = adapter.get_realtime_quote(code)
+            if quote:
+                close_val = None
+                for key in ['最新价', '最新', 'close', '收盘价', '现价']:
+                    if key in quote and quote[key]:
+                        try:
+                            close_val = float(quote[key])
+                            break
+                        except (ValueError, TypeError):
+                            pass
+                if close_val and close_val > 0:
+                    df = pd.DataFrame([{
+                        'date': pd.Timestamp(today_str),
+                        'open': close_val,
+                        'high': close_val,
+                        'low': close_val,
+                        'close': close_val,
+                        'volume': 0,
+                    }])
+                    return df
+        except Exception as e:
+            logger.debug("[realtime] 妙想 %s 失败: %s", code, e)
+
+    # 源2: 东方财富 push2 实时
     try:
         market = '1' if code.startswith(('5', '6')) else '0'
         url = 'http://push2.eastmoney.com/api/qt/stock/get'
@@ -563,7 +603,7 @@ def fetch_realtime_bar(code: str) -> Optional[pd.DataFrame]:
     except Exception as e:
         logger.debug("[realtime] 东方财富 %s 失败: %s", code, e)
 
-    # 源2: 新浪 hq.sinajs 实时
+    # 源3: 新浪 hq.sinajs 实时
     try:
         prefix = 'sh' if code.startswith(('5', '6')) else 'sz'
         url = f'https://hq.sinajs.cn/list={prefix}{code}'
@@ -588,35 +628,6 @@ def fetch_realtime_bar(code: str) -> Optional[pd.DataFrame]:
                 return df
     except Exception as e:
         logger.debug("[realtime] 新浪 %s 失败: %s", code, e)
-
-    # 源3: 妙想实时行情（配额有限，仅在前两源均失败时使用）
-    if os.environ.get("MX_APIKEY"):
-        try:
-            from src.data.mx_skills.data_adapter import MXDataAdapter
-            adapter = MXDataAdapter()
-            quote = adapter.get_realtime_quote(code)
-            if quote:
-                price_keys = {k: v for k, v in quote.items() if isinstance(v, (int, float)) and v > 0}
-                close_val = None
-                for key in ['最新价', '最新', 'close', '收盘价', '现价']:
-                    if key in quote and quote[key]:
-                        try:
-                            close_val = float(quote[key])
-                            break
-                        except (ValueError, TypeError):
-                            pass
-                if close_val and close_val > 0:
-                    df = pd.DataFrame([{
-                        'date': pd.Timestamp(today_str),
-                        'open': close_val,
-                        'high': close_val,
-                        'low': close_val,
-                        'close': close_val,
-                        'volume': 0,
-                    }])
-                    return df
-        except Exception as e:
-            logger.debug("[realtime] 妙想 %s 失败: %s", code, e)
 
     return None
 

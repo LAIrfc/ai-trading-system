@@ -52,22 +52,32 @@ class MXClient:
                 "MX_APIKEY 未设置。请 export MX_APIKEY=your_key 或传入 api_key 参数"
             )
         self._limiter = get_rate_limiter()
+        self._server_exhausted: Dict[str, bool] = {}
 
     # ─── internal ────────────────────────────────────────────────────
 
     def _post(self, path: str, body: dict, timeout: int = 30) -> dict:
         skill = _resolve_skill(path)
-        if not self._limiter.acquire(skill=skill):
-            rem = self._limiter.remaining_for(skill)
+        if self._server_exhausted.get(skill):
             raise MXQuotaExhausted(
-                f"妙想 {skill} 今日配额已用尽 (剩余{rem}次)"
+                f"妙想 {skill} 今日服务端配额已耗尽"
             )
+        self._limiter.force_consume(1, skill=skill)
         headers = {"Content-Type": "application/json", "apikey": self.api_key}
         url = f"{_BASE}{path}" if path.startswith("/") else f"{_BASE}/{path}"
         try:
             resp = requests.post(url, headers=headers, json=body, timeout=timeout)
             resp.raise_for_status()
-            return resp.json()
+            data = resp.json()
+            if data.get("status") != 0:
+                msg = str(data.get("message", ""))
+                if any(kw in msg for kw in ("配额", "限额", "次数", "quota", "limit", "exceed")):
+                    self._server_exhausted[skill] = True
+                    logger.warning("妙想 %s 服务端配额耗尽: %s", skill, msg)
+                    raise MXQuotaExhausted(f"妙想 {skill} 服务端配额耗尽: {msg}")
+            return data
+        except MXQuotaExhausted:
+            raise
         except Exception:
             logger.exception("MX API 请求失败: %s (skill=%s)", path, skill)
             raise
@@ -193,14 +203,18 @@ def _safe_filename(s: str, max_len: int = 80) -> str:
 
 def _data_to_df(raw: dict) -> pd.DataFrame:
     """把 mx-data API 返回转成 DataFrame（取第一个 dataTable）"""
-    if raw.get("status") != 0:
+    if not isinstance(raw, dict) or raw.get("status") != 0:
         return pd.DataFrame()
-    dto_list = (
-        raw.get("data", {})
-        .get("data", {})
-        .get("searchDataResultDTO", {})
-        .get("dataTableDTOList", [])
-    )
+    _d1 = raw.get("data")
+    if not isinstance(_d1, dict):
+        return pd.DataFrame()
+    _d2 = _d1.get("data")
+    if not isinstance(_d2, dict):
+        return pd.DataFrame()
+    _d3 = _d2.get("searchDataResultDTO")
+    if not isinstance(_d3, dict):
+        return pd.DataFrame()
+    dto_list = _d3.get("dataTableDTOList", [])
     if not dto_list:
         return pd.DataFrame()
     dto = dto_list[0]
@@ -228,11 +242,10 @@ def _extract_news_items(raw: dict) -> List[Dict[str, Any]]:
     if raw.get("status") != 0:
         return []
     items = (
-        raw.get("data", {})
-        .get("data", {})
-        .get("llmSearchResponse", {})
-        .get("data", [])
+        (raw.get("data") or {})
+        .get("data") or {}
     )
+    items = (items.get("llmSearchResponse") or {}).get("data", [])
     result = []
     for it in items or []:
         result.append(

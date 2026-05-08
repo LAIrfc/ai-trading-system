@@ -23,8 +23,85 @@ _MONEY_FLOW_CACHE: dict = {}
 _MONEY_FLOW_CACHE_DAYS = 7
 
 
+def _parse_mx_amount(text: str) -> float:
+    """解析妙想金额字符串(如 '2343万元'、'2.503亿元'、'-1984万元') 为元。"""
+    import re
+    text = str(text).replace(",", "").replace(" ", "")
+    m = re.match(r'^([+-]?\d+\.?\d*)(万|亿)?元?$', text)
+    if not m:
+        return 0.0
+    val = float(m.group(1))
+    unit = m.group(2) or ""
+    if unit == "亿":
+        val *= 1e8
+    elif unit == "万":
+        val *= 1e4
+    return val
+
+
+_mx_fund_flow_disabled = False
+_mx_fund_flow_consecutive_fails = 0
+_MX_FUND_FLOW_FAIL_THRESHOLD = 5
+
+def _get_mx_fund_flow_signal(symbol: str) -> Optional[Tuple[str, float, float]]:
+    """妙想备用：用mx-data查主力资金流向，仅当传统数据源全部无信号时调用。"""
+    global _mx_fund_flow_disabled, _mx_fund_flow_consecutive_fails
+    if _mx_fund_flow_disabled:
+        return None
+    try:
+        import os
+        if not os.environ.get("MX_APIKEY"):
+            return None
+        from src.data.mx_skills.client import MXQuotaExhausted
+        from src.data.mx_skills.data_adapter import MXDataAdapter
+        adapter = MXDataAdapter()
+        flow = adapter.get_fund_flow(symbol)
+        if flow is None:
+            _mx_fund_flow_consecutive_fails += 1
+            if _mx_fund_flow_consecutive_fails >= _MX_FUND_FLOW_FAIL_THRESHOLD:
+                _mx_fund_flow_disabled = True
+                logger.info("[MoneyFlow] MX资金流向连续%d次返回空，后续跳过", _mx_fund_flow_consecutive_fails)
+            return None
+        _mx_fund_flow_consecutive_fails = 0
+        main_net = 0.0
+        for key in flow:
+            k = str(key)
+            if '主力' in k and '净' in k:
+                main_net = _parse_mx_amount(flow[key])
+                break
+        super_net = 0.0
+        for key in flow:
+            k = str(key)
+            if '超大单' in k and '净' in k:
+                super_net = _parse_mx_amount(flow[key])
+                break
+        threshold = 5e7
+        if main_net > threshold and super_net > 0:
+            conf = min(0.55, 0.35 + (main_net / 1e9) * 0.2)
+            logger.info("[MoneyFlow] 标的=%s 妙想主力净流入%.0f万+超大单净额%.0f万",
+                        symbol, main_net / 1e4, super_net / 1e4)
+            return ("BUY", round(conf, 2), 0.6)
+        if main_net < -threshold and super_net < 0:
+            conf = min(0.55, 0.35 + (abs(main_net) / 1e9) * 0.2)
+            logger.info("[MoneyFlow] 标的=%s 妙想主力净流出%.0f万+超大单净额%.0f万",
+                        symbol, main_net / 1e4, super_net / 1e4)
+            return ("SELL", round(conf, 2), 0.3)
+    except MXQuotaExhausted:
+        _mx_fund_flow_disabled = True
+        logger.info("[MoneyFlow] MX配额耗尽，后续跳过资金流向查询")
+        return None
+    except Exception as e:
+        _mx_fund_flow_consecutive_fails += 1
+        if _mx_fund_flow_consecutive_fails >= _MX_FUND_FLOW_FAIL_THRESHOLD:
+            _mx_fund_flow_disabled = True
+            logger.info("[MoneyFlow] MX资金流向连续%d次异常，后续跳过: %s", _mx_fund_flow_consecutive_fails, e)
+        else:
+            logger.debug("MX资金流向查询失败 %s: %s", symbol, e)
+    return None
+
+
 def _get_money_flow_signal(symbol: str) -> Tuple[Optional[str], Optional[float], Optional[float]]:
-    """(action, confidence, position) 或 (None, None, None)。龙虎榜优先，其次大宗，最后实时资金流；成功时写入缓存。"""
+    """龙虎榜→大宗→妙想资金流→弱龙虎榜→传统实时资金流；成功时写入缓存。"""
     try:
         from src.data.money_flow import get_lhb_signal, get_dzjy_signal, get_realtime_flow_signal
     except ImportError:
@@ -41,13 +118,18 @@ def _get_money_flow_signal(symbol: str) -> Tuple[Optional[str], Optional[float],
         if s is not None:
             _MONEY_FLOW_CACHE[symbol] = (s[0], s[1], s[2], time.time())
             return s[0], s[1], s[2]
+        # 妙想资金流（优先于弱龙虎榜和传统实时资金流）
+        s = _get_mx_fund_flow_signal(symbol)
+        if s is not None:
+            _MONEY_FLOW_CACHE[symbol] = (s[0], s[1], s[2], time.time())
+            return s[0], s[1], s[2]
         s = _get_lhb_weak_signal(symbol)
         if s is not None:
             _MONEY_FLOW_CACHE[symbol] = (s[0], s[1], s[2], time.time())
             return s[0], s[1], s[2]
         s = get_realtime_flow_signal(symbol)
         if s is not None:
-            logger.info("[MoneyFlow] 标的=%s 龙虎榜/大宗无数据，使用实时资金流向", symbol)
+            logger.info("[MoneyFlow] 标的=%s 使用传统实时资金流向", symbol)
             _MONEY_FLOW_CACHE[symbol] = (s[0], s[1], s[2], time.time())
             return s[0], s[1], s[2]
     except Exception as e:

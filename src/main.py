@@ -6,7 +6,7 @@ AI量化交易系统 - 统一CLI入口
     python src/main.py recommend --pool mydate/stock_pool.json --top 20
 
     python src/main.py analyze 600519 贵州茅台       # 单股快速分析
-    python src/main.py analyze 600519 贵州茅台 --full # 单股完整分析（含12策略）
+    python src/main.py analyze 600519 贵州茅台 --full # 单股完整分析（含14策略）
 
     python src/main.py strategies                   # 列出所有可用策略
 """
@@ -75,7 +75,7 @@ def main():
     p_ana = subparsers.add_parser('analyze', help='单股分析')
     p_ana.add_argument('code', type=str, help='股票代码，如 600519')
     p_ana.add_argument('name', type=str, help='股票名称，如 贵州茅台')
-    p_ana.add_argument('--full', action='store_true', help='完整分析（含12策略+新闻）')
+    p_ana.add_argument('--full', action='store_true', help='完整分析（含14策略+新闻）')
     p_ana.set_defaults(func=cmd_analyze)
 
     p_st = subparsers.add_parser('strategies', help='列出所有可用策略')

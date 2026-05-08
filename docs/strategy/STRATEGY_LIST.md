@@ -2,10 +2,13 @@
 
 > 项目内所有策略与组合的索引，便于查阅和工具对接。  
 > 更新：2026-04-22
+>
+> 注：主生产路径以 `tools/analysis/recommend_today.py` 为准，当前 L3 投票口径为 **14策略**。
+> 历史权重/Sharpe 表保留为存档信息，若与代码不一致请以代码实现为准。
 
 ---
 
-## 一、单策略（共 17 个，其中 12+ 个入 EnsembleStrategy）
+## 一、单策略（含主流程14个投票策略 + 报告增强模型）
 
 ### 技术面策略（6 个）
 
@@ -45,7 +48,7 @@
 
 | 注册名 | 类名 | 文件 | 权重 | 说明 |
 |--------|------|------|------|------|
-| INDUSTRY_TREND | — | `news_sentiment.py` | 0.35 | LLM分析行业景气度、政策催化、产业链传导 |
+| INDUSTRY_TREND | IndustryTrendStrategy | `industry_trend.py` | 0.80 | LLM分析行业景气度、政策催化、产业链传导 |
 
 ### 市场级策略（1 个，不入 Ensemble L3投票层）
 
@@ -87,17 +90,17 @@
 
 ## 二、组合策略
 
-### EnsembleStrategy（主力组合，16 子策略）
+### EnsembleStrategy（主力组合，14 子策略）
 
 ```
 技术面 6 个：MA / MACD / RSI / BOLL / KDJ / DUAL（反向）
-基本面 4 个：PE / PB / PEPB / PROFIT_QUALITY（利润质量）
+基本面 3 个：PE / PB / PEPB
 消息面 1 个：NEWS（关键词+LLM 融合，磁盘缓存2h TTL，高位过热打折）
 情绪面 1 个：SENTIMENT（市场情绪+个股过滤）
 资金面 1 个：MONEY_FLOW（龙虎榜+大宗）
 行业趋势 1 个：INDUSTRY_TREND（LLM行业景气分析）
 业绩增长 1 个：EARNINGS_GROWTH（季报+预告+行业外推）
-翻倍股模型 1 个：DoublerModel（独立评分，3-6月短周期）
+（DoublerModel/十倍股模型为报告增强评分，不属于 Ensemble 投票子策略）
 ```
 
 | 参数 | 默认值 | 说明 |
@@ -149,7 +152,7 @@
 3. 净得分投票决策（weighted 模式）  
 4. 持仓预警（-5%~-8% 且无 BUY）→ 建议减仓 SELL  
 
-### 预设组合（均继承 EnsembleStrategy，12 子策略）
+### 预设组合（均继承 EnsembleStrategy，14 子策略）
 
 | 注册名 | 类名 | 模式 | 说明 |
 |--------|------|------|------|
@@ -187,12 +190,11 @@
 
 | 工具 | 路径 | 使用的策略 |
 |------|------|------------|
-| 每日选股推荐 | `tools/analysis/recommend_today.py` | PolicyEvent(L0) + 16策略 Ensemble + DoublerModel + 利润质量评分 |
+| 每日选股推荐 | `tools/analysis/recommend_today.py` | PolicyEvent(L0) + 14策略投票 + 双模型报告增强（Tenbagger/Doubler） |
 | 单股多策略分析 | `tools/analysis/analyze_single_stock.py` | 全部单策略 + PE/PB + 组合（含 Ensemble/V33） |
 | 板块专项分析 | `tools/analysis/sector_analyze.py` | 按股票代码/板块名定向多策略分析 |
-| 持仓多策略分析 | `tools/analysis/portfolio_strategy_analysis.py` | 技术6+消息面+资金面+基本面 |
-| 交易报告生成 | `tools/analysis/generate_trade_report.py` | 双核动量轮动（ETF 轮动），非单股策略库 |
-| 批量回测 | `tools/backtest/batch_backtest.py` | 可配置策略；支持 `--check-future` 未来函数校验 |
+| 推荐回测追踪 | `tools/analysis/track_recommendations.py` | T+5/T+20 胜率和收益统计 |
+| V6.4 三版本回测 | `tools/analysis/backtest_v64.py` | v5.2/v6.1/v6.4 对比回测 |
 | 策略剔除实验 | `tools/optimization/strategy_ablation.py` | 三层剔除（单策略/整组/核心组），验证因子边际贡献 |
 | 策略活跃度诊断 | `tools/optimization/strategy_activation_rate.py` | 诊断各策略BUY/SELL/HOLD占比和活跃率 |
 

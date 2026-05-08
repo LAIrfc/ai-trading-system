@@ -45,7 +45,7 @@
 - ✅ PolicyEvent大盘过滤（L0层）
 
 **当前状态**: ✅ **稳健可用，可实盘**
-- 架构：L0(PolicyEvent过滤) + L3(11策略固定权重投票)
+- 架构：L0(PolicyEvent过滤) + L3(14策略固定权重投票)
 - 总权重：9.50
 - 关键特性：DUAL反向、净得分机制、固定权重
 
@@ -310,7 +310,7 @@ python3 tools/analysis/recommend_today.py --strategy ensemble --top 20
 
 ### ✅ 已实现并启用
 - **L0层**: PolicyEvent大盘过滤
-- **L3层**: 11策略固定权重投票
+- **L3层**: 14策略固定权重投票
   - BOLL(1.5), MACD(1.3), KDJ(1.1), MA(1.0), DUAL(0.9), RSI(0.8)
   - PEPB(0.8), PE(0.6), PB(0.6)
   - NEWS(0.5), MONEY_FLOW(0.4)

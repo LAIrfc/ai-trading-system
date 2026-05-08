@@ -1,117 +1,54 @@
 {
-  "updated": "2026-04-01",
+  "updated": "2026-05-06",
   "note": "持仓数据来自券商实盘，成本为持仓均价",
   "holdings": [
     {
-      "code": "301157",
-      "name": "华塑科技",
-      "avg_cost": 60.79,
-      "shares": 300,
-      "comment": "2026-03-30 新增100手, 2026-04-01 加仓200手"
+      "code": "001283",
+      "name": "豪鹏科技",
+      "avg_cost": 72.688,
+      "shares": 400
     },
     {
-      "code": "600118",
-      "name": "中国卫星",
-      "avg_cost": 91.354,
-      "shares": 500
-    },
-    {
-      "code": "601099",
-      "name": "太平洋",
-      "avg_cost": 4.14,
-      "shares": 7900,
-      "comment": "4.1"
-    },
-    {
-      "code": "601059",
-      "name": "信达证券",
-      "avg_cost": 16.69,
-      "shares": 1300,
-      "comment": "16.43"
-    },
-    {
-      "code": "600332",
-      "name": "白云山",
-      "avg_cost": 23.293,
-      "shares": 900,
-      "comment": "22.96"
+      "code": "601698",
+      "name": "中国卫通",
+      "avg_cost": 36.947,
+      "shares": 300
     },
     {
       "code": "600089",
       "name": "特变电工",
-      "avg_cost": 28.287,
-      "shares": 800,
-      "comment": "28.25"
+      "avg_cost": 28.547,
+      "shares": 300
     },
     {
-      "code": "159599",
-      "name": "芯片指数ETF",
-      "avg_cost": 2.084,
-      "shares": 9200,
-      "comment": "2026-03-16 "
+      "code": "300041",
+      "name": "回天新材",
+      "avg_cost": 11.205,
+      "shares": 1100
+    },
+    {
+      "code": "601099",
+      "name": "太平洋",
+      "avg_cost": 4.142,
+      "shares": 2400
+    },
+    {
+      "code": "159566",
+      "name": "储能电池ETF",
+      "avg_cost": 2.307,
+      "shares": 4700
     },
     {
       "code": "159880",
       "name": "有色ETF",
-      "avg_cost": 2.317,
-      "shares": 12100,
-      "comment": "2.32"
+      "avg_cost": 2.212,
+      "shares": 5000
     },
     {
       "code": "159770",
       "name": "机器人ETF",
-      "avg_cost": 1.082,
-      "shares": 44500,
-      "comment": "1.08"
-    },
-    {
-      "code": "512480",
-      "name": "半导体ETF",
-      "avg_cost": 1.638,
-      "shares": 28700,
-      "comment": "1.64"
-    },
-    {
-      "code": "603565",
-      "name": "中谷物流",
-      "avg_cost": 11.14,
-      "shares": 0,
-      "comment": "2026-03-25 已清仓"
-    },
-    {
-      "code": "601919",
-      "name": "中远海控",
-      "avg_cost": 15.454,
-      "shares": 0,
-      "comment": "2026-04-01 已清仓"
-    },
-    {
-      "code": "600901",
-      "name": "江苏金租",
-      "avg_cost": 6.489,
-      "shares": 4300,
-      "comment": "6.48"
-    },
-    {
-      "code": "002281",
-      "name": "光迅科技",
-      "avg_cost": 75.10,
-      "shares": 0,
-      "comment": "2026-03-10 已清仓"
-    },
-    {
-      "code": "512980",
-      "name": "传媒ETF",
-      "avg_cost": 1.167,
-      "shares": 0,
-      "comment": "2026-03-05 已清仓"
-    },
-    {
-      "code": "513399",
-      "name": "纳斯达克ETF",
-      "avg_cost": 1.167,
-      "shares": 0,
-      "comment": "已清仓"
+      "avg_cost": 1.102,
+      "shares": 21300
     }
   ]
 }

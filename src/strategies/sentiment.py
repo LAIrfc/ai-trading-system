@@ -190,6 +190,51 @@ def _get_latest_sentiment_legacy(lookback_days: int = 80) -> Optional[float]:
         return None
 
 
+_SESSION_MX_SENTIMENT: Optional[float] = None
+_SESSION_MX_SENTIMENT_DATE: Optional[str] = None
+
+
+def _get_mx_sentiment_proxy() -> Optional[float]:
+    """妙想备用：用mx-search获取市场情绪相关资讯，通过标题情感倾向代理为0~100情绪指标。"""
+    global _SESSION_MX_SENTIMENT, _SESSION_MX_SENTIMENT_DATE
+    today = datetime.now().strftime("%Y-%m-%d")
+    if _SESSION_MX_SENTIMENT_DATE == today:
+        return _SESSION_MX_SENTIMENT
+    try:
+        import os
+        if not os.environ.get("MX_APIKEY"):
+            return None
+        from src.data.mx_skills.news_adapter import MXNewsFetcher
+        fetcher = MXNewsFetcher()
+        df = fetcher.fetch_market_analysis("A股市场情绪 涨跌 恐慌贪婪")
+        if df is None or df.empty:
+            _SESSION_MX_SENTIMENT_DATE = today
+            _SESSION_MX_SENTIMENT = None
+            return None
+        titles = " ".join(df["title"].dropna().tolist()[:10])
+        content = " ".join(df["content"].dropna().tolist()[:5])
+        text = titles + " " + content
+        bullish_kw = ["反弹", "上涨", "利好", "放量", "突破", "强势", "牛", "贪婪", "乐观", "做多"]
+        bearish_kw = ["下跌", "恐慌", "利空", "缩量", "暴跌", "弱势", "熊", "恐惧", "悲观", "做空"]
+        bull_count = sum(1 for kw in bullish_kw if kw in text)
+        bear_count = sum(1 for kw in bearish_kw if kw in text)
+        total = bull_count + bear_count
+        if total == 0:
+            val = 50.0
+        else:
+            val = (bull_count / total) * 100.0
+        val = max(5.0, min(95.0, val))
+        _SESSION_MX_SENTIMENT = val
+        _SESSION_MX_SENTIMENT_DATE = today
+        logger.info("妙想情绪代理: %.1f (多:%d 空:%d)", val, bull_count, bear_count)
+        return val
+    except Exception as e:
+        logger.debug("妙想情绪代理获取失败: %s", e)
+        _SESSION_MX_SENTIMENT_DATE = today
+        _SESSION_MX_SENTIMENT = None
+        return None
+
+
 class SentimentStrategy(Strategy):
     """市场情绪策略 V3.3：多指标 S、20/80 分位、次日确认、个股趋势过滤。"""
 
@@ -319,6 +364,8 @@ class SentimentStrategy(Strategy):
 
         # 2) 回退旧版：0~100 单指标，无趋势过滤
         sentiment = _get_latest_sentiment_legacy()
+        if sentiment is None:
+            sentiment = _get_mx_sentiment_proxy()
         if sentiment is None:
             return StrategySignal(
                 action="HOLD",

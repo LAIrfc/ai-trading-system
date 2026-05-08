@@ -75,12 +75,8 @@ except ImportError:
 
 logger = logging.getLogger(__name__)
 
-# V3.3 新策略（情绪+消息+政策）仓位合计上限
-V33_NEW_STRATEGY_POSITION_CAP = 0.4
 # 重大利空优先：SELL 原因包含此关键词则无条件卖出
 MAJOR_NEGATIVE_REASON_KEY = "重大利空"
-# 冲突规则：卖出总分 × 此系数 与 买入总分 比较
-SELL_SCORE_MULTIPLIER = 1.2
 
 # ── 功能开关 ──
 # 默认关闭：当前大多策略输出HOLD，共振/动态权重无实际效果。
@@ -677,7 +673,7 @@ class EnsembleStrategy(Strategy):
     # 趋势组：MA/MACD 都在捕捉趋势启动（DUAL反向使用，与趋势组负相关不打折）
     # 估值组：PE/PB/PEPB 都在捕捉估值压缩
     # 事件组：NEWS/MONEY_FLOW/INDUSTRY_TREND 往往由同一事件驱动
-    _CORRELATED_PAIRS = {
+    _CORRELATED_PAIRS_BASE = {
         ('RSI', 'KDJ'):   0.5,
         ('RSI', 'BOLL'):  0.5,
         ('KDJ', 'BOLL'):  0.5,
@@ -693,7 +689,7 @@ class EnsembleStrategy(Strategy):
         'trend':       {'MA', 'MACD', 'DUAL'},
         'reversal':    {'RSI', 'KDJ', 'BOLL', 'SENTIMENT'},
         'valuation':   {'PE', 'PB', 'PEPB'},
-        'fundamental': {'EARNINGS_GROWTH', 'PROFIT_QUALITY'},
+        'fundamental': {'EARNINGS_GROWTH'},
         'event':       {'NEWS', 'MONEY_FLOW', 'INDUSTRY_TREND'},
     }
 
@@ -717,16 +713,35 @@ class EnsembleStrategy(Strategy):
         max_ratio = max(group_weights.values()) / total_w if group_weights else 1.0
         return len(hit_groups), max_ratio, hit_groups
 
-    def _apply_correlation_discount(self, votes: list, weights: dict) -> dict:
+    def _get_dynamic_correlated_pairs(self, all_votes: dict) -> dict:
+        """
+        动态相关性折扣：RSI/KDJ/BOLL 全部同向时加强折扣。
+        与 recommend_today.py 保持一致。
+        """
+        osc_group = {'RSI', 'KDJ', 'BOLL'}
+        osc_actions = {n: s.action for n, s in all_votes.items()
+                       if n in osc_group and s.action != 'HOLD'}
+        all_agree = len(set(osc_actions.values())) == 1 and len(osc_actions) == 3
+        osc_discount = 0.35 if all_agree else 0.5
+
+        pairs = dict(self._CORRELATED_PAIRS_BASE)
+        for pair in [('RSI', 'KDJ'), ('RSI', 'BOLL'), ('KDJ', 'BOLL')]:
+            pairs[pair] = osc_discount
+        return pairs
+
+    def _apply_correlation_discount(self, votes: list, weights: dict,
+                                     correlated_pairs: dict = None) -> dict:
         """
         对高相关策略组施加折扣，返回调整后的权重副本。
 
         规则：当一对高相关策略（如 NEWS+MONEY_FLOW）投出相同方向时，
         权重较低的那个乘以折扣系数，避免同一信息源被双重计分。
         """
+        if correlated_pairs is None:
+            correlated_pairs = self._CORRELATED_PAIRS_BASE
         vote_names = {n for n, _ in votes}
         adjusted = dict(weights)
-        for (s1, s2), discount in self._CORRELATED_PAIRS.items():
+        for (s1, s2), discount in correlated_pairs.items():
             if s1 in vote_names and s2 in vote_names:
                 w1 = adjusted.get(s1, 1.0)
                 w2 = adjusted.get(s2, 1.0)
@@ -766,8 +781,13 @@ class EnsembleStrategy(Strategy):
 
         weights_to_use = adjusted_weights if adjusted_weights else self.weights
 
-        buy_w = self._apply_correlation_discount(buy_votes, weights_to_use)
-        sell_w = self._apply_correlation_discount(sell_votes, weights_to_use)
+        # 使用所有投票信息计算动态折扣（需要在_weighted调用前收集所有votes）
+        all_votes_dict = {n: s for n, s in buy_votes}
+        all_votes_dict.update({n: s for n, s in sell_votes})
+        dyn_pairs = self._get_dynamic_correlated_pairs(all_votes_dict)
+
+        buy_w = self._apply_correlation_discount(buy_votes, weights_to_use, dyn_pairs)
+        sell_w = self._apply_correlation_discount(sell_votes, weights_to_use, dyn_pairs)
 
         buy_score = sum(buy_w.get(n, 1.0) * s.confidence
                         for n, s in buy_votes)
