@@ -167,7 +167,6 @@ def update_fundamental_cache():
     # 加载所有股票代码（兼容 stocks / sectors 两种格式）
     all_codes = set()
     for pool_file in [
-        os.path.join(DATA_DIR, 'stock_pool.json'),
         os.path.join(DATA_DIR, 'stock_pool_all.json'),
     ]:
         if os.path.exists(pool_file):

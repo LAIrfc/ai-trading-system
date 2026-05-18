@@ -57,6 +57,11 @@ CORE_TRACKS_15TH = {
     '卫星互联网': 85, '卫星':       82,
     '医疗器械':   85, '生物医药':   82, '创新药':     85,
     '高端装备':   80, '工业母机':   82,
+    '军工航天':   80, '军工':       78, '航天':       80,
+    '自动驾驶':   85, '智驾':       82,
+    '航空航运':   65, '航空':       65, '物流':       60,
+    '新消费':     60, '品牌消费':   58,
+    '医药':       75, '药业':       72,
 }
 
 TRACK_KEYWORDS = {
@@ -80,9 +85,19 @@ TRACK_KEYWORDS = {
                  '影像', '监护', '超声', '心电', '血氧', '理邦', '迈瑞',
                  '医疗设备', '康复', '植入'],
     '生物医药': ['生物医药', '创新药', '靶向', '抗体', 'ADC', 'GLP-1',
-                 'mRNA', '基因治疗', '细胞治疗', 'CXO', 'CDMO', '新药'],
+                 'mRNA', '基因治疗', '细胞治疗', 'CXO', 'CDMO', '新药',
+                 '医药', '药业', '制药', '生物', '疫苗', '血制品'],
     '高端装备': ['高端装备', '数控', '工业母机', '精密', '激光', '3D打印',
                  '模具', '刀具', '测量'],
+    '军工航天': ['军工', '航天', '航空', '导弹', '雷达', '国防', '航发',
+                 '中航', '航空发动机', '飞机', '军机', '国防科工',
+                 '西飞', '沈飞', '成飞'],
+    '新消费': ['消费升级', '品牌', '连锁', '免税', '跨境电商',
+              '直播电商', '预制菜', '功能食品', '新零售'],
+    '自动驾驶': ['自动驾驶', '智驾', '激光雷达', '域控', '线控底盘',
+                '高精地图', 'L4', '车路协同', '智能座舱'],
+    '航空航运': ['航空', '航运', '物流', '港口', '机场', '航线',
+                '快递', '供应链', '冷链'],
 }
 
 # 国产替代关键词 (含海外大客户绑定的软性国产替代)
@@ -104,8 +119,8 @@ OVERSEAS_CUSTOMER_KEYWORDS = [
 
 # 周期性行业 (十倍股不太可能出在这里)
 CYCLICAL_SECTORS = {
-    '有色', '钢铁', '煤炭', '石油', '化工', '航运', '造纸',
-    '水泥', '建材', '地产', '房地产', '券商', '证券', '银行', '保险',
+    '有色', '钢铁', '煤炭', '石油', '化工', '造纸',
+    '水泥', '建材', '地产', '房地产', '银行', '保险',
 }
 
 # 十倍股关注列表 — 之前选出的重点标的，每次评估必须包含
@@ -185,7 +200,7 @@ def _rule1_track(name: str, sector: str, news_titles: List[str] = None) -> Tuple
 def _rule2_mcap(market_cap_yi: Optional[float]) -> float:
     """铁律2: 小市值×大赛道 (50-200亿甜蜜区)"""
     if market_cap_yi is None:
-        return 40.0
+        return 55.0  # 无数据时给中性分，不惩罚也不奖励
 
     if 50 <= market_cap_yi <= 100:
         return 95.0
@@ -284,9 +299,10 @@ def _rule4_earning(
     pe_ttm: Optional[float],
 ) -> Tuple[float, str, List[str]]:
     """铁律4: 业绩拐点 — 必须是主营利润爆发"""
-    score = 30.0
+    score = 40.0  # 无数据时给中性基准分(不惩罚也不高估)
     grade = 'C'
     strengths = []
+    data_available = False
 
     eg_signal = None
     eg_reason = ''
@@ -297,6 +313,7 @@ def _rule4_earning(
             break
 
     if earnings_growth is not None:
+        data_available = True
         if earnings_growth > 200:
             score = 95
             strengths.append(f"扣非增速{earnings_growth:+.0f}% (爆发)")
@@ -315,10 +332,12 @@ def _rule4_earning(
         else:
             score = 20
     elif eg_signal == 'BUY':
+        data_available = True
         score = 60
         if '景气' in eg_reason:
             strengths.append("行业景气度向好")
     elif eg_signal == 'SELL':
+        data_available = True
         score = 15
 
     if score >= 80:
@@ -327,8 +346,11 @@ def _rule4_earning(
         grade = 'B'
     elif score >= 40:
         grade = 'C'
-    else:
+    elif data_available:
         grade = 'D'
+    else:
+        # 无业绩数据时不应惩罚，给中性评级
+        grade = 'C'
 
     return score, grade, strengths
 
@@ -580,13 +602,13 @@ def evaluate_tenbagger(
 
     risks = []
 
-    # 铁律1是"赛道为王" — 赛道不对的股票必须有整体惩罚
-    # 十倍股一定出在大赛道的爆发期，非核心赛道即使业绩爆发也很难十倍
+    # 铁律1是"赛道为王" — 非核心赛道有一定折扣但不过度惩罚
+    # 传统行业龙头(医药/消费/金融)虽非十五五核心赛道，但有独立的十倍逻辑
     if s1 <= 30 and not matched_tracks:
-        total = int(total * 0.75)
-        risks.append("⚠ 未匹配十五五核心赛道，十倍股概率大幅降低")
+        total = int(total * 0.88)
+        risks.append("未匹配十五五核心赛道，十倍概率略低")
     elif s1 <= 50:
-        total = int(total * 0.85)
+        total = int(total * 0.92)
         risks.append("赛道非十五五核心方向，需额外验证")
 
     if cap_yi is not None and cap_yi > 300:

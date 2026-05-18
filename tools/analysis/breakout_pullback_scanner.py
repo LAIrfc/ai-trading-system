@@ -13,7 +13,7 @@
     python3 tools/analysis/breakout_pullback_scanner.py --mode aggressive
 
     # 指定股票池和输出数量
-    python3 tools/analysis/breakout_pullback_scanner.py --pool mydate/stock_pool.json --top 30
+    python3 tools/analysis/breakout_pullback_scanner.py --pool mydate/stock_pool_all.json --top 30
 """
 
 import argparse

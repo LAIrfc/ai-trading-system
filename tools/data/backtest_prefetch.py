@@ -11,7 +11,7 @@
   # 之后：定期更新，拉取新数据（覆盖本地，再用最新数据跑回测验证策略）
   python3 tools/data/backtest_prefetch.py --update --out-dir mydate/backtest_kline --datalen 800 --workers 4
   # 或只预取前 N 只
-  python3 tools/data/backtest_prefetch.py --pool mydate/stock_pool.json --count 300 --out-dir mydate/backtest_kline --workers 4
+  python3 tools/data/backtest_prefetch.py --pool mydate/stock_pool_all.json --count 300 --out-dir mydate/backtest_kline --workers 4
 
 预取/更新完成后会在 out-dir 下写入 manifest.json（记录所用股票池、标的列表、最后更新时间）。
 """
@@ -138,7 +138,7 @@ def check_freshness(out_dir: str, pool_path: str, max_count: int, max_age_days: 
 
 def main():
     parser = argparse.ArgumentParser(description="回测日线数据预取与更新（存+更新股票池内数据，供策略验证与回测）")
-    parser.add_argument("--pool", default="mydate/stock_pool.json", help="股票池 JSON（预取时用；--update 时可选，用于补全 manifest）")
+    parser.add_argument("--pool", default="mydate/stock_pool_all.json", help="股票池 JSON（预取时用；--update 时可选，用于补全 manifest）")
     parser.add_argument("--count", type=int, default=50, help="预取数量（与 --all 二选一）")
     parser.add_argument("--all", action="store_true", dest="prefetch_all",
                         help="预取股票池内全部标的（用于存池子数据做回测验证）")

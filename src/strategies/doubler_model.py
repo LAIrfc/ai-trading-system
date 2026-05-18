@@ -52,7 +52,11 @@ HOT_SECTORS_2026 = {
     '医疗器械':    0.65, '创新药':      0.70, '游戏':        0.72,
     '数据要素':    0.78, '信创':        0.75, '华为':        0.80,
     '鸿蒙':        0.78, '苹果链':      0.75, '自动驾驶':    0.80,
-    '新材料':      0.72, '风电':        0.68, '卫星':        0.82,
+    '新材料':      0.72, '卫星':        0.82,
+    # 传统行业龙头赛道(中等热度)
+    '医药':        0.65, '证券':        0.70, '航空':        0.65,
+    '港口物流':    0.55, '食品饮料':    0.60, '消费':        0.55,
+    '汽车':        0.65, '金融科技':    0.70,
 }
 
 SECTOR_KEYWORDS = {
@@ -68,11 +72,27 @@ SECTOR_KEYWORDS = {
     '光伏': ['光伏', '太阳能', '组件', '逆变器', '硅片', '电池片', 'EVA', 'POE',
              '胶膜', '封装材料', '背板', '银浆', '焊带', '回天'],
     '新能源车': ['新能源车', '电动车', '智驾', '座舱', '域控', '线控', '汽车电子', '电驱'],
-    '军工': ['军工', '航天', '航空', '导弹', '雷达', '国防', '碳纤维', '复合材料'],
+    '军工': ['军工', '航天', '航空', '导弹', '雷达', '国防', '碳纤维', '复合材料',
+             '中航', '沈飞', '西飞', '成飞', '航发'],
     '游戏': ['游戏', '手游', '端游', '电竞', '二次元', '网络', '冰川', '吉比特', '三七'],
     '新材料': ['新材料', '胶膜', '粘合剂', '密封胶', '导热', '碳纤维', '特种玻璃', '石英'],
     '风电': ['风电', '风力', '轴承', '叶片', '塔筒', '海上风电', '新强联'],
     '卫星': ['卫星', '北斗', '通信卫星', '遥感', '星链', '低轨'],
+    '医药': ['医药', '药业', '制药', '生物', '疫苗', '血制品', '中药', '医疗',
+             '安图', '迈瑞', '华润', '医学', 'C27医药'],
+    '证券': ['证券', '券商', '银河', '光大', '中信', '国泰', '华泰', '长城证券',
+             '东吴', '资本市场', 'J67资本'],
+    '航空': ['航空', '航运', '航线', '机场', '春秋', '吉祥', '国航', '南航',
+             '航空运输', 'G56航空'],
+    '港口物流': ['港口', '物流', '仓储', '运输', '盐田', '宁波港', '上港', '招商港口',
+                '水上运输', 'G55水上'],
+    '食品饮料': ['食品', '饮料', '白酒', '啤酒', '乳制品', '调味品', '酵母', '预制菜',
+                '安琪', '金龙鱼', '伊利', '海天', 'C14食品', 'C15酒', '汾酒'],
+    '消费': ['消费', '零售', '连锁', '电商', '免税', '品牌', '服装',
+             'F52零售'],
+    '汽车': ['汽车', '车企', '新势力', '赛力斯', '问界', '比亚迪',
+             'C36汽车'],
+    '金融科技': ['金融科技', 'fintech', '数字货币', '征信', '支付', '宇信'],
 }
 
 
@@ -213,8 +233,16 @@ def _score_catalyst_density(
     news_count: int,
     has_earnings_surprise: bool = False,
     catalyst_keywords: List[str] = None,
+    buy_count: int = 0,
+    volume_ratio: float = 1.0,
+    change_5d: float = 0.0,
+    change_20d: float = 0.0,
 ) -> Tuple[float, List[str]]:
-    """评估催化密度 (0-1)"""
+    """评估催化密度 (0-1)
+    
+    除了显式催化(业绩/新闻/关键词)外，还使用技术面隐性催化:
+    多策略共振买入、放量突破、短期强势等本身就是催化信号。
+    """
     score = 0.0
     catalysts = []
     
@@ -260,6 +288,37 @@ def _score_catalyst_density(
                     score += 0.08
                     catalysts.append(label)
                     break
+
+    # 隐性催化：技术面强势信号本身就是市场在定价某种催化
+    if score < 0.15:
+        implicit_score = 0.0
+        if buy_count >= 6:
+            implicit_score += 0.20
+            catalysts.append("多策略共振买入")
+        elif buy_count >= 4:
+            implicit_score += 0.12
+            catalysts.append("策略多数看多")
+        elif buy_count >= 3:
+            implicit_score += 0.06
+
+        if volume_ratio >= 2.0:
+            implicit_score += 0.15
+            catalysts.append("显著放量")
+        elif volume_ratio >= 1.5:
+            implicit_score += 0.08
+
+        if change_5d > 5:
+            implicit_score += 0.10
+            catalysts.append(f"5日强势+{change_5d:.0f}%")
+        elif change_5d > 3:
+            implicit_score += 0.05
+
+        if change_20d > 10:
+            implicit_score += 0.08
+        elif change_20d > 5:
+            implicit_score += 0.04
+
+        score += implicit_score
     
     return float(np.clip(score, 0.0, 1.0)), catalysts
 
@@ -499,7 +558,9 @@ def evaluate_doubler(
     # 3. 催化密度
     catalyst_density, catalysts = _score_catalyst_density(
         earnings_growth, news_sentiment, news_count,
-        has_earnings_surprise, catalyst_keywords
+        has_earnings_surprise, catalyst_keywords,
+        buy_count=buy_count, volume_ratio=volume_ratio,
+        change_5d=change_5d, change_20d=change_20d,
     )
     
     # 4. 预期差
@@ -598,8 +659,9 @@ def batch_evaluate_doubler(
     """
     results = []
     for r in stock_results:
-        # 估算市值 (price * 流通股)，如无则跳过市值检查
-        market_cap = r.get('market_cap')
+        # 市值转亿（top_list中存储的是元）
+        _raw_cap = r.get('market_cap')
+        market_cap = _raw_cap / 1e8 if _raw_cap is not None and _raw_cap > 1e6 else _raw_cap
         
         # 提取催化关键词 (从 signals 或 reason 中)
         catalyst_kws = []

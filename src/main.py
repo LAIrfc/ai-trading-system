@@ -3,7 +3,7 @@ AI量化交易系统 - 统一CLI入口
 
 用法:
     python src/main.py recommend                    # 从股票池选股推荐
-    python src/main.py recommend --pool mydate/stock_pool.json --top 20
+    python src/main.py recommend --pool mydate/stock_pool_all.json --top 20
 
     python src/main.py analyze 600519 贵州茅台       # 单股快速分析
     python src/main.py analyze 600519 贵州茅台 --full # 单股完整分析（含14策略）
@@ -67,7 +67,7 @@ def main():
     subparsers = parser.add_subparsers(dest='command', metavar='command')
 
     p_rec = subparsers.add_parser('recommend', help='从股票池选股推荐')
-    p_rec.add_argument('--pool', type=str, default='mydate/stock_pool.json', help='股票池文件')
+    p_rec.add_argument('--pool', type=str, default='mydate/stock_pool_all.json', help='股票池文件')
     p_rec.add_argument('--top', type=int, default=20, help='推荐数量')
     p_rec.add_argument('--strategy', type=str, default='ensemble', help='使用的策略')
     p_rec.set_defaults(func=cmd_recommend)

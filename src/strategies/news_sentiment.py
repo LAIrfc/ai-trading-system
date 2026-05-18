@@ -29,7 +29,7 @@ import os, json
 from datetime import datetime as _dt
 _NEWS_DISK_CACHE_DIR = os.path.join(os.path.dirname(__file__), '..', '..', 'mydate', 'news_cache')
 
-_NEWS_CACHE_TTL_HOURS = 2  # 新闻缓存有效期：2小时，兼顾性能和时效性
+_NEWS_CACHE_TTL_HOURS = 0  # 不使用磁盘缓存，每次运行都重新拉取最新新闻+LLM分析
 
 def _load_disk_news_cache() -> dict:
     """加载当天的磁盘新闻缓存，超过TTL则视为过期"""

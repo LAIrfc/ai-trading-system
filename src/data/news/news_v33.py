@@ -19,41 +19,19 @@ from . import fetch_stock_news, score_news_sentiment, dedup_news, filter_future_
 logger = logging.getLogger(__name__)
 
 # LLM 分析的系统提示
-_LLM_NEWS_SYSTEM = (
-    "你是专业的A股个股消息面分析师，擅长识别事件驱动型投资机会。"
-    "你需要特别关注：收购/重组/资产注入等可能改变公司质地的重大事件，"
-    "以及公司切入新兴赛道（如AI数据中心、OCS光交叉、MEMS、商业航天等）的战略布局。"
-    "只输出 JSON，不要任何其他文字。"
-)
+_LLM_NEWS_SYSTEM = "A股消息面分析师。只输出JSON，不要其他文字。"
 
-_LLM_NEWS_PROMPT_TMPL = """以下是{name}({symbol})的最新相关新闻标题（共{n}条）：
+_LLM_NEWS_PROMPT_TMPL = """分析{name}({symbol})近期{n}条新闻对股价的影响：
 
 {titles}
 
-请从两个维度分析这些新闻对该股票的影响：
-
-维度1: 常规消息面情感（短期利好/利空判断）
-维度2: 事件驱动深度分析（是否存在改变公司质地的重大事件）
-
-事件驱动重点关注：
-- 收购/并购/重组：标的是否切入高景气赛道？收购标的技术壁垒如何？
-- 新产品/新业务：是否进入爆发期行业（AI算力、光通信、新能源等）？
-- 产能/订单突破：是否意味着从"概念"到"业绩兑现"的拐点？
-- 技术突破：是否具有行业稀缺性或国产替代逻辑？
-
-输出以下 JSON：
+输出JSON：
 {{
-  "score": <-1.0到1.0的浮点数，-1极度利空，0中性，1极度利好>,
+  "score": <-1.0到1.0，利空到利好>,
   "direction": "<利好|利空|中性>",
-  "key_events": ["<事件1>", "<事件2>"],
-  "reason": "<50字以内的简要说明>",
-  "event_driven": {{
-    "has_catalyst": <true/false，是否存在改变公司质地的事件催化剂>,
-    "catalyst_type": "<收购重组|新赛道切入|产能突破|技术突破|无>",
-    "catalyst_score": <0.0到1.0，催化剂强度，无催化剂时为0>,
-    "sector_trend": "<该事件涉及的行业趋势，如OCS光交叉爆发、AI算力需求等，无则为空字符串>",
-    "duration": "<短期|中期|长期，催化剂影响持续时间>"
-  }}
+  "key_events": ["<核心事件1>"],
+  "reason": "<30字内>",
+  "event_driven": {{"has_catalyst": <bool>, "catalyst_type": "<收购重组|新赛道|产能突破|技术突破|无>", "catalyst_score": <0-1>}}
 }}"""
 
 
@@ -105,7 +83,7 @@ def _llm_score_stock_news(
         result = call_llm(
             prompt=prompt,
             system_prompt=_LLM_NEWS_SYSTEM,
-            max_tokens=200,
+            max_tokens=150,
             temperature=0.1,
         )
         if not result:
@@ -137,19 +115,14 @@ def _llm_score_stock_news(
                 score_boosted = max(-1.0, min(1.0, score + boost))
                 result["score"] = score_boosted
                 logger.info(
-                    "[%s] 事件催化剂检测: type=%s score=%.2f sector=%s duration=%s → 情感分%.2f→%.2f",
+                    "[%s] 事件催化剂: type=%s score=%.2f → %.2f→%.2f",
                     symbol, event_driven.get("catalyst_type", ""),
-                    catalyst_score,
-                    event_driven.get("sector_trend", ""),
-                    event_driven.get("duration", ""),
-                    score, score_boosted,
+                    catalyst_score, score, score_boosted,
                 )
             result["event_driven"] = {
                 "has_catalyst": has_catalyst,
                 "catalyst_type": event_driven.get("catalyst_type", "无"),
                 "catalyst_score": catalyst_score,
-                "sector_trend": event_driven.get("sector_trend", ""),
-                "duration": event_driven.get("duration", ""),
             }
 
         return result

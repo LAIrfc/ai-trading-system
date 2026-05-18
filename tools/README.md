@@ -51,7 +51,7 @@ tools/
 ```bash
 # 每日选股推荐（政策面过滤 + 14策略 Ensemble）
 python3 tools/analysis/recommend_today.py --pool mydate/stock_pool_all.json --strategy ensemble
-python3 tools/analysis/recommend_today.py --pool mydate/stock_pool.json --strategy macd --top 10
+python3 tools/analysis/recommend_today.py --pool mydate/stock_pool_all.json --top 10
 
 # 单股分析（快速模式：技术面+估值+量价）
 python3 tools/analysis/analyze_single_stock.py 002015 协鑫能科
@@ -84,10 +84,7 @@ python3 tools/data/backtest_prefetch.py --update --out-dir mydate/backtest_kline
 python3 tools/data/refresh_stock_pool.py
 
 # 不过滤直接合并
-python3 tools/data/refresh_stock_pool.py --no-filter
-
-# 重新获取赛道龙头
-python3 tools/data/refresh_stock_pool.py --refresh-sectors
+python3 tools/data/refresh_stock_pool.py
 
 # 验证池内股票数据可用性
 python3 tools/data/refresh_stock_pool.py --verify

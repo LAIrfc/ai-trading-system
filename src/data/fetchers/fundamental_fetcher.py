@@ -706,14 +706,15 @@ class FundamentalFetcher:
 
         # 方案1: Baostock（主力），连续失败N次后自动熔断跳过
         # baostock 使用单 TCP 连接，需要串行化所有查询
+        # 加超时保护：防止 baostock 网络卡死导致整个程序阻塞
         if self._bs_consecutive_fails < self._BS_FUSE_THRESHOLD:
-            try:
+            from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeout
+
+            def _bs_query_daily_basic():
+                self._ensure_bs_login()
+                import baostock as bs
+                bs_code = self._code_to_bs(code)
                 with self._bs_lock:
-                    self._ensure_bs_login()
-                    import baostock as bs
-
-                    bs_code = self._code_to_bs(code)
-
                     rs = bs.query_history_k_data_plus(
                         bs_code,
                         "date,peTTM,pbMRQ,turn",
@@ -722,10 +723,15 @@ class FundamentalFetcher:
                         frequency="d",
                         adjustflag="3"
                     )
-
                     rows = []
                     while rs.error_code == '0' and rs.next():
                         rows.append(rs.get_row_data())
+                return rows
+
+            try:
+                with ThreadPoolExecutor(max_workers=1) as ex:
+                    fut = ex.submit(_bs_query_daily_basic)
+                    rows = fut.result(timeout=15)
 
                 if rows:
                     df = pd.DataFrame(rows, columns=['date', 'pe_ttm', 'pb', 'turnover_rate'])
@@ -741,6 +747,11 @@ class FundamentalFetcher:
                     except Exception:
                         pass
                     return df
+            except FutureTimeout:
+                from ..bs_fuse import record_fail
+                self._bs_consecutive_fails += 1
+                record_fail(f"fundamental {code}: timeout 15s")
+                logger.warning(f"⚠️ Baostock获取 {code} 超时15s ({self._bs_consecutive_fails}/{self._BS_FUSE_THRESHOLD})")
             except Exception as e:
                 from ..bs_fuse import record_fail
                 self._bs_consecutive_fails += 1

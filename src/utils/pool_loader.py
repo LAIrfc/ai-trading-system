@@ -2,26 +2,55 @@
 """
 通用股票池加载器
 
-支持三种格式:
-  1. sectors格式 (stock_pool.json)
-  2. 综合格式 (stock_pool_all.json): stocks + etf 分区
-  3. ETF格式 (etf_pool.json): categories分区
+支持两种格式:
+  1. 综合格式 (stock_pool_all.json): stocks 分区（沪深300+中证500+科创50+创业板300+创业板活跃）
+  2. ETF格式 (etf_pool.json): categories分区
 
 用法:
   from src.utils.pool_loader import load_pool
   stocks = load_pool('mydate/stock_pool_all.json')
-  stocks = load_pool('mydate/stock_pool_all.json', include_etf=True, max_count=500)
+  stocks = load_pool('mydate/stock_pool_all.json', max_count=500)
 """
 
 import json
+import logging
 import os
 import random
+
+logger = logging.getLogger(__name__)
+
+# 科创50成分股（000688指数），动态获取失败时的硬编码回退
+_KC50_FALLBACK = frozenset([
+    '688008', '688009', '688012', '688027', '688036', '688041', '688047',
+    '688065', '688072', '688082', '688099', '688111', '688114', '688120',
+    '688122', '688126', '688169', '688183', '688187', '688188', '688213',
+    '688220', '688223', '688234', '688249', '688256', '688271', '688278',
+    '688297', '688303', '688349', '688361', '688375', '688396', '688469',
+    '688472', '688506', '688521', '688525', '688538', '688568', '688578',
+    '688599', '688608', '688617', '688702', '688728', '688777', '688981',
+    '689009',
+])
+
+
+def _get_kc50_codes() -> frozenset:
+    """获取科创50成分股代码集合，失败时用硬编码回退"""
+    try:
+        import akshare as ak
+        df = ak.index_stock_cons(symbol='000688')
+        col = '品种代码' if '品种代码' in df.columns else df.columns[0]
+        codes = frozenset(df[col].astype(str).tolist())
+        if len(codes) >= 40:
+            return codes
+    except Exception:
+        pass
+    return _KC50_FALLBACK
 
 
 def load_pool(pool_file: str,
               max_count: int = 0,
               sector: str = None,
-              include_etf: bool = False) -> list:
+              include_etf: bool = False,
+              star_filter: str = 'all') -> list:
     """
     通用股票池加载器，自动识别格式
     
@@ -30,6 +59,8 @@ def load_pool(pool_file: str,
         max_count: 最大股票数量（0=不限制）
         sector: 筛选特定板块（模糊匹配）
         include_etf: 是否包含ETF（仅对综合格式有效）
+        star_filter: 科创板过滤策略: 'kc50'=只保留科创50成分股, 'all'=全部保留, 'none'=完全排除
+                     注：新版池子(v2)已在构建时只纳入科创50，默认'all'即可
     
     Returns:
         list[dict]: [{'code': '600030', 'name': '中信证券', 'sector': '证券', ...}, ...]
@@ -68,7 +99,7 @@ def load_pool(pool_file: str,
                         'type': 'ETF',
                     })
 
-    # 格式2: sectors格式 (stock_pool.json)
+    # 格式2: sectors格式 (兼容旧格式)
     elif 'sectors' in pool:
         for sec_name, sec_stocks in pool['sectors'].items():
             if sector and sector not in sec_name:
@@ -94,6 +125,18 @@ def load_pool(pool_file: str,
                     'track': e.get('track', ''),
                     'type': 'ETF',
                 })
+
+    # 科创板过滤：默认只保留科创50成分股
+    if star_filter != 'all':
+        before_count = len(stocks)
+        if star_filter == 'none':
+            stocks = [s for s in stocks if not s['code'].startswith('688')]
+        elif star_filter == 'kc50':
+            kc50_codes = _get_kc50_codes()
+            stocks = [s for s in stocks if not s['code'].startswith('688') or s['code'] in kc50_codes]
+        filtered = before_count - len(stocks)
+        if filtered > 0:
+            logger.info(f"科创板过滤({star_filter}): 移除{filtered}只, 保留{len([s for s in stocks if s['code'].startswith('688')])}只科创板股票")
 
     # 限制数量（按板块均匀分配）
     if max_count > 0 and len(stocks) > max_count:

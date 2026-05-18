@@ -12,20 +12,14 @@
 4. 输出：该买哪些、该卖哪些、观望哪些；每只附带信号强度、建议仓位、理由
 
 用法:
-    # 推荐：组合策略固定权重投票（L0过滤 + L3投票）
     python3 tools/analysis/recommend_today.py --pool mydate/stock_pool_all.json --strategy ensemble --top 20
-
-    # 单 MACD 快速筛选
-    python3 tools/analysis/recommend_today.py --pool mydate/stock_pool.json --strategy macd --top 10
-
-    # 跳过政策面大盘过滤（强制执行选股）
     python3 tools/analysis/recommend_today.py --no-policy-filter
 
-L3策略（固定权重，与 ensemble 同步）: 技术面6 + 基本面3 + NEWS + SENTIMENT + MONEY_FLOW + EARNINGS_GROWTH 等
+L3策略（14大策略加权投票）: 技术面6(MA/MACD/RSI/BOLL/KDJ/DUAL) + 基本面3(PE/PB/PEPB) + NEWS + SENTIMENT + MONEY_FLOW + EARNINGS_GROWTH + INDUSTRY_TREND
 L0大盘过滤: POLICY（PolicyEvent，极度利空时阻止选股）
 
 【重要】每日选股只从综合大池 stock_pool_all.json 中选取。
-综合大池 = 沪深300 + 中证500 指数成分股 + 7大赛道龙头 + 56只主流ETF，合计约860只。
+综合大池 = 沪深300 + 中证500 + 科创50 + 创业板300(创业板指+创业板200) + 创业板活跃补充，合计约1100只。
 数据获取走 UnifiedDataProvider 统一接口，自动多源降级（sina > eastmoney > tencent > tushare > baostock）。
 
 输出:
@@ -169,6 +163,17 @@ def _render_portfolio_section(holdings: list, provider=None) -> str:
 
     total_cost = 0
     total_value = 0
+    from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeout
+
+    def _safe_get_price(prov, code):
+        is_etf = (code.startswith('5') or code.startswith('159')) and len(code) == 6
+        df = prov.get_kline(symbol=code, datalen=3, min_bars=1,
+                            retries=1, timeout=8,
+                            **({"is_etf": True} if is_etf else {}))
+        if df is not None and not df.empty:
+            return float(df['close'].iloc[-1])
+        return 0
+
     for h in holdings:
         code = h['code']
         name = h.get('name', '')
@@ -177,19 +182,17 @@ def _render_portfolio_section(holdings: list, provider=None) -> str:
         latest = 0
         if provider:
             try:
-                # 先用通用接口（覆盖范围更广），ETF 专用接口常被封
-                df = provider.get_kline(symbol=code, datalen=3, min_bars=1, retries=1, timeout=8)
-                if df is not None and not df.empty:
-                    latest = float(df['close'].iloc[-1])
-                else:
-                    # 通用接口失败，再试 ETF 专用
-                    is_etf = (code.startswith('5') or code.startswith('159')) and len(code) == 6
-                    if is_etf:
-                        df2 = provider.get_kline(symbol=code, datalen=3, min_bars=1, retries=1, timeout=8, is_etf=True)
-                        if df2 is not None and not df2.empty:
-                            latest = float(df2['close'].iloc[-1])
-            except Exception:
+                with ThreadPoolExecutor(max_workers=1) as pool:
+                    latest = pool.submit(_safe_get_price, provider, code).result(timeout=12)
+            except (FuturesTimeout, Exception):
                 pass
+            if latest == 0:
+                try:
+                    cached = load_cached_kline(code)
+                    if cached is not None and not cached.empty:
+                        latest = float(cached['close'].iloc[-1])
+                except Exception:
+                    pass
         cost_total = cost * shares
         value_total = latest * shares if latest > 0 else 0
         pnl = ((latest / cost - 1) * 100) if cost > 0 and latest > 0 else 0
@@ -694,10 +697,7 @@ def _select_elite_top5(top_list: list) -> list:
     if not top_list:
         return []
 
-    # 过滤科创板（688开头）和ST股票
-    top_list = [r for r in top_list 
-                if not str(r.get('code', '')).startswith('688')
-                and not is_st_stock(r.get('name', ''))]
+    top_list = [r for r in top_list if not is_st_stock(r.get('name', ''))]
 
     scored = []
     for r in top_list:
@@ -1043,7 +1043,7 @@ def _render_daily_section(today: str, top_list: list, strategy_name: str,
     doubler_results = []
     try:
         from src.strategies.doubler_model import batch_evaluate_doubler, render_doubler_section
-        doubler_results = batch_evaluate_doubler(top_list, top_n=10)
+        doubler_results = batch_evaluate_doubler(top_list, top_n=len(top_list))
         if doubler_results:
             lines.append(render_doubler_section(doubler_results))
     except Exception as e:
@@ -1058,6 +1058,20 @@ def _render_daily_section(today: str, top_list: list, strategy_name: str,
                 lines.append(golden_section)
         except Exception as e:
             lines.append(f"\n> ⚠️ 黄金交叉分析异常: {e}\n")
+
+    # ====== 统一分层榜单（6层 × 产业主线标签） ======
+    try:
+        from src.strategies.unified_ranking import build_unified_ranking, render_unified_ranking
+        unified_ranked = build_unified_ranking(
+            recommend_results=top_list,
+            tenbagger_results=tenbagger_results,
+            doubler_results=doubler_results,
+            top_n_main=min(len(top_list), 15),
+        )
+        if unified_ranked:
+            lines.append(render_unified_ranking(unified_ranked))
+    except Exception as e:
+        lines.append(f"\n> ⚠️ 统一分层榜单生成异常: {e}\n")
 
     # 每只推荐股的深度分析（复用持仓同款分析引擎）
     for rank, r in enumerate(top_list, 1):
@@ -2551,7 +2565,7 @@ def _get_global_strategies():
     return _GLOBAL_STRATEGIES
 
 
-def run_full_12_analysis(code: str, name: str, sector: str, df: pd.DataFrame, fetcher: FundamentalFetcher, skip_industry: bool = False, index_df: pd.DataFrame = None, sector_codes: set = None) -> dict:
+def run_full_12_analysis(code: str, name: str, sector: str, df: pd.DataFrame, fetcher: FundamentalFetcher, skip_industry: bool = False, index_df: pd.DataFrame = None, sector_codes: set = None, skip_llm: bool = False) -> dict:
     """
     运行 14 大策略: MA, MACD, RSI, BOLL, KDJ, DUAL, PE, PB, PEPB, NEWS, SENTIMENT, MONEY_FLOW, EARNINGS_GROWTH, INDUSTRY_TREND。
     返回 buy_count, sell_count, hold_count, score（归一化方向分 + 平均置信度）, signals 列表。
@@ -2559,6 +2573,7 @@ def run_full_12_analysis(code: str, name: str, sector: str, df: pd.DataFrame, fe
     Args:
         skip_industry: 是否跳过行业PE/PB查询（纯缓存模式用，避免网络请求）
         index_df: 指数数据（沪深300），避免重复获取
+        skip_llm: 跳过LLM策略(NEWS/INDUSTRY_TREND)，用于分层延迟优化的第一轮快速打分
     
     优化:
         1. 使用全局策略实例（避免重复创建）
@@ -2615,10 +2630,13 @@ def run_full_12_analysis(code: str, name: str, sector: str, df: pd.DataFrame, fe
 
     # PE/PB/PEPB 跳过主循环，由下方行业感知版本单独计算（避免双重计分）
     SKIP_IN_MAIN_LOOP = {'PE', 'PB', 'PEPB'}
+    LLM_STRATEGIES = {'NEWS', 'INDUSTRY_TREND'}
     
     for strat_name, strat in tech_strategies.items():
         try:
             if strat_name in SKIP_IN_MAIN_LOOP:
+                continue
+            if skip_llm and strat_name in LLM_STRATEGIES:
                 continue
             if len(df) < strat.min_bars:
                 continue
@@ -2686,17 +2704,26 @@ def run_full_12_analysis(code: str, name: str, sector: str, df: pd.DataFrame, fe
     
     if not skip_industry and (has_pe_data or has_pb_data):
         try:
-            industry = fetcher.get_industry_classification(code)
-            if industry:
-                cninfo_data = fetcher.get_industry_pe_cninfo(industry)
-                if cninfo_data:
-                    pe_val = cninfo_data.get('pe_weighted') or cninfo_data.get('pe_median')
-                    if pe_val and pe_val > 0:
-                        # 用行业PE均值构造对称分布（±30%范围），比常量序列更合理
-                        import numpy as np
-                        _rng = np.random.RandomState(hash(industry) & 0xFFFFFFFF)
-                        industry_pe_data = pd.Series(
-                            _rng.normal(pe_val, pe_val * 0.15, 400).clip(pe_val * 0.5, pe_val * 2.0))
+            from concurrent.futures import ThreadPoolExecutor as _TPE, TimeoutError as _TE
+            def _fetch_industry_data():
+                ind = fetcher.get_industry_classification(code)
+                if ind:
+                    cd = fetcher.get_industry_pe_cninfo(ind)
+                    return ind, cd
+                return None, None
+            with _TPE(max_workers=1) as _ex:
+                _fut = _ex.submit(_fetch_industry_data)
+                try:
+                    industry, cninfo_data = _fut.result(timeout=10)
+                    if cninfo_data:
+                        pe_val = cninfo_data.get('pe_weighted') or cninfo_data.get('pe_median')
+                        if pe_val and pe_val > 0:
+                            import numpy as np
+                            _rng = np.random.RandomState(hash(industry) & 0xFFFFFFFF)
+                            industry_pe_data = pd.Series(
+                                _rng.normal(pe_val, pe_val * 0.15, 400).clip(pe_val * 0.5, pe_val * 2.0))
+                except _TE:
+                    pass
         except Exception:
             pass
 
@@ -3307,7 +3334,10 @@ def main():
             _pe_pb_merged = False
             if _use_fundamental and not _cache_only:
                 try:
-                    hist_df = fetcher.get_daily_basic(code)
+                    from concurrent.futures import TimeoutError as _FT
+                    with ThreadPoolExecutor(max_workers=1) as _ex:
+                        _fut = _ex.submit(fetcher.get_daily_basic, code)
+                        hist_df = _fut.result(timeout=20)
                     if hist_df is not None and not hist_df.empty and len(hist_df) > 50:
                         hist_df['date'] = pd.to_datetime(hist_df['date'])
                         df['date'] = pd.to_datetime(df['date'])
@@ -3319,7 +3349,7 @@ def main():
                                 df[col] = df[col].ffill().bfill()
                         if 'pe_ttm' in df.columns and df['pe_ttm'].notna().sum() > 50:
                             _pe_pb_merged = True
-                except Exception:
+                except (_FT, Exception):
                     pass
 
             if _use_fundamental and fund_data:
@@ -3415,8 +3445,9 @@ def main():
                 print(f"✅ 行业分类缓存就绪: {len(_industry_map)} 只已缓存", flush=True)
                 _ind_ok = True
             except Exception as _ind_e:
-                print(f"⚠️ 行业分类预热超时/失败({_industry_timeout}s)，使用已有缓存继续", flush=True)
+                print(f"⚠️ 行业分类预热超时/失败({_industry_timeout}s)，跳过行业PE对比", flush=True)
                 _ind_future.cancel()
+                skip_industry_eval = True
             finally:
                 _ind_executor.shutdown(wait=False)
             if _ind_ok:
@@ -3468,43 +3499,107 @@ def main():
         else:
             print(f"\n📌 股票池≤{_PRESCREEN_TOP_N}只, 跳过快筛直接全量分析")
 
-        # ========== 阶段2: 多线程并行策略分析 ==========
+        # ========== 阶段2: 分层策略分析（先纯计算后选择性LLM） ==========
         max_workers = 16
-        print(f"\n🚀 阶段2: {max_workers}线程并行策略分析 ({len(prepared_stocks)}只)...\n")
+        llm_workers = 32  # LLM是IO密集型，用更多线程
 
-        def analyze_stock(item):
+        # --- 阶段2a: 纯计算策略快速打分（12策略，~1min） ---
+        print(f"\n🚀 阶段2a: {max_workers}线程快速打分 ({len(prepared_stocks)}只, 跳过LLM)...\n")
+
+        def analyze_stock_fast(item):
             code, name, sector, df = item
             try:
                 sc = _sector_to_codes.get(sector)
-                return run_full_12_analysis(code, name, sector, df, fetcher, skip_industry=skip_industry_eval, index_df=index_df, sector_codes=sc)
+                return run_full_12_analysis(code, name, sector, df, fetcher, skip_industry=skip_industry_eval, index_df=index_df, sector_codes=sc, skip_llm=True)
             except Exception:
                 return None
-        
+
         completed = 0
-        analysis_timeout = 2400
-        with ThreadPoolExecutor(max_workers=max_workers) as executor:
-            futures = {executor.submit(analyze_stock, item): item for item in prepared_stocks}
-            try:
-                for future in as_completed(futures, timeout=analysis_timeout):
-                    completed += 1
-                    if completed % 50 == 0 or completed == len(prepared_stocks):
-                        pct = completed / len(prepared_stocks) * 100
-                        bar = '█' * int(pct / 2) + '░' * (50 - int(pct / 2))
-                        print(f"\r  [{bar}] {completed}/{len(prepared_stocks)} ({pct:.0f}%)", end='', flush=True)
-                    try:
-                        result = future.result(timeout=0)
-                        if result:
-                            full_results.append(result)
-                        else:
-                            fail_count += 1
-                    except Exception:
+        fast_results = []
+        executor = ThreadPoolExecutor(max_workers=max_workers)
+        futures = {executor.submit(analyze_stock_fast, item): item for item in prepared_stocks}
+        try:
+            for future in as_completed(futures, timeout=300):
+                completed += 1
+                if completed % 50 == 0 or completed == len(prepared_stocks):
+                    pct = completed / len(prepared_stocks) * 100
+                    bar = '█' * int(pct / 2) + '░' * (50 - int(pct / 2))
+                    print(f"\r  [{bar}] {completed}/{len(prepared_stocks)} ({pct:.0f}%)", end='', flush=True)
+                try:
+                    result = future.result(timeout=0)
+                    if result:
+                        fast_results.append(result)
+                    else:
                         fail_count += 1
-            except TimeoutError:
-                not_done = sum(1 for f in futures if not f.done())
-                fail_count += not_done
-                print(f"\n⏱️  策略分析总超时({analysis_timeout}s)，{not_done}只未完成")
+                except Exception:
+                    fail_count += 1
+        except TimeoutError:
+            not_done = sum(1 for f in futures if not f.done())
+            for f in futures:
+                f.cancel()
+            fail_count += not_done
+            print(f"\n⏱️  快速打分超时(300s)，{not_done}只未完成")
+        finally:
+            executor.shutdown(wait=True, cancel_futures=True)
+
         if fail_count:
             print(f"\n⚠️  {fail_count} 只数据不足或失败，已跳过")
+
+        if not fast_results:
+            print("\n⚠️ 无有效分析结果")
+            return
+
+        # --- 阶段2b: LLM增强（全量300只，32线程高并发） ---
+        print(f"\n  ✅ 快速打分完成: {len(fast_results)}只有效，全部进入LLM增强")
+
+        _code_to_prepared = {item[0]: item for item in prepared_stocks}
+        llm_items = [_code_to_prepared[r['code']] for r in fast_results if r['code'] in _code_to_prepared]
+
+        print(f"\n🧠 阶段2b: {llm_workers}线程LLM增强 ({len(llm_items)}只, NEWS+INDUSTRY_TREND)...\n")
+
+        def analyze_stock_full(item):
+            code, name, sector, df = item
+            try:
+                sc = _sector_to_codes.get(sector)
+                return run_full_12_analysis(code, name, sector, df, fetcher, skip_industry=skip_industry_eval, index_df=index_df, sector_codes=sc, skip_llm=False)
+            except Exception:
+                return None
+
+        completed = 0
+        llm_results = []
+        executor2 = ThreadPoolExecutor(max_workers=llm_workers)
+        futures = {executor2.submit(analyze_stock_full, item): item for item in llm_items}
+        try:
+            for future in as_completed(futures, timeout=300):
+                completed += 1
+                if completed % 30 == 0 or completed == len(llm_items):
+                    pct = completed / len(llm_items) * 100
+                    bar = '█' * int(pct / 2) + '░' * (50 - int(pct / 2))
+                    print(f"\r  [{bar}] {completed}/{len(llm_items)} ({pct:.0f}%)", end='', flush=True)
+                try:
+                    result = future.result(timeout=0)
+                    if result:
+                        llm_results.append(result)
+                except Exception:
+                    pass
+        except TimeoutError:
+            not_done = sum(1 for f in futures if not f.done())
+            for f in futures:
+                f.cancel()
+            print(f"\n⏱️  LLM增强超时(300s)，{not_done}只未完成")
+        finally:
+            executor2.shutdown(wait=True, cancel_futures=True)
+
+        # 合并结果：LLM结果覆盖快速打分结果
+        llm_code_map = {r['code']: r for r in llm_results}
+        full_results = []
+        for r in fast_results:
+            if r['code'] in llm_code_map:
+                full_results.append(llm_code_map[r['code']])
+            else:
+                full_results.append(r)
+
+        print(f"\n  ✅ LLM增强完成: {len(llm_results)}/{len(llm_items)}只成功")
         
         # 保存新闻磁盘缓存（避免下次重复调API）
         try:
@@ -3608,6 +3703,7 @@ def main():
             print("⚠️  政策预警触发：已自动提高选股门槛")
 
         total_before = len(df_scores)
+        df_scores_before_quality_gate = df_scores.copy()
         quality_mask = pd.Series(True, index=df_scores.index)
 
         if 'price' in df_scores.columns:
@@ -3635,8 +3731,9 @@ def main():
             print(f"   过滤条件: 股价≥{qg_price_min}元, 市值≥{qg_market_cap_min/1e8:.0f}亿, 0<PE<{qg_pe_max}, 策略看多≥{qg_buy_count_min}, 量比≥{qg_volume_ratio_min}")
 
         if df_scores.empty:
-            print("\n⚠️ 质量过滤后无有效标的")
-            return
+            print("\n⚠️ 质量过滤后无有效标的 — 回退使用过滤前候选池继续出报告（常见于震荡市+缓存行情 stale、或全市场量能偏弱）")
+            print("   建议：对照盘中真实量比/基本面核对；若连续出现可考虑调低震荡档 buy_count 门槛。")
+            df_scores = df_scores_before_quality_gate
 
         earnings_top = []  # 业绩增速TOP10（混合引擎块内填充）
         earnings_codes = []
@@ -3977,7 +4074,7 @@ def main():
         for c in final_recommend[:args.top]:
             if c not in dual_advantage_stocks:
                 row = df_scores.loc[c]
-                if row.get('fund_norm', 0) > 0.7 and row.get('tech_norm', 0) > 0.7:
+                if row.get('fund_norm', 0) > 0.85 and row.get('tech_norm', 0) > 0.85:
                     dual_advantage_stocks.append(c)
                     if c not in mr_list:
                         mr_list.append(c)
@@ -4284,41 +4381,109 @@ def main():
                     orig_data['risk_weight'] = final_weights.get(code, 0)
                     top_list.append(orig_data)
         
-        # 输出市场状态和榜单统计
+        # 输出市场状态
         regime_label = "强趋势" if regime_score > 0.5 else ("偏趋势" if regime_score > 0 else "震荡")
         print(f"\n\n🌐 市场状态: {regime_label} (Regime Score={regime_score:.3f}) | 使用版本: {selected_version} | 统一漏斗TOP{len(top_list)}只 | ⭐双优(基本面+技术面){len(dual_advantage_stocks)}只")
-        
-        if dual_advantage_stocks:
-            print(f"\n{'='*90}")
-            print(f"⭐⭐⭐ 双优股票（基本面TOP30%+技术面TOP30%，黄金标的）")
-            print(f"{'='*90}")
-            for code in dual_advantage_stocks:
-                r_row = df_scores.loc[code]
-                orig_data = next((x for x in full_results if x['code'] == code), None)
-                if orig_data:
-                    ev = r_row.get('event_norm', 0.5)
-                    print(f"  {code} {orig_data['name']:>10} | 基本面={r_row['fund_norm']:.2f} | 技术面={r_row['tech_norm']:.2f} | 事件={ev:.2f} | 统一分={r_row['unified_score']:.4f} | 价格¥{orig_data['price']:.2f}")
-            print(f"{'='*90}\n")
-        
-        print(f"\n{'='*120}")
-        print(f"🔥 统一漏斗推荐 TOP {len(top_list)}（基本面×技术面×事件×业绩×景气度）")
-        print(f"{'='*120}")
-        print(f"{'排名':>4} {'代码':>8} {'名称':>10} {'统一分':>7} {'基本面':>6} {'技术面':>6} {'事件':>5} {'业绩':>5} {'景气':>5} {'价格':>8} {'5日%':>7} {'20日%':>7} {'板块'}")
-        print("-" * 120)
-        
-        for rank, r in enumerate(top_list, 1):
-            code = r['code']
-            u_score = df_scores.loc[code, 'unified_score'] if code in df_scores.index else 0
-            f_norm = df_scores.loc[code, 'fund_norm'] if code in df_scores.index else 0
-            t_norm = df_scores.loc[code, 'tech_norm'] if code in df_scores.index else 0
-            ev_norm = df_scores.loc[code, 'event_norm'] if code in df_scores.index else 0
-            e_dim = df_scores.loc[code, 'earnings_dim'] if code in df_scores.index else 0
-            ip = df_scores.loc[code, 'industry_prosperity'] if code in df_scores.index else 0
-            
-            print(f"{rank:>4} {r['code']:>8} {r['name']:>10} {u_score:>7.4f} {f_norm:>6.3f} {t_norm:>6.3f} "
-                  f"{ev_norm:>5.2f} {e_dim:>5.2f} {ip:>5.2f} {r['price']:>8.2f} "
-                  f"{r['change_5d']:>+7.2f} {r['change_20d']:>+7.2f} {str(r['sector'])[:12]}")
-        print("-" * 120)
+
+        # ========== 6层统一分层榜单（终端输出） ==========
+        # 运行十倍/翻倍模型获取分层数据
+        _tenbagger_results_term = []
+        try:
+            from src.strategies.tenbagger_model import batch_evaluate_tenbagger, TENBAGGER_WATCHLIST
+            _tb_top_codes = {r['code'] for r in top_list}
+            _tb_watchlist_in_pool = []
+            if full_results:
+                _tb_wl_codes = {w['code'] for w in TENBAGGER_WATCHLIST}
+                _tb_watchlist_in_pool = [
+                    r for r in full_results
+                    if r['code'] in _tb_wl_codes and r['code'] not in _tb_top_codes
+                ]
+            _tenbagger_results_term = batch_evaluate_tenbagger(top_list + _tb_watchlist_in_pool, top_n=15)
+        except Exception as e:
+            logger.warning(f"终端输出十倍股模型异常: {e}")
+
+        _doubler_results_term = []
+        try:
+            from src.strategies.doubler_model import batch_evaluate_doubler
+            _doubler_results_term = batch_evaluate_doubler(top_list, top_n=len(top_list))
+        except Exception as e:
+            logger.warning(f"终端输出翻倍股模型异常: {e}")
+
+        # 构建统一分层
+        from src.strategies.unified_ranking import build_unified_ranking, TIER_META
+        _unified_ranked = build_unified_ranking(
+            recommend_results=top_list,
+            tenbagger_results=_tenbagger_results_term,
+            doubler_results=_doubler_results_term,
+            top_n_main=min(len(top_list), 15),
+        )
+
+        # 打印6层榜单
+        if _unified_ranked:
+            print(f"\n{'='*100}")
+            print(f"📊 统一分层榜单（三套推荐交叉共振）")
+            print(f"{'='*100}")
+            _current_tier = ''
+            _tier_rank = 0
+            for _s in _unified_ranked:
+                if _s.tier != _current_tier:
+                    _current_tier = _s.tier
+                    _tier_rank = 0
+                    _title = TIER_META[_current_tier][0]
+                    print(f"\n{_title}")
+                    print("-" * 80)
+                    if _current_tier in ('triple', 'A'):
+                        print(f"  {'#':>2} {'代码':>8} {'名称':>10} {'产业主线':>10} {'十倍分':>6} {'翻倍分':>6} {'主推排名':>8} {'核心逻辑'}")
+                    elif _current_tier == 'B':
+                        print(f"  {'#':>2} {'代码':>8} {'名称':>10} {'产业主线':>10} {'翻倍分':>6} {'主推排名':>8} {'催化事件'}")
+                    elif _current_tier == 'main':
+                        print(f"  {'#':>2} {'代码':>8} {'名称':>10} {'产业主线':>10} {'主推排名':>8} {'翻倍分':>6} {'十倍分':>6}")
+                    elif _current_tier == 'doubler':
+                        print(f"  {'#':>2} {'代码':>8} {'名称':>10} {'产业主线':>10} {'翻倍分':>6} {'评级':>4} {'催化事件'}")
+                    elif _current_tier == 'tenbagger':
+                        print(f"  {'#':>2} {'代码':>8} {'名称':>10} {'产业主线':>10} {'十倍分':>6} {'评级':>4} {'核心优势'}")
+
+                _tier_rank += 1
+                _theme = f"【{_s.industry_theme}】" if _s.industry_theme else ''
+                _logic = '、'.join((_s.strengths[:1] + _s.catalysts[:1])) if (_s.strengths or _s.catalysts) else '-'
+
+                if _current_tier in ('triple', 'A'):
+                    _main_r = f"TOP{_s.main_rank}" if _s.main_rank else '-'
+                    print(f"  {_tier_rank:>2} {_s.code:>8} {_s.name:>10} {_theme:>10} {_s.tenbagger_score:>6.0f} {_s.doubler_score:>6.0f} {_main_r:>8} {_logic}")
+                elif _current_tier == 'B':
+                    _cat = '、'.join(_s.catalysts[:2]) if _s.catalysts else '-'
+                    print(f"  {_tier_rank:>2} {_s.code:>8} {_s.name:>10} {_theme:>10} {_s.doubler_score:>6.0f} {'TOP'+str(_s.main_rank):>8} {_cat}")
+                elif _current_tier == 'main':
+                    print(f"  {_tier_rank:>2} {_s.code:>8} {_s.name:>10} {_theme:>10} {'TOP'+str(_s.main_rank):>8} {_s.doubler_score:>6.0f} {_s.tenbagger_score:>6.0f}")
+                elif _current_tier == 'doubler':
+                    _cat = '、'.join(_s.catalysts[:2]) if _s.catalysts else '-'
+                    print(f"  {_tier_rank:>2} {_s.code:>8} {_s.name:>10} {_theme:>10} {_s.doubler_score:>6.0f} {_s.doubler_grade:>4} {_cat}")
+                elif _current_tier == 'tenbagger':
+                    _str = '、'.join(_s.strengths[:2]) if _s.strengths else '-'
+                    print(f"  {_tier_rank:>2} {_s.code:>8} {_s.name:>10} {_theme:>10} {_s.tenbagger_score:>6.0f} {_s.tenbagger_grade:>4} {_str}")
+
+            # 统计
+            _tier_counts = {}
+            for _s in _unified_ranked:
+                _tier_counts[_s.tier] = _tier_counts.get(_s.tier, 0) + 1
+            print(f"\n{'='*100}")
+            _summary = []
+            for _tk in ['triple', 'A', 'B', 'main', 'doubler', 'tenbagger']:
+                if _tk in _tier_counts:
+                    _summary.append(f"{TIER_META[_tk][0].split('（')[0]}:{_tier_counts[_tk]}只")
+            print(' | '.join(_summary))
+            print(f"{'='*100}")
+        else:
+            # 无分层数据时 fallback 到旧格式
+            print(f"\n{'='*120}")
+            print(f"🔥 统一漏斗推荐 TOP {len(top_list)}（基本面×技术面×事件×业绩×景气度）")
+            print(f"{'='*120}")
+            for rank, r in enumerate(top_list, 1):
+                code = r['code']
+                u_score = df_scores.loc[code, 'unified_score'] if code in df_scores.index else 0
+                print(f"{rank:>4} {r['code']:>8} {r['name']:>10} {u_score:>7.4f} {r['price']:>8.2f}")
+            print("-" * 120)
+
         print("\n📋 策略信号明细（TOP3）:")
         for rank, r in enumerate(top_list[:3], 1):
             print(f"\n  {rank}. {r['code']} {r['name']} (得分 {r['score']:.1f}, 买{r['buy_count']}/卖{r['sell_count']}/观{r['hold_count']})")
@@ -4715,6 +4880,15 @@ def main():
     )
     print(f"\n📝 增量报告已保存: {report_path}")
     print(f"📝 当日归档已保存: {archive_path}")
+
+    # 每日推荐完成后自动刷新股票池（更新创业板活跃补充）
+    try:
+        from tools.data.refresh_stock_pool import build_pool
+        print(f"\n🔄 自动刷新股票池(更新创业板活跃补充)...")
+        build_pool()
+    except Exception as e:
+        print(f"⚠️ 自动刷新股票池失败: {e}")
+
     print(f"\n✅ 分析完成!")
 
 
