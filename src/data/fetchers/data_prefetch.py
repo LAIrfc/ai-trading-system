@@ -27,8 +27,8 @@ except ImportError:
 STOCK_DAILY_TIMEOUT = 10
 STOCK_DAILY_RETRIES = 3
 # 熔断：连续失败次数阈值、熔断时长（秒），与文档 3.1 一致
-CIRCUIT_FAIL_THRESHOLD = 3
-CIRCUIT_OPEN_SECONDS = 300
+CIRCUIT_FAIL_THRESHOLD = 10
+CIRCUIT_OPEN_SECONDS = 60
 # ETF 源单独设置更宽松的阈值（ETF 数据源少，单个标的失败不代表源不可用）
 _ETF_SOURCES = {"akshare_etf", "push2his_etf", "baostock_etf"}
 CIRCUIT_FAIL_THRESHOLD_ETF = 10

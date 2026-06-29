@@ -180,6 +180,73 @@ def main():
     if len(results) > args.top:
         print(f"\n  (剩余 {len(results) - args.top} 只未列出，可增大 --top 查看)")
 
+    # ====== 十倍股模型 ======
+    print(f"\n{'='*70}")
+    print("🏔️ 长周期十倍股模型 (3-5年) — 7条铁律")
+    print(f"{'='*70}\n")
+    try:
+        from src.strategies.tenbagger_model import batch_evaluate_tenbagger
+        tb_results = batch_evaluate_tenbagger(results, top_n=len(results))
+        print(f"{'排名':<4} {'代码':<8} {'名称':<10} {'总分':<6} {'评级':<4} {'赛道':<5} {'市值':<5} {'壁垒':<5} {'拐点':<5} {'替代':<5} {'催化':<5} {'估值':<5} {'赛道匹配'}")
+        print("-" * 95)
+        for i, tr in enumerate(tb_results, 1):
+            tracks_str = '/'.join(tr.matched_tracks[:2]) if tr.matched_tracks else '-'
+            print(f" {i:<3} {tr.code:<8} {tr.name:<10} {tr.tenbagger_score:>4.0f}  {tr.tenbagger_grade:<4} "
+                  f"{tr.score_track:>4.0f} {tr.score_mcap:>4.0f} {tr.score_moat:>4.0f} "
+                  f"{tr.score_earning:>4.0f} {tr.score_replace:>4.0f} {tr.score_catalyst:>4.0f} "
+                  f"{tr.score_value:>4.0f}  {tracks_str}")
+        print()
+        for i, tr in enumerate(tb_results, 1):
+            print(f"  [{i}] {tr.name}({tr.code}) — {tr.tenbagger_score:.0f}/700 ({tr.tenbagger_grade}级)")
+            if hasattr(tr, 'risk_flags') and tr.risk_flags:
+                print(f"      ⚠️ 风险: {', '.join(tr.risk_flags)}")
+            if hasattr(tr, 'detail_reasons') and tr.detail_reasons:
+                for reason in tr.detail_reasons[:5]:
+                    print(f"      • {reason}")
+    except Exception as e:
+        print(f"  ❌ 十倍股模型异常: {e}")
+        import traceback; traceback.print_exc()
+
+    # ====== 翻倍股模型 ======
+    print(f"\n{'='*70}")
+    print("🚀 短周期翻倍股模型 (3-6个月)")
+    print(f"{'='*70}\n")
+    try:
+        from src.strategies.doubler_model import batch_evaluate_doubler
+        db_results = batch_evaluate_doubler(results, top_n=len(results))
+        print(f"{'排名':<4} {'代码':<8} {'名称':<10} {'评分':<6} {'评级':<4} {'热度':<6} {'资金':<6} {'催化':<6} {'预期差':<6} {'筹码':<6} {'赛道'}")
+        print("-" * 90)
+        for i, dr in enumerate(db_results, 1):
+            hot = getattr(dr, 'hot_sector', '') or ''
+            print(f" {i:<3} {dr.code:<8} {dr.name:<10} {dr.doubler_score:>4.0f}  {dr.doubler_grade:<4} "
+                  f"{dr.sector_heat:>5.0%} {dr.capital_intensity:>5.0%} "
+                  f"{dr.catalyst_density:>5.0%} {dr.expectation_diff:>5.0%} "
+                  f"{dr.chip_concentration:>5.0%}  {hot}")
+        print()
+        for i, dr in enumerate(db_results, 1):
+            desc = getattr(dr, 'catalyst_desc', '') or ''
+            print(f"  [{i}] {dr.name}({dr.code}) — {dr.doubler_score:.0f}/100 ({dr.doubler_grade}级)")
+            if desc:
+                print(f"      催化: {desc}")
+            if hasattr(dr, 'risk_flags') and dr.risk_flags:
+                print(f"      ⚠️ 风险: {', '.join(dr.risk_flags)}")
+    except Exception as e:
+        print(f"  ❌ 翻倍股模型异常: {e}")
+        import traceback; traceback.print_exc()
+
+    # ====== 黄金交叉 ======
+    try:
+        from src.strategies.tenbagger_model import find_golden_cross_enhanced
+        if tb_results and db_results:
+            golden = find_golden_cross_enhanced(tb_results, db_results)
+            if golden and golden.strip():
+                print(f"\n{'='*70}")
+                print("🏆 黄金交叉（十倍逻辑 + 短期资金启动）")
+                print(f"{'='*70}")
+                print(golden)
+    except Exception as e:
+        pass
+
     print()
 
 

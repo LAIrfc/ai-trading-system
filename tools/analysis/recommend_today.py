@@ -1019,31 +1019,26 @@ def _render_daily_section(today: str, top_list: list, strategy_name: str,
         lines.append("")
 
     # ====== 长周期十倍股模型 (3-5年) ======
+    # 独立全市场扫描：优先用 all_results（全量分析池），不仅限于 top_list
     tenbagger_results = []
     try:
         from src.strategies.tenbagger_model import (
             batch_evaluate_tenbagger, render_tenbagger_section, TENBAGGER_WATCHLIST
         )
-        top_codes = {r['code'] for r in top_list}
-        watchlist_in_pool = []
-        if all_results:
-            watchlist_codes = {w['code'] for w in TENBAGGER_WATCHLIST}
-            watchlist_in_pool = [
-                r for r in all_results
-                if r['code'] in watchlist_codes and r['code'] not in top_codes
-            ]
-        eval_list = top_list + watchlist_in_pool
-        tenbagger_results = batch_evaluate_tenbagger(eval_list, top_n=15)
+        tenbagger_pool = all_results if all_results else top_list
+        tenbagger_results = batch_evaluate_tenbagger(tenbagger_pool, top_n=15)
         if tenbagger_results:
             lines.append(render_tenbagger_section(tenbagger_results))
     except Exception as e:
         lines.append(f"\n> ⚠️ 十倍股模型运行异常: {e}\n")
 
     # ====== 短周期翻倍股模型 (3-6个月) ======
+    # 独立全市场扫描：优先用 all_results（全量分析池），不仅限于 top_list
     doubler_results = []
     try:
         from src.strategies.doubler_model import batch_evaluate_doubler, render_doubler_section
-        doubler_results = batch_evaluate_doubler(top_list, top_n=len(top_list))
+        doubler_pool = all_results if all_results else top_list
+        doubler_results = batch_evaluate_doubler(doubler_pool, top_n=15)
         if doubler_results:
             lines.append(render_doubler_section(doubler_results))
     except Exception as e:
@@ -1990,7 +1985,7 @@ def _get_last_trading_day(now_dt=None):
 
 
 _kline_consecutive_fails = 0
-_KLINE_CIRCUIT_THRESHOLD = 10
+_KLINE_CIRCUIT_THRESHOLD = 30
 _kline_fails_lock = threading.Lock()
 
 
@@ -2047,10 +2042,10 @@ def update_kline_cache(code: str, cache_dir: str = None, days: int = 200) -> pd.
     from concurrent.futures import TimeoutError as FutureTimeout
     new_df = None
     with _kline_fails_lock:
-        effective_timeout = 12 if _kline_consecutive_fails < 3 else 6
+        effective_timeout = 8 if _kline_consecutive_fails < 3 else 4
     try:
         with ThreadPoolExecutor(max_workers=1) as ex:
-            fut = ex.submit(provider.get_kline, symbol=code, datalen=days, min_bars=1, retries=1, timeout=8)
+            fut = ex.submit(provider.get_kline, symbol=code, datalen=days, min_bars=1, retries=1, timeout=6)
             new_df = fut.result(timeout=effective_timeout)
     except (FutureTimeout, Exception) as e:
         logger.warning(f"数据获取超时或失败({code}): {e}")
@@ -3134,6 +3129,7 @@ def main():
                         help='强制使用指定版本（v5.2/v6.1/v6.4），None则根据IC自动选择')
     args = parser.parse_args()
 
+    _main_t0 = time.time()
     # 优先使用 mydate 目录，如果不存在则使用 data 目录
     base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     pool_file = os.path.join(base_dir, 'mydate', args.pool)
@@ -3290,7 +3286,8 @@ def main():
             except Exception:
                 pass
 
-        _stage1_workers = 16
+        _stage1_workers = 8
+        _stage1_t0 = time.time()
         print(f"\n📊 阶段1: {_stage1_workers}线程并发获取数据 ({len(stocks)} 只)...")
         prepared_stocks = []
         data_fail = 0
@@ -3307,6 +3304,8 @@ def main():
             sector = stock_info.get('sector', '')
             if not code or is_st_stock(name):
                 return None
+
+            time.sleep(0.08)
 
             if _cache_only:
                 df = load_cached_kline(code, cache_dir) if use_kline_cache else pd.DataFrame()
@@ -3337,7 +3336,7 @@ def main():
                     from concurrent.futures import TimeoutError as _FT
                     with ThreadPoolExecutor(max_workers=1) as _ex:
                         _fut = _ex.submit(fetcher.get_daily_basic, code)
-                        hist_df = _fut.result(timeout=20)
+                        hist_df = _fut.result(timeout=8)
                     if hist_df is not None and not hist_df.empty and len(hist_df) > 50:
                         hist_df['date'] = pd.to_datetime(hist_df['date'])
                         df['date'] = pd.to_datetime(df['date'])
@@ -3370,14 +3369,16 @@ def main():
 
             return (code, name, sector, df)
 
-        with ThreadPoolExecutor(max_workers=_stage1_workers) as executor:
-            futures = {executor.submit(_fetch_one_stock, si): si for si in stocks}
-            for future in as_completed(futures):
+        _STAGE1_HARD_TIMEOUT = 300
+        executor = ThreadPoolExecutor(max_workers=_stage1_workers)
+        futures = {executor.submit(_fetch_one_stock, si): si for si in stocks}
+        try:
+            for future in as_completed(futures, timeout=_STAGE1_HARD_TIMEOUT):
                 with _progress_lock:
                     _progress_done[0] += 1
                     done = _progress_done[0]
                 try:
-                    result = future.result()
+                    result = future.result(timeout=0)
                     if result is not None:
                         prepared_stocks.append(result)
                     else:
@@ -3386,12 +3387,57 @@ def main():
                     data_fail += 1
                 if done % 100 == 0:
                     print(f"\r  数据获取: {done}/{len(stocks)} (有效{len(prepared_stocks)})", end='', flush=True)
+        except TimeoutError:
+            not_done_stocks = [futures[f] for f in futures if not f.done()]
+            not_done = len(not_done_stocks)
+            for f in futures:
+                f.cancel()
+            print(f"\n⏱️ 阶段1硬超时({_STAGE1_HARD_TIMEOUT}s)，{not_done}只未完成，尝试缓存兜底...", flush=True)
+            _prepared_codes = {item[0] for item in prepared_stocks}
+            _cache_recovered = 0
+            for si in not_done_stocks:
+                _c = si.get('code') or si.get('symbol', '')
+                _n = si.get('name', '')
+                _s = si.get('sector', '')
+                if not _c or _c in _prepared_codes or is_st_stock(_n):
+                    continue
+                _cdf = load_cached_kline(_c, cache_dir)
+                _cdf = _sanitize_ohlcv(_cdf)
+                if not _cdf.empty and len(_cdf) >= 60:
+                    if _use_fundamental:
+                        _all_data = fundamental_cache.get('all_data', {})
+                        _fd = _all_data.get(_c)
+                        if _fd:
+                            if 'market_cap' not in _cdf.columns:
+                                _cdf['market_cap'] = None
+                            _cdf.loc[_cdf.index[-1], 'market_cap'] = _fd.get('market_cap_yi', 0) * 1e8 if _fd.get('market_cap_yi') else None
+                            _cdf['market_cap'] = _cdf['market_cap'].ffill().bfill()
+                            if 'pe_ttm' not in _cdf.columns:
+                                _cdf['pe_ttm'] = None
+                            if 'pb' not in _cdf.columns:
+                                _cdf['pb'] = None
+                            _cdf.loc[_cdf.index[-1], 'pe_ttm'] = _fd.get('pe_ttm')
+                            _cdf.loc[_cdf.index[-1], 'pb'] = _fd.get('pb')
+                            _cdf['pe_ttm'] = _cdf['pe_ttm'].ffill().bfill()
+                            _cdf['pb'] = _cdf['pb'].ffill().bfill()
+                    prepared_stocks.append((_c, _n, _s, _cdf))
+                    _prepared_codes.add(_c)
+                    _cache_recovered += 1
+                else:
+                    data_fail += 1
+            print(f"  ✅ 缓存兜底恢复: {_cache_recovered}只, 仍无数据: {not_done - _cache_recovered}只", flush=True)
+        finally:
+            executor.shutdown(wait=False, cancel_futures=True)
         
-        fetcher._bs_logout()
+        try:
+            fetcher._bs_logout()
+        except Exception:
+            pass
         
+        _stage1_elapsed = time.time() - _stage1_t0
         with _kline_fails_lock:
             circuit_msg = f", 熔断跳过" if _kline_consecutive_fails >= _KLINE_CIRCUIT_THRESHOLD else ""
-        print(f"\n✅ 数据获取完成: {len(prepared_stocks)}只有效, {data_fail}只跳过{circuit_msg}", flush=True)
+        print(f"\n✅ 数据获取完成: {len(prepared_stocks)}只有效, {data_fail}只跳过{circuit_msg} (耗时{_stage1_elapsed:.0f}s)", flush=True)
         if _use_fundamental:
             save_fundamental_cache({'date': today, 'all_data': all_fund_data})
 
@@ -3432,7 +3478,7 @@ def main():
             _all_codes = [item[0] for item in prepared_stocks]
             print(f"\n📋 预热行业分类缓存 ({len(_all_codes)} 只)...", flush=True)
             _industry_map = {}
-            _industry_timeout = 90
+            _industry_timeout = 15
             _ind_ok = False
 
             def _warmup_industry():
@@ -3459,6 +3505,7 @@ def main():
         # ========== 阶段1.5: 低成本技术面快筛 Top300 ==========
         _PRESCREEN_TOP_N = 300
         if len(prepared_stocks) > _PRESCREEN_TOP_N:
+            _stage15_t0 = time.time()
             print(f"\n⚡ 阶段1.5: 技术面快筛 (6指标, {len(prepared_stocks)}只 → Top{_PRESCREEN_TOP_N})...")
             _prescreen_strategies = _get_global_strategies()
             _TECH_NAMES = ['MA', 'MACD', 'RSI', 'BOLL', 'KDJ', 'DUAL']
@@ -3495,7 +3542,7 @@ def main():
             _prescreen_results.sort(key=lambda x: x[1], reverse=True)
             _cutoff_score = _prescreen_results[_PRESCREEN_TOP_N - 1][1] if len(_prescreen_results) >= _PRESCREEN_TOP_N else -999
             prepared_stocks = [r[0] for r in _prescreen_results[:_PRESCREEN_TOP_N]]
-            print(f"  ✅ 快筛完成: 保留Top{_PRESCREEN_TOP_N} (最低得分={_cutoff_score:.2f})")
+            print(f"  ✅ 快筛完成: 保留Top{_PRESCREEN_TOP_N} (最低得分={_cutoff_score:.2f}, 耗时{time.time()-_stage15_t0:.0f}s)")
         else:
             print(f"\n📌 股票池≤{_PRESCREEN_TOP_N}只, 跳过快筛直接全量分析")
 
@@ -3504,6 +3551,7 @@ def main():
         llm_workers = 32  # LLM是IO密集型，用更多线程
 
         # --- 阶段2a: 纯计算策略快速打分（12策略，~1min） ---
+        _stage2a_t0 = time.time()
         print(f"\n🚀 阶段2a: {max_workers}线程快速打分 ({len(prepared_stocks)}只, 跳过LLM)...\n")
 
         def analyze_stock_fast(item):
@@ -3550,11 +3598,12 @@ def main():
             return
 
         # --- 阶段2b: LLM增强（全量300只，32线程高并发） ---
-        print(f"\n  ✅ 快速打分完成: {len(fast_results)}只有效，全部进入LLM增强")
+        print(f"\n  ✅ 快速打分完成: {len(fast_results)}只有效，全部进入LLM增强 (耗时{time.time()-_stage2a_t0:.0f}s)")
 
         _code_to_prepared = {item[0]: item for item in prepared_stocks}
         llm_items = [_code_to_prepared[r['code']] for r in fast_results if r['code'] in _code_to_prepared]
 
+        _stage2b_t0 = time.time()
         print(f"\n🧠 阶段2b: {llm_workers}线程LLM增强 ({len(llm_items)}只, NEWS+INDUSTRY_TREND)...\n")
 
         def analyze_stock_full(item):
@@ -3599,7 +3648,7 @@ def main():
             else:
                 full_results.append(r)
 
-        print(f"\n  ✅ LLM增强完成: {len(llm_results)}/{len(llm_items)}只成功")
+        print(f"\n  ✅ LLM增强完成: {len(llm_results)}/{len(llm_items)}只成功 (耗时{time.time()-_stage2b_t0:.0f}s)")
         
         # 保存新闻磁盘缓存（避免下次重复调API）
         try:
@@ -4386,26 +4435,20 @@ def main():
         print(f"\n\n🌐 市场状态: {regime_label} (Regime Score={regime_score:.3f}) | 使用版本: {selected_version} | 统一漏斗TOP{len(top_list)}只 | ⭐双优(基本面+技术面){len(dual_advantage_stocks)}只")
 
         # ========== 6层统一分层榜单（终端输出） ==========
-        # 运行十倍/翻倍模型获取分层数据
+        # 十倍/翻倍模型独立全市场扫描：使用 full_results（全量池），不仅限于 top_list
         _tenbagger_results_term = []
         try:
-            from src.strategies.tenbagger_model import batch_evaluate_tenbagger, TENBAGGER_WATCHLIST
-            _tb_top_codes = {r['code'] for r in top_list}
-            _tb_watchlist_in_pool = []
-            if full_results:
-                _tb_wl_codes = {w['code'] for w in TENBAGGER_WATCHLIST}
-                _tb_watchlist_in_pool = [
-                    r for r in full_results
-                    if r['code'] in _tb_wl_codes and r['code'] not in _tb_top_codes
-                ]
-            _tenbagger_results_term = batch_evaluate_tenbagger(top_list + _tb_watchlist_in_pool, top_n=15)
+            from src.strategies.tenbagger_model import batch_evaluate_tenbagger
+            _tb_pool = full_results if full_results else top_list
+            _tenbagger_results_term = batch_evaluate_tenbagger(_tb_pool, top_n=15)
         except Exception as e:
             logger.warning(f"终端输出十倍股模型异常: {e}")
 
         _doubler_results_term = []
         try:
             from src.strategies.doubler_model import batch_evaluate_doubler
-            _doubler_results_term = batch_evaluate_doubler(top_list, top_n=len(top_list))
+            _db_pool = full_results if full_results else top_list
+            _doubler_results_term = batch_evaluate_doubler(_db_pool, top_n=15)
         except Exception as e:
             logger.warning(f"终端输出翻倍股模型异常: {e}")
 
@@ -4616,7 +4659,7 @@ def main():
         # ========== 日报追加：妙想联动记录 + 策略异常聚合 ==========
         _append_footer_to_report(archive_path, full_results, mx_summary)
 
-        print("\n✅ 分析完成!")
+        print(f"\n✅ 分析完成! (总耗时{time.time()-_main_t0:.0f}s / {(time.time()-_main_t0)/60:.1f}min)")
         return
 
     # ---------- 原有 ensemble / macd 模式 ----------
@@ -4889,7 +4932,7 @@ def main():
     except Exception as e:
         print(f"⚠️ 自动刷新股票池失败: {e}")
 
-    print(f"\n✅ 分析完成!")
+    print(f"\n✅ 分析完成! (总耗时{time.time()-_main_t0:.0f}s / {(time.time()-_main_t0)/60:.1f}min)")
 
 
 if __name__ == '__main__':
